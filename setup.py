@@ -1,0 +1,12 @@
+from setuptools import setup
+
+setup(name='bootstrap-contrast',
+      version='1.0',
+      description='Calculation and Visualization of Confidence Intervals and Effect Sizes for Python.',
+      packages = find_packages(),
+      install_requires = ['numpy','scipy','pandas','seaborn'],
+      url='http://github.com/josesho/bootstrap-contrast',
+      author='Joses Ho',
+      author_email='joseshowh@gmail.com',
+      license='GNU GPLv3',
+      zip_safe=False)
