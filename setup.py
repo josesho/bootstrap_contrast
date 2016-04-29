@@ -1,6 +1,6 @@
 from setuptools import setup, find_packages
 
-setup(name='bootstrap-contrast',
+setup(name='bootstrapContrast',
       version='1.0',
       description='Calculation and Visualization of Confidence Intervals and Effect Sizes for Python.',
       #packages = find_packages(),
