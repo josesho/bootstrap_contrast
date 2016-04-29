@@ -1,5 +1,6 @@
 #import scikits.bootstrap as sciboots
 from collections import OrderedDict
+from scipy.stats import ttest_ind
 from numpy.random import randint
 import matplotlib.pyplot as plt
 from scipy.stats import norm
@@ -211,6 +212,9 @@ def bootstrap_contrast(data = None,
             warnings.warn("Some values used extremal samples results are probably unstable.")
         elif np.any(ind<10) or np.any(ind>=reps-10):
             warnings.warn("Some values used top 10 low/high samples results may be unstable.")
+            
+     # two-tailed t-test to see if the mean of the diff_array is not zero.
+    ttestresult = ttest_ind(arraylist[0], arraylist[1])
     
     result = OrderedDict()
     result['summary'] = ostat
@@ -227,6 +231,7 @@ def bootstrap_contrast(data = None,
     result['statistic_exp'] = statfunction(exp_array[0])
     result['ref_input'] = arraylist[0]
     result['test_input'] = arraylist[1]
+    result['pvalue_ttest'] = ttestresult[1]
     return result
 
 def plotbootstrap(coll, bslist, ax, violinWidth, 
