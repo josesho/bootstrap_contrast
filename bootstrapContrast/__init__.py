@@ -1,1 +1,1 @@
-from .bootstrapcontrast import *
+from .bootstrapContrast import *
