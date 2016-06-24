@@ -1,9 +1,10 @@
-#import scikits.bootstrap as sciboots
+from scipy.stats import ttest_ind, mannwhitneyu, norm
 from collections import OrderedDict
-from scipy.stats import ttest_ind
 from numpy.random import randint
+import matplotlib.gridspec as gridspec
+from matplotlib.lines import Line2D
+from decimal import Decimal
 import matplotlib.pyplot as plt
-from scipy.stats import norm
 import seaborn as sb
 import pandas as pd
 import numpy as np
@@ -17,7 +18,7 @@ try:
 except NameError:
     xrange = range
     
-def bootstrap_indexes(data, n_samples=10000):
+def bootstrap_indexes(data, n_samples=5000):
     # Taken without modification from scikits.bootstrap package
     """
 From the scikits.bootstrap package.
@@ -41,7 +42,7 @@ Y with the ith data point deleted.
     return (np.delete(base,i) for i in base)
 
 def getstatarray(tdata, statfunction, reps, sort = True):
-    # convenience function for use within `bootstrap` and `bootstrap_contrast`.
+    # Convenience function for use within `bootstrap` and `bootstrap_contrast`.
     # Produces `reps` number of bootstrapped samples for `tdata`, using `statfunction`
     # We don't need to generate actual samples that would take more memory.
     # Instead, we can generate just the indexes, and then apply the statfun
@@ -77,11 +78,11 @@ def bca(data, alphas, statarray, statfunction, ostat, reps):
     if np.any(np.isnan(a)):
         nanind = np.nonzero(np.isnan(a))
         warnings.warn("Some acceleration values were undefined. \
-        This is almost certainly because all values \
-        for the statistic were equal. Affected \
-        confidence intervals will have zero width and \
-        may be inaccurate (indexes: {}). \
-        Other warnings are likely related.".format(nanind))
+            This is almost certainly because all values \
+            for the statistic were equal. Affected \
+            confidence intervals will have zero width and \
+            may be inaccurate (indexes: {}). \
+            Other warnings are likely related.".format(nanind))
     zs = z0 + norm.ppf(alphas).reshape(alphas.shape+(1,)*z0.ndim)
     avals = norm.cdf(z0 + zs/(1-a*zs))
     nvals = np.round((reps-1)*avals)
@@ -93,7 +94,7 @@ def bootstrap(data,
               statfunction = None,
               smoothboot = True,
               alpha = 0.05, 
-              reps = 10000):
+              reps = 5000):
     
     # Taken from scikits.bootstrap code
     # Initialise statfunction
@@ -149,7 +150,7 @@ def bootstrap_contrast(data = None,
                        statfunction = None,
                        smoothboot = True,
                        alpha = 0.05, 
-                       reps = 10000):
+                       reps = 2000):
     
     # Taken from scikits.bootstrap code
     # Initialise statfunction
@@ -213,8 +214,11 @@ def bootstrap_contrast(data = None,
         elif np.any(ind<10) or np.any(ind>=reps-10):
             warnings.warn("Some values used top 10 low/high samples results may be unstable.")
             
-     # two-tailed t-test to see if the mean of the diff_array is not zero.
+    # two-tailed t-test to see if the means of both arrays are different.
     ttestresult = ttest_ind(arraylist[0], arraylist[1])
+    
+    # Mann-Whitney test to see if the mean of the diff_array is not zero.
+    mannwhitneyresult = mannwhitneyu(arraylist[0], arraylist[1])
     
     result = OrderedDict()
     result['summary'] = ostat
@@ -227,21 +231,25 @@ def bootstrap_contrast(data = None,
     result['diffarray'] = np.array(diff_array)
     result['pct_low_high_indices'] = pct_low_high
     result['bca_low_high_indices'] = bca_low_high
-    result['statistic_ref'] = statfunction(ref_array[0])
-    result['statistic_exp'] = statfunction(exp_array[0])
+    result['statistic_ref'] = statfunction(ref_array)
+    result['statistic_exp'] = statfunction(exp_array)
     result['ref_input'] = arraylist[0]
     result['test_input'] = arraylist[1]
     result['pvalue_ttest'] = ttestresult[1]
+    result['pvalue_mannWhitney'] = mannwhitneyresult[1] * 2 # two-sided test result.
     return result
 
 def plotbootstrap(coll, bslist, ax, violinWidth, 
-                  violinOffset, color = 'k', 
+                  violinOffset, marker = 'o', color = 'k', 
+                  markerAlpha = 0.75,
+                  markersize = 12,
+                  CiAlpha = 0.75,
                   offset = True,
                   linewidth = 2, 
                   rightspace = 0.2,
-                  **kwargs):
+                 **kwargs):
     # subfunction to plot the bootstrapped distribution along with BCa intervals.
- 
+    
     autoxmin = ax.get_xlim()[0]
     x, _ = np.array(coll.get_offsets()).T
     xmax = x.max()
@@ -262,19 +270,36 @@ def plotbootstrap(coll, bslist, ax, violinWidth,
         b.get_paths()[0].vertices[:, 0] = np.clip(b.get_paths()[0].vertices[:, 0], m, np.inf)
         b.set_color('k')
     
-    #  summary line
-    ax.plot([violinbasex, violinbasex + violinWidth], 
-            [bslist['summary'], bslist['summary']], color, linewidth=2)
+    # Plot the summary measure.
+    ax.plot(violinbasex, bslist['summary'],
+             marker = marker,
+             markerfacecolor = color, 
+             markersize = 12,
+             alpha = markerAlpha
+            )
 
-    #  mean CI
-    ax.plot([violinbasex, violinbasex + violinWidth/3], 
-            [bslist['bca_ci_low'], bslist['bca_ci_low']], color, linewidth)
-    ax.plot([violinbasex, violinbasex + violinWidth/3], 
-            [bslist['bca_ci_high'], bslist['bca_ci_high']], color, linewidth)
-    ax.plot([violinbasex, violinbasex], 
-            [bslist['bca_ci_low'], bslist['bca_ci_high']], color, linewidth)
+    # Plot the CI.
+    ax.plot([violinbasex, violinbasex],
+             [bslist['bca_ci_low'], bslist['bca_ci_high']],
+             color = color, 
+             alpha = CiAlpha,
+             linestyle = 'solid'
+            )
+            
+    ##  summary line
+    #ax.plot([violinbasex, violinbasex + violinWidth], 
+    #        [bslist['summary'], bslist['summary']], color, linewidth=2)
+
+    ##  mean CI
+    #ax.plot([violinbasex, violinbasex + violinWidth/3], 
+    #        [bslist['bca_ci_low'], bslist['bca_ci_low']], color, linewidth)
+    #ax.plot([violinbasex, violinbasex + violinWidth/3], 
+    #        [bslist['bca_ci_high'], bslist['bca_ci_high']], color, linewidth)
+    #ax.plot([violinbasex, violinbasex], 
+    #        [bslist['bca_ci_low'], bslist['bca_ci_high']], color, linewidth)
     
     ax.set_xlim(autoxmin, (violinbasex + violinWidth + rightspace))
+    
     if array.min() < 0 < array.min():
         ax.set_ylim(array.min(), array.max())
     elif 0 <= array.min(): 
@@ -282,7 +307,13 @@ def plotbootstrap(coll, bslist, ax, violinWidth,
     elif 0 >= array.max():
         ax.set_ylim(array.min() * 1.1, 0)
         
-def plotbootstrap_hubspoke(bslist, ax, violinWidth, violinOffset, color = 'k', linewidth = 2):
+def plotbootstrap_hubspoke(bslist, ax, violinWidth, violinOffset, 
+                           marker = 'o', color = 'k', 
+                           markerAlpha = 0.75,
+                           markersize = 12,
+                           CiAlpha = 0.75,
+                           linewidth = 2,
+                          **kwargs):
     
     # subfunction to plot the bootstrapped distribution along with BCa intervals for hub-spoke plots.
     ylims = list()
@@ -301,17 +332,32 @@ def plotbootstrap_hubspoke(bslist, ax, violinWidth, violinOffset, color = 'k', l
             m = np.mean(b.get_paths()[0].vertices[:, 0])
             b.get_paths()[0].vertices[:, 0] = np.clip(b.get_paths()[0].vertices[:, 0], m, np.inf)
             b.set_color('k')
-            
-            #  summary line
-            ax.plot([i+1, i+1 + violinWidth], 
-                    [bsi['summary'], bsi['summary']], color, linewidth=2)
-            #  mean CI
-            ax.plot([i+1, i+1 + violinWidth/3], 
-                    [bsi['bca_ci_low'], bsi['bca_ci_low']], color, linewidth)
-            ax.plot([i+1, i+1 + violinWidth/3], 
-                    [bsi['bca_ci_high'], bsi['bca_ci_high']], color, linewidth)
-            ax.plot([i+1, i+1], 
-                    [bsi['bca_ci_low'], bsi['bca_ci_high']], color, linewidth)
+            # Plot the summary measure.
+            ax.plot(i+1, bsi['summary'],
+                     marker = marker,
+                     markerfacecolor = color, 
+                     markersize = 12,
+                     alpha = markerAlpha
+                    )
+
+            # Plot the CI.
+            ax.plot([i+1, i+1],
+                     [bsi['bca_ci_low'], bsi['bca_ci_high']],
+                     color = color, 
+                     alpha = CiAlpha,
+                     linestyle = 'solid'
+                    )
+
+            ##  summary line
+            #ax.plot([i+1, i+1 + violinWidth], 
+            #        [bsi['summary'], bsi['summary']], color, linewidth=2)
+            ##  mean CI
+            #ax.plot([i+1, i+1 + violinWidth/3], 
+            #        [bsi['bca_ci_low'], bsi['bca_ci_low']], color, linewidth)
+            #ax.plot([i+1, i+1 + violinWidth/3], 
+            #        [bsi['bca_ci_high'], bsi['bca_ci_high']], color, linewidth)
+            #ax.plot([i+1, i+1], 
+            #        [bsi['bca_ci_low'], bsi['bca_ci_high']], color, linewidth)
             
     ylims = np.array(ylims).flatten()
     if ylims.min() < 0 and ylims.max() < 0: # All effect sizes are less than 0.
@@ -347,7 +393,7 @@ def swarmsummary(data, x, y, idx = None, statfunction = None,
     bsplotlist = list(bslist.items())
     
     # Initialise figure
-    sb.set_style('ticks')
+    #sb.set_style('ticks')
     fig, ax = plt.subplots(figsize = figsize)
     sw = sb.swarmplot(data = df, x = x, y = y, order = levs, **kwargs)
     y_lims = list()
@@ -390,205 +436,349 @@ def align_yaxis(ax1, v1, ax2, v2):
     miny, maxy = ax2.get_ylim() 
     ax2.set_ylim(miny+dy, maxy+dy)
     
-def contrastplot(data, x, y, idx = None, statfunction = None, reps = 10000,
-                 violinOffset = 0.1, violinWidth = 0.2, summaryLineWidth = 0.25,
-                 figsize = (7,7), legend = True,
-                 showMeans = True, showMedians = False,
-                 meansColour = 'black', mediansColour = 'black',
+def contrastplot(data, x, y, idx = None, statfunction = None, reps = 5000,
+                 violinOffset = 0.375, violinWidth = 0.2, lineWidth = 2, pal = None,
+                 summaryLineWidth = 0.25, figsize = None, 
+                 heightRatio = (1, 1), alpha = 0.75,
+                 showMeans = True, showMedians = False, 
+                 showCI = False,  legend = True, 
+                 meansColour = 'black', mediansColour = 'black', 
                  meansSummaryLineStyle = 'dashed', mediansSummaryLineStyle = 'dotted',
-                 floatContrast = True, smoothboot = True, alpha = 0.75,
+                 floatContrast = True, smoothboot = True, floatSwarmSpacer = 0.2,
+                 effectSizeYLabel = "Effect Size", swarmShareY = True, contrastShareY = True,
                  **kwargs):
     
+    # Set clean style
+    sb.set_style('ticks')
+
     # initialise statfunction
     if statfunction == None:
         statfunction = np.mean
-
+        
+    # Set palette based on total number of categories in data['x'] or data['hue_column']
+    if 'hue' in kwargs:
+        u = kwargs['hue']
+    else:
+        u = x
+        
+    if pal is None:
+        plotPal = dict( zip( data[u].unique(), sb.color_palette(n_colors = len(data[u].unique())) ) 
+                      )
+    else:
+        plotPal = dict( zip( data[u].unique(), sb.color_palette(palette = pal, 
+                                                                n_colors = len(data[u].unique())) ) 
+                      )
+        
     # Get and set levels of data[x]    
     if idx is None:
-        levs = data[x].unique()
+        # No idx is given, so all groups are compared to the first one in the DataFrame column.
+        levs_tuple = (tuple(data[x].unique()), )
+        widthratio = [1]
+        if len(data[x].unique()) > 2:
+            floatContrast = False
     else:
-        levs = idx
-    # Create temp data for plotting, where the levels are sorted according to idx.
-    plotdat = data.copy()
-    plotdat[x] = plotdat[x].astype("category")             
-    plotdat[x].cat.set_categories(levs,
-                                  ordered = True, 
-                                  inplace = False)  # Sets the categories as idx,
+        # check if multi-plot or not
+        if all(isinstance(element, str) for element in idx):
+            # if idx is supplied but not a multiplot (ie single list or tuple) 
+            levs_tuple = (idx, )
+            widthratio = [1]
+            if len(idx) > 2:
+                floatContrast = False
+        elif all(isinstance(element, tuple) for element in idx):
+            # if idx is supplied, and it is a list/tuple of tuples or lists, we have a multiplot!
+            levs_tuple = idx
+            if (any(len(element) > 2 for element in levs_tuple) and floatContrast == True):
+                # if any of the tuples in idx has more than 2 groups, we turn set floatContrast as False.
+                floatContrast = False
+            
+            # Make sure the widthratio of the seperate multiplot corresponds to how 
+            # many groups there are in each one.
+            widthratio = []
+            for i in levs_tuple:
+                widthratio.append(len(i))
     
-    plotdat.sort([x])                           # then order according to idx!
+    # Create list to collect all the contrast DataFrames generated.
+    contrastList = list()
+    contrastListNames = list()
     
-    # Calculate means
-    means = plotdat.groupby([x], sort = False).mean()[y]
-    # Calculate medians
-    medians = plotdat.groupby([x], sort = False).median()[y]
+    if figsize is None:
+        if len(levs_tuple) > 2:
+            figsize = (12,(12/np.sqrt(2)))
+        elif len(levs_tuple) < 2:
+            figsize = (8,(8/np.sqrt(2)))
+        
+    # Initialise figure, taking into account desired figsize.
+    fig = plt.figure(figsize = figsize)
     
-    # Calculate the contrast for each pairwise comparison
-    if len(levs) > 2:
-        # Calculate the hub-and-spoke bootstrap contrast.
-        bscontrast = list()
-        colnames = list()
-        for i in range (1, len(levs)): # Note that you start from one. No need to do auto-contrast!
-            bscontrast.append(bootstrap_contrast(data = plotdat,
-                                                 x = x, 
-                                                 y = y, 
-                                                 idx = [levs[0],levs[i]], 
-                                                 statfunction = statfunction, 
-                                                 smoothboot = smoothboot,
-                                                 reps = reps))
-            colnames.append(levs[i])
+    # Initialise GridSpec based on `levs_tuple` shape.
+    gsMain = gridspec.GridSpec( 1, np.shape(levs_tuple)[0], # 1 row; columns based on number of tuples in tuple.
+                               width_ratios = widthratio ) 
+    
+    for gsIdx, levs in enumerate(levs_tuple):
+        # Create temp copy of the data for plotting!
+        plotdat = data.copy()
         
-        # Initialize the figure.
-        fig, (ax_top, ax_bottom) = plt.subplots(2, sharex = True, figsize = figsize)
-        sb.set_style('ticks')
-       
-        # Plot the swarmplot on the top axes.
-        sw = sb.swarmplot(data = plotdat, x = x, y = y, 
-                          order = levs, ax = ax_top, 
-                          alpha = alpha,
-                          **kwargs)
-        # Then plot the summary lines.
-        if showMeans is True:
-            for i, m in enumerate(means):
-                ax_top.plot((i - summaryLineWidth, i + summaryLineWidth),            # x-coordinates
-                            (m, m),                                                  # y-coordinates
-                            color = meansColour, linestyle = meansSummaryLineStyle)
-                
-        if showMedians is True:
-            for i, m in enumerate(medians):
-                ax_top.plot((i - summaryLineWidth, i + summaryLineWidth), 
-                            (m, m), 
-                            color = mediansColour, linestyle = mediansSummaryLineStyle)
+        # Make sure the 'x' column is a 'category' type.
+        plotdat[x] = plotdat[x].astype("category")
+        plotdat = plotdat[plotdat[x].isin(levs)]
+        plotdat[x].cat.set_categories(levs, ordered = True, inplace = True)
         
-        if legend is True:
-            ax_top.legend(loc='center left', bbox_to_anchor=(1.1, 1))
-        elif legend is False:
-            ax_top.legend().set_visible(False)
+        # then order according to `levs`!
+        plotdat.sort_values(by = [x])
         
-        # Plot the CIs on the bottom axes.
-        plotbootstrap_hubspoke(bslist = bscontrast,
-                               ax = ax_bottom, 
-                               violinWidth = violinWidth,
-                               violinOffset = violinOffset,
-                               linewidth = 2)
+        # Calculate means
+        means = plotdat.groupby([x], sort = True).mean()[y]
+        # Calculate medians
+        medians = plotdat.groupby([x], sort = True).median()[y]
 
-        # Add zero reference line on bottom axes.
-        ax_bottom.hlines(y = 0,
-                         xmin = ax_bottom.get_xlim()[0], 
-                         xmax = ax_bottom.get_xlim()[1],
-                         linestyle = 'dotted')
-                
-        # Label the bottom y-axis
-        ax_bottom.set_ylabel('Effect Size')
-        sb.despine(ax = ax_top, trim = True)
-        sb.despine(ax = ax_bottom, trim = True)
-        
-        bscontrast = pd.DataFrame(bscontrast).T
-        bscontrast.columns = colnames
-        
-    elif len(levs) == 2:
-        # Calculate bootstrap contrast. 
-        bscontrast = bootstrap_contrast(data = plotdat, 
+        if len(levs) == 2:            
+            # Calculate bootstrap contrast. 
+            tempbs = bootstrap_contrast(data = data, 
                                         x = x, 
-                                        y = y, 
+                                        y = y,
                                         idx = levs, 
                                         statfunction = statfunction, 
                                         smoothboot = smoothboot,
                                         reps = reps)
-
-        if floatContrast:
-            fig = plt.figure(figsize = figsize)
-            sb.set_style('ticks')
-            ax_left = fig.add_subplot(111)
-
-            # Plot the raw data as a swarmplot.
-            sw = sb.swarmplot(data = plotdat, x = x, y = y, 
-                              order = levs, ax = ax_left, 
-                              alpha = alpha,
-                              **kwargs)
-
-            # Get the y-range of the data for y-axis limits
-            y_lims = list()
-            for i in range(0, 2):
-                # Get the y-offsets, save into a list.
-                _, y = np.array(sw.collections[i].get_offsets()).T 
-                y_lims.append(y)
-
-            # Concatenate the list of y-offsets
-            y_lims = np.concatenate(y_lims)
-            # Set the left axis y-limits
-            ax_left.set_ylim(0.9 * y_lims.min(), 1.1 * y_lims.max())
-            sb.despine(ax = ax_left, trim = True)
             
-            # Set up floating axis on right.
-            ax_right = fig.add_axes(ax_left.get_position(), 
-                                    sharex = ax_left, 
-                                    #xlim = ax_left.get_xlim(), 
-                                    frameon = False) # This allows ax_left to be seen beneath ax_right.
+            contrastListNames.append( str(levs[1]) + " v.s " + str(levs[0]) )
+            contrastList.append(tempbs)
 
-            # Then plot the bootstrap
-            # We should only be looking at sw.collections[1],
-            # as contrast plots will only be floating in this condition.
-            plotbootstrap(sw.collections[1],
-                          bslist = bscontrast, 
-                          ax = ax_right, 
-                          violinWidth = violinWidth, 
-                          violinOffset = violinOffset,
-                          color = 'k', 
-                          linewidth = 2)
-            sb.despine(ax = ax_right, top = True, right = False, left = True, trim = True)
+            if floatContrast is True:
+                ax_left = fig.add_subplot(gsMain[gsIdx], frame_on = False) 
+                # Use fig.add_subplot instead of plt.Subplot
+                
+                # Plot the raw data as a swarmplot.
+                if showCI is True:
+                    sb.barplot(data = plotdat, x = x, y = y, 
+                               ax = ax_left, 
+                               alpha = 0, 
+                               ci = 95,
+                               **kwargs)
 
-            ## If the effect size is positive, shift the right axis up.
-            if float(bscontrast['summary']) > 0:
-                rightmin = ax_left.get_ylim()[0] - float(bscontrast['summary'])
-                rightmax = ax_left.get_ylim()[1] - float(bscontrast['summary'])
-            ## If the effect size is negative, shift the right axis down.
-            elif float(bscontrast['summary']) < 0:
-                rightmin = ax_left.get_ylim()[0] + float(bscontrast['summary'])
-                rightmax = ax_left.get_ylim()[1] + float(bscontrast['summary'])
+                sw = sb.swarmplot(data = plotdat, x = x, y = y, 
+                                  order = levs, ax = ax_left, 
+                                  alpha = alpha, palette = plotPal,
+                                  **kwargs)
+                
+                maxXBefore = max(sw.collections[0].get_offsets().T[0])
+                minXAfter = min(sw.collections[1].get_offsets().T[0])
 
-            ## Lastly, align the mean of group 1 with the y = 0 of ax_right.
-            ax_right.set_ylim(rightmin, rightmax)
-            align_yaxis(ax_left, float(bscontrast['statistic_ref']), ax_right, 0)
+                xposAfter = maxXBefore + floatSwarmSpacer
+                xAfterShift = minXAfter - xposAfter
+                offsetSwarmX(sw.collections[1], -xAfterShift)
+                
+                ## Set the ticks locations for ax_left.
+                axLeftLab = ax_left.get_xaxis().get_ticklabels
+                ax_left.get_xaxis().set_ticks((0, xposAfter))
+                ## Set the tick labels!
+                ax_left.set_xticklabels([ax_left.get_xaxis().get_ticklabels()[0].get_text(),
+                                         ax_left.get_xaxis().get_ticklabels()[1].get_text()],
+                                       rotation = 45)
+                ## Remove left axes x-axis title.
+                ax_left.set_xlabel("")
+
+                # Get the y-range of the data for y-axis limits
+                y_lims = list()
+                for i in range(0, 2):
+                    # Get the y-offsets, save into a list.
+                    _, ytemp = np.array(sw.collections[i].get_offsets()).T 
+                    y_lims.append(ytemp)
+
+                # Concatenate the list of y-offsets
+                y_lims = np.concatenate(y_lims)
+                #sb.despine(ax = ax_left, trim = True)
+
+                # Set up floating axis on right.
+                ax_right = ax_left.twinx()
+                #ax_right = fig.add_subplot(gsMain[gsIdx], 
+                #                           sharex = ax_left, 
+                #                           frameon = False) 
+                ## This allows ax_left to be seen beneath ax_right.
+
+                # Then plot the bootstrap
+                # We should only be looking at sw.collections[1],
+                # as contrast plots will only be floating in this condition.
+                plotbootstrap(sw.collections[1],
+                              bslist = tempbs, 
+                              ax = ax_right,
+                              violinWidth = violinWidth, 
+                              violinOffset = violinOffset,
+                              color = 'k', 
+                              linewidth = 2)
+                ## If the effect size is positive, shift the right axis up.
+                if float(tempbs['summary']) > 0:
+                    rightmin = ax_left.get_ylim()[0] - float(tempbs['summary'])
+                    rightmax = ax_left.get_ylim()[1] - float(tempbs['summary'])
+                ## If the effect size is negative, shift the right axis down.
+                elif float(tempbs['summary']) < 0:
+                    rightmin = ax_left.get_ylim()[0] + float(tempbs['summary'])
+                    rightmax = ax_left.get_ylim()[1] + float(tempbs['summary'])
+
+                ## Lastly, align the mean of group 1 with the y = 0 of ax_right.
+                ax_right.set_ylim(rightmin, rightmax)
+                align_yaxis(ax_left, float(tempbs['statistic_ref']), ax_right, 0)
+
+                # Set reference lines
+                ## First get leftmost limit of left reference group
+                xtemp, _ = np.array(sw.collections[0].get_offsets()).T
+                leftxlim = xtemp.min()
+                ## Then get leftmost limit of right test group
+                xtemp, _ = np.array(sw.collections[1].get_offsets()).T
+                rightxlim = xtemp.min()
+
+                ## zero line
+                ax_right.hlines(0,                   # y-coordinates
+                                leftxlim, 3.5,       # x-coordinates, start and end.
+                                linestyle = 'dotted')
+
+                ## effect size line
+                ax_right.hlines(tempbs['summary'], 
+                                rightxlim, 3.5,        # x-coordinates, start and end.
+                                linestyle = 'dotted') 
+
+                if legend is True:
+                    ax_left.legend(loc='center left', bbox_to_anchor=(1.1, 1))
+                elif legend is False:
+                    ax_left.legend().set_visible(False)
+                    
+                if gsIdx > 0:
+                    ax_right.set_ylabel('')
+                    
+                # Trim the floating axes y-axis to an appropriate range around the bootstrap.
+                ## Get the step size of the left axes y-axis.
+                leftAxesStep = ax_left.get_yticks()[1] - ax_left.get_yticks()[0]
+                ## figure out the number of decimal places for `leftStep`.
+                dp = -Decimal(format(leftAxesStep)).as_tuple().exponent
+                floatFormat = '.' + str(dp) + 'f'
+                strLeftAxesStep = format(leftAxesStep)
+                floatYMin = float(format(min(tempbs['diffarray']), floatFormat)) - leftAxesStep/2
+                floatYMax = float(format(max(tempbs['diffarray']), floatFormat)) + leftAxesStep/2
+                if floatYMin > 0.:
+                    floatYMin = 0.
+                if floatYMax < 0.:
+                    floatYMax = 0.
+                    
+                ax_right.yaxis.set_ticks( np.arange(floatYMin,
+                                                    floatYMax,
+                                                    leftAxesStep/2) )
+
+                sb.despine(ax = ax_left, trim = True)
+                sb.despine(ax = ax_right, top = True, right = False, 
+                           left = True, bottom = True, 
+                           trim = True)
+
+            elif floatContrast is False:
+                # Create subGridSpec with 2 rows and 1 column.
+                gsSubGridSpec = gridspec.GridSpecFromSubplotSpec(2, 1, 
+                                                                 subplot_spec = gsMain[gsIdx])
+                ax_top = plt.Subplot(fig, gsSubGridSpec[0, 0], frame_on = False)
+
+                if showCI is True:
+                    sb.barplot(data = plotdat, x = x, y = y, ax = ax_top, alpha = 0, ci = 95)
+
+                # Plot the swarmplot on the top axes.
+                sw = sb.swarmplot(data = plotdat, x = x, y = y, 
+                                  order = levs, ax = ax_top, 
+                                  alpha = alpha, palette = plotPal,
+                                  **kwargs)
+
+                # Then plot the summary lines.
+                if showMeans is True:
+                    for i, m in enumerate(means):
+                        ax_top.plot((i - summaryLineWidth, i + summaryLineWidth),           # x-coordinates
+                                    (m, m),                                                 # y-coordinates
+                                    color = meansColour, linestyle = meansSummaryLineStyle)
+
+                if showMedians is True:
+                    for i, m in enumerate(medians):
+                        ax_top.plot((i - summaryLineWidth, i + summaryLineWidth), 
+                                    (m, m), 
+                                    color = mediansColour, linestyle = mediansSummaryLineStyle)
+                        
+                if legend is True:
+                    ax_top.legend(loc='center left', bbox_to_anchor=(1.1, 1))
+                elif legend is False:
+                    ax_top.legend().set_visible(False)
+                    
+                fig.add_subplot(ax_top)
+                ax_top.set_xlabel('')
+                #sb.despine(ax = ax_top, trim = True)
+                
+                # Initialise bottom axes
+                ax_bottom = plt.Subplot(fig, gsSubGridSpec[1, 0], sharex = ax_top, frame_on = False)
+
+                # Plot the CIs on the bottom axes.
+                plotbootstrap(sw.collections[1],
+                              bslist = tempbs,
+                              ax = ax_bottom, 
+                              violinWidth = violinWidth,
+                              offset = False,
+                              violinOffset = 0,
+                              linewidth = 2)
+
+                # Add zero reference line on bottom axes.
+                ax_bottom.hlines(y = 0,
+                                 xmin = ax_bottom.get_xlim()[0], 
+                                 xmax = ax_bottom.get_xlim()[1],
+                                 linestyle = 'dotted')
+
+                # Set bottom axes ybounds
+                ax_bottom.set_ybound( tempbs['diffarray'].min(), tempbs['diffarray'].max() )
+                
+                # Set xlims so everything is properly visible!
+                swarm_xbounds = ax_top.get_xbound()
+                ax_bottom.set_xbound(swarm_xbounds[0] - (summaryLineWidth * 1.1), 
+                                     swarm_xbounds[1] + (summaryLineWidth * 1.))
+
+                # Equalize the top and bottom sets of axes.
+                
+                # Label the bottom y-axis
+                fig.add_subplot(ax_bottom)
+                ax_bottom.set_ylabel(effectSizeYLabel)
+                sb.despine(ax = ax_top, trim = True)
+                sb.despine(ax = ax_bottom, left = False, bottom = False, trim = True)
+                
+                if gsIdx > 0:
+                    ax_top.set_ylabel('')
+                    ax_bottom.set_ylabel('')
+                    
+        elif len(levs) > 2:
+            bscontrast = list()
+            # Create subGridSpec with 2 rows and 1 column.
+            gsSubGridSpec = gridspec.GridSpecFromSubplotSpec(2, 1, 
+                                                     subplot_spec = gsMain[gsIdx])
+                        
+            # Calculate the hub-and-spoke bootstrap contrast.
+
+            for i in range (1, len(levs)): # Note that you start from one. No need to do auto-contrast!
+                tempbs = bootstrap_contrast(data = data,
+                                            x = x, 
+                                            y = y, 
+                                            idx = [levs[0], levs[i]],
+                                            statfunction = statfunction, 
+                                            smoothboot = smoothboot,
+                                            reps = reps)
+                bscontrast.append(tempbs)
+                contrastList.append(tempbs)
+                contrastListNames.append(levs[i] + ' vs. ' + levs[0])
+
+            # Initialize the top swarmplot axes.
+            ax_top = plt.Subplot(fig, gsSubGridSpec[0, 0], frame_on = False)
             
-            # Set reference lines
-            ## First get leftmost limit of left reference group
-            x, _ = np.array(sw.collections[0].get_offsets()).T
-            leftxlim = x.min()
-            ## Then get leftmost limit of right test group
-            x, _ = np.array(sw.collections[1].get_offsets()).T
-            rightxlim = x.min()
-            
-            ## zero line
-            ax_right.hlines(0,                   # y-coordinates
-                            leftxlim, 3.5,       # x-coordinates, start and end.
-                            linestyle = 'dotted')
+            if showCI is True:
+                sb.barplot(data = plotdat, x = x, y = y, ax = ax_top, alpha = 0, ci = 95)
 
-            ## effect size line
-            ax_right.hlines(bscontrast['summary'], 
-                            rightxlim, 3.5,        # x-coordinates, start and end.
-                            linestyle = 'dotted') 
-            
-            if legend is True:
-                ax_left.legend(loc='center left', bbox_to_anchor=(1.1, 1))
-            elif legend is False:
-                ax_left.legend().set_visible(False)
-
-        else:
-            # Initialize the figure.
-            fig, (ax_top, ax_bottom) = plt.subplots(2, sharex = True, figsize = figsize)
-            sb.set_style('ticks')
-
-            # Plot the swarmplot on the top axes.
             sw = sb.swarmplot(data = plotdat, x = x, y = y, 
                               order = levs, ax = ax_top, 
-                              alpha = alpha,
+                              alpha = alpha, palette = plotPal,
                               **kwargs)
-            
+
             # Then plot the summary lines.
             if showMeans is True:
                 for i, m in enumerate(means):
-                    ax_top.plot((i - summaryLineWidth, i + summaryLineWidth),           # x-coordinates
-                                (m, m),                                                 # y-coordinates
+                    ax_top.plot((i - summaryLineWidth, i + summaryLineWidth),            # x-coordinates
+                                (m, m),                                                  # y-coordinates
                                 color = meansColour, linestyle = meansSummaryLineStyle)
 
             if showMedians is True:
@@ -601,29 +791,489 @@ def contrastplot(data, x, y, idx = None, statfunction = None, reps = 10000,
                 ax_top.legend(loc='center left', bbox_to_anchor=(1.1, 1))
             elif legend is False:
                 ax_top.legend().set_visible(False)
+            
+            fig.add_subplot(ax_top)
+            ax_top.set_xlabel('')
 
+            # Initialise the bottom swarmplot axes.
+            ax_bottom = plt.Subplot(fig, gsSubGridSpec[1, 0], sharex = ax_top, frame_on = False)
+            
             # Plot the CIs on the bottom axes.
-            plotbootstrap(sw.collections[1],
-                          bslist = bscontrast,
-                          ax = ax_bottom, 
-                          violinWidth = violinWidth,
-                          offset = False,
-                          violinOffset = 0,
-                          linewidth = 2)
+            plotbootstrap_hubspoke(bslist = bscontrast,
+                                   ax = ax_bottom, 
+                                   violinWidth = violinWidth,
+                                   violinOffset = violinOffset,
+                                   linewidth = lineWidth)
 
             # Add zero reference line on bottom axes.
             ax_bottom.hlines(y = 0,
                              xmin = ax_bottom.get_xlim()[0], 
                              xmax = ax_bottom.get_xlim()[1],
                              linestyle = 'dotted')
-
+            
+            # Set xlims so everything is properly visible!
+            swarm_xbounds = ax_top.get_xbound()
+            ax_bottom.set_xbound(swarm_xbounds[0] - (summaryLineWidth * 1.1), 
+                                 swarm_xbounds[1] + (summaryLineWidth * 1.))
+            
             # Label the bottom y-axis
-            ax_bottom.set_ylabel('Effect Size')
+            fig.add_subplot(ax_bottom)
+            ax_bottom.set_ylabel(effectSizeYLabel)
             sb.despine(ax = ax_top, trim = True)
-            sb.despine(ax = ax_bottom, trim = True)
+            sb.despine(ax = ax_bottom, left = False, bottom = False, trim = True)
             
-        # turn `bscontrast` into list for easy conversion to pandas DataFrame.
-        dftitle = str(levs[1]) + " v.s " + str(levs[0])
-        bscontrast = pd.DataFrame.from_dict( {dftitle : bscontrast} )
+            if gsIdx > 0:
+                ax_top.set_ylabel('')
+                ax_bottom.set_ylabel('')
             
-    return fig, bscontrast
+    # Turn contrastList into a pandas DataFrame
+    contrastList = pd.DataFrame(contrastList).T
+    contrastList.columns = contrastListNames
+    
+    # Normalize top/left axes to each other
+    if (len(fig.get_axes()) > 2 and swarmShareY is True):
+        normalizeSwarmY(fig)
+    
+    # Normalize bottom/right axes to each other.
+    if (len(fig.get_axes()) > 2 and contrastShareY is True):
+        normalizeContrastY(fig, floatContrast)
+    
+    if swarmShareY is False:
+        for i in range(0, len(fig.get_axes()), 2):
+            sb.despine(ax = fig.get_axes()[i], trim = True)
+                       
+    if contrastShareY is False:
+        for i in range(1, len(fig.get_axes()), 2):
+            if floatContrast is True:
+                sb.despine(ax = fig.get_axes()[i], 
+                           top = True, right = False, left = True, bottom = True, 
+                           trim = True)
+            else:
+                sb.despine(ax = fig.get_axes()[i], trim = True)
+    
+    # Draw back the lines for the leftmost swarm and contrast y-axes.
+    # So we get the axes we need to re-draw.
+    if floatContrast is False:
+        ix = (0,1)
+    else:
+        #ix = list(range(1, len(fig.get_axes()), 2))
+        #ix.append(0)
+        ix = [0]
+    
+    for i in ix:
+        if (floatContrast is False or i == 0):
+            x, _ = fig.get_axes()[i].get_xaxis().get_view_interval()
+        else:
+            _, x = fig.get_axes()[i].get_xaxis().get_view_interval()
+            
+        ymin = fig.get_axes()[i].get_yaxis().get_majorticklocs()[0]
+        ymax = fig.get_axes()[i].get_yaxis().get_majorticklocs()[-1]
+        fig.get_axes()[i].add_artist(Line2D((x, x), (ymin, ymax), color='black', linewidth=2))
+        
+    # Draw back the lines for all the x-axis.
+    for i in range(0, len(fig.get_axes()) ):
+        xmin = fig.get_axes()[i].get_xaxis().get_majorticklocs()[0]
+        xmax = fig.get_axes()[i].get_xaxis().get_majorticklocs()[-1]
+        y, _ = fig.get_axes()[i].get_yaxis().get_view_interval()
+        
+        fig.get_axes()[i].add_artist(Line2D((xmin, xmax), (y, y), color='black', linewidth=2))
+        
+    # Tight Layout!
+    gsMain.tight_layout(fig)
+    
+    # And we're all done.
+    return fig, contrastList
+
+def pairedcontrast(data, x, y, marker, idcol, hue = None,
+    statfunction = None, ylevs = None,
+    beforeAfterSpacer = 0.1, violinWidth = 0.2, 
+    swarmDeltaOffset = 0.3, floatOffset = 0.3, 
+    violinOffset = 0.2,
+    floatViolinOffset = 0.1,
+    **kwargs):
+
+    if hue is not None:
+        huelevs = np.unique(data[hue])
+
+        plotPal = dict( zip( huelevs, 
+                            sb.color_palette(n_colors = len(huelevs))
+                            )
+                       )
+        hueMeltColumn = hue + "_bef"
+        c = None
+    else:
+        c = 'k'
+        
+    yBefore = y + "_bef"
+    yAfter = y + "_aft"
+
+    # Sanity checks below.
+    ## If `ylevs` is not specified, just take the FIRST TWO levels alphabetically.
+    if ylevs is None:
+        ylevs = np.unique(data[x])[0:2]
+    elif ylevs is not None:
+        if len(ylevs) != 2:
+            print("ylevs does not have length 2.")
+            sys.exit(1)
+        
+    if statfunction is None:
+        statfunction = np.mean
+
+    ## Start plotting!!
+    fig = plt.figure(figsize = (8,8))
+    ax_left = plt.subplot(111)
+
+    swarm_raw = sb.swarmplot(data = data, 
+                             x = x, y = y, 
+                             hue = hue,
+                             color = c, 
+                             order = ylevs,
+                             axes = ax_left, 
+                             size = 8, alpha = 0.75)
+    ax_left.set_ylim( (round(min(data[y])), 
+                       round(max(data[y]))) ) # Set a tight y-limit.
+
+    swarm_raw.legend(loc = 2, # matplotlib location code for upper left.
+                     fontsize = 18, markerscale = 2)
+
+    # Shifting the `after` raw swarmplot to appropriate xposition.
+    maxXBefore = max(swarm_raw.collections[0].get_offsets().T[0])
+    minXAfter = min(swarm_raw.collections[1].get_offsets().T[0])
+
+    xposAfter = maxXBefore + beforeAfterSpacer
+    xAfterShift = minXAfter - xposAfter
+    offsetSwarmX(swarm_raw.collections[1], -xAfterShift)
+
+    # Get the x and y coordinates of the plotted swarmdata.
+    plotPoints = pd.concat([ pd.DataFrame( swarm_raw.collections[0].get_offsets() ),
+                            pd.DataFrame( swarm_raw.collections[1].get_offsets() ) ]
+                          )
+
+    # Dress up the DataFrame.
+    plotPoints.columns = ('xval', 'yval')
+    plotPoints = plotPoints.sort_values(by = 'yval')
+    plotPoints.index = data.sort_values(by = y).index
+
+    # Join with data.
+    plotPoints = plotPoints.sort_index().join(data)
+
+    # Unmelt the dataframe. Need to know the column with individual identity.
+    ## Seperate out by levels of grouping
+    first = plotPoints[ plotPoints[x] == ylevs[0] ]
+    second = plotPoints[ plotPoints[x] == ylevs[1] ]
+    ## Then paste the levels together via column.
+    plotPoints = first.merge(second, 
+                              on='id', 
+                              how='outer', 
+                              suffixes=('_bef', '_aft')).reset_index()
+
+    # Plot the lines to join the 'before' points to their respective 'after' points.
+    for i in plotPoints.index:
+        if hue is not None:
+            hueType = plotPoints.ix[i, hueMeltColumn]
+            colors = plotPal[hueType]
+        else:
+            colors = c
+        
+        plt.plot([ plotPoints.ix[i,'xval_bef'], 
+                  plotPoints.ix[i,'xval_aft'] ],
+                 [ plotPoints.ix[i,'yval_bef'], 
+                  plotPoints.ix[i,'yval_aft'] ],
+                 color = colors,
+                 alpha = 0.4,
+                 linestyle = 'solid'
+                )
+        
+    for i in (0,1):
+        # Calculate the boostrapped mean and 95% CI for before and after,
+        # for each of the swarmplot groups.
+        points = pd.DataFrame( swarm_raw.collections[i].get_offsets() )
+        # second column of `points` is the y-values, which is what we want.
+        # run bootstrap on it.
+        bootsRaw = bootstrap(points[1], statfunction = statfunction)
+        summRaw = bootsRaw['summary']
+        lowRaw = bootsRaw['bca_ci_low']
+        highRaw = bootsRaw['bca_ci_high']
+        
+        # Get the x-position of the summary line/violin.
+        if i == 0:
+            xpos = min(points[0]) - violinOffset
+            before_xpos = xpos
+        if i == 1:
+            xpos = max(points[0]) + violinOffset
+            after_xpos = xpos
+        
+        # Plot the summary measure.
+        plt.plot(xpos, summRaw,
+                 marker = 'D',
+                 markerfacecolor = 'k', 
+                 markersize = 12,
+                 alpha = 0.75
+                )
+        
+        # Plot the CI.
+        plt.plot([xpos, xpos],
+                 [lowRaw, highRaw],
+                 color = 'k', 
+                 alpha = 0.75,
+                 linestyle = 'solid'
+                )
+        
+        # Plot the violin-plot.
+        v = swarm_raw.violinplot(bootsRaw['stat_array'], [xpos], 
+                                 widths = violinWidth * 2, 
+                                 showextrema = False, 
+                                 showmeans = False)
+        
+        if i == 0:
+            # show left-half of violin
+            halfviolin(v, right = False)
+        if i == 1:
+            # show right-half of violin
+            halfviolin(v, right = True)
+
+    # Generate floating axes on right
+    ax_float = ax_left.twinx()
+        
+    # Calculate the summary difference and CI.
+    xpos = xposAfter + swarmDeltaOffset + (violinWidth * 2)
+
+    # Handle if no hue given.....
+    floatPlot = pd.DataFrame({'x': [xpos] * np.shape(plotPoints)[0],
+                              'y': plotPoints[yAfter] - plotPoints[yBefore]}
+                            )
+    if hue is not None:
+        floatPlot[hue] = pd.Series(plotPoints[hue + "_bef"])
+        # Make sure floatPlot[hue] has same categorical levels as data[hue].
+        floatPlot[hue] = floatPlot[hue].astype('category')
+        floatPlot[hue].cat.set_categories(data[hue].cat.categories, 
+                                                ordered = True, 
+                                                inplace = True)
+
+    bootsDelta = bootstrap(floatPlot['y'], statfunction = statfunction)
+    summDelta = bootsDelta['summary']
+    lowDelta = bootsDelta['bca_ci_low']
+    highDelta = bootsDelta['bca_ci_high']
+
+    # Plot the delta swarmplot.
+    deltaSwarm = sb.swarmplot(data = floatPlot,
+                              x = 'x',
+                              y = 'y',
+                              marker = '^',
+                              color = c,
+                              hue = hue,
+                              alpha = 0.6,
+                              size = 9)
+    # Make sure they have the same x-limits and y-limits.
+    ax_float.set_xlim(ax_left.get_xlim())
+    ax_float.set_ylim(ax_left.get_ylim())
+    #ax_float.set_ylim(min(floatPlot['y']), max(floatPlot['y']))
+
+    # Shifting the delta swarmplot to appropriate xposition
+    offsetSwarmX(deltaSwarm.collections[0], xpos)
+
+    # set new xpos for delta violin.
+    xpos = deltaSwarmX = xpos + floatViolinOffset
+
+    # Plot the summary measure.
+    plt.plot(xpos, summDelta,
+             axes = ax_float,
+             marker = 'o',
+             markerfacecolor = 'k', 
+             markersize = 12,
+             alpha = 0.75
+            )
+
+    # Plot the CI.
+    plt.plot([xpos, xpos],
+             [lowDelta, highDelta],
+             axes = ax_float,
+             color = 'k', 
+             alpha = 0.75,
+             linestyle = 'solid'
+            )
+
+    # Plot the violin-plot.
+    v = ax_float.violinplot(bootsDelta['stat_array'], [xpos], 
+                             widths = violinWidth * 2, 
+                             showextrema = False, 
+                             showmeans = False)
+    halfviolin(v, right = True, color = 'k')
+
+    # Calculate and plot individual deltas.
+    plotPoints['difference'] = plotPoints[yAfter] - plotPoints[yBefore]
+    floatPlot = pd.DataFrame({'x': np.array([1 + floatOffset + (violinWidth * 2)] * 
+                                             np.shape(plotPoints)[0]),
+                               'y': np.array(plotPoints['difference'])})
+    # Set reference lines
+    ## zero line
+    ax_float.hlines(0,                          # y-coordinate
+                    before_xpos, xpos + 0.25,   # x-coordinates, start and end.
+                    linestyle = 'dotted')
+
+    ## effect size line
+    ax_float.hlines(summDelta, 
+                    after_xpos, xpos + 0.25,    # x-coordinates, start and end.
+                    linestyle = 'dotted') 
+
+    # Set xlimit to appropriate limits..
+    newxlim = (ax_left.get_xlim()[0], xpos + 0.25)
+    ax_left.set_xlim(newxlim)
+
+    # Remove left axes x-axis title.
+    ax_left.set_xlabel("")
+    # Remove floating axes y-axis title.
+    ax_float.set_ylabel("")
+    # Turn off hue legend for floating axes.
+    if hue is not None:
+        ax_float.legend().set_visible(False)
+
+    # Drawing in the x-axis for ax_left.
+    ## Get lowest y-value for ax_left.
+    y = ax_left.get_yaxis().get_view_interval()[0] 
+    ## Set the ticks locations for ax_left.
+    ax_left.get_xaxis().set_ticks((0, xposAfter))
+    ## Set the tick labels!
+    ax_left.set_xticklabels(ylevs, rotation = 45)
+
+    # Align the left axes and the floating axes.
+    align_yaxis(ax_left, statfunction(plotPoints[yBefore]),
+                   ax_float, 0)
+
+    # Add label to ax_float.
+    ax_float.text(x = deltaSwarmX - floatViolinOffset,
+                  y = ax_float.get_yaxis().get_view_interval()[0],
+                  horizontalalignment = 'left',
+                  s = 'Difference',
+                  fontsize = 15)
+
+    # Trim the floating axes y-axis to an appropriate range around the bootstrap.
+    ## Get the step size of the left axes y-axis.
+    leftAxesStep = ax_left.get_yticks()[1] - ax_left.get_yticks()[0]
+    ## figure out the number of decimal places for `leftStep`.
+    dp = -Decimal(format(leftAxesStep)).as_tuple().exponent
+    floatFormat = '.' + str(dp) + 'f'
+    floatYMin = float(format(min(bootsDelta['stat_array']), 
+                             floatFormat)) - leftAxesStep/2
+    floatYMax = float(format(max(bootsDelta['stat_array']), 
+                             floatFormat)) + leftAxesStep/2
+    if floatYMin > 0.:
+        floatYMin = 0.
+    if floatYMax < 0.:
+        floatYMax = 0.
+        
+    ax_float.yaxis.set_ticks( np.arange(floatYMin,
+                                        floatYMax,
+                                        leftAxesStep/2) )
+
+    plt.tight_layout()
+
+    # Despine all axes.
+    sb.despine(ax = ax_left, trim = True)
+    sb.despine(ax = ax_float, right = False, left = True, top = True, trim = True)
+
+    ## And we're done.
+    return fig
+    #WHAT IS OUR CONTRAST PANDAS DATAFRAME
+
+def normalizeSwarmY(fig):
+    allYmax = list()
+    allYmin = list()
+    
+    for i in range(0, len(fig.get_axes()), 2):
+        # First, loop thru the axes and compile a list of their ybounds (aka y-limits).
+        allYmin.append(fig.get_axes()[i].get_ybound()[0])
+        allYmax.append(fig.get_axes()[i].get_ybound()[1])
+
+    # Then loop thru the axes again to equalize them.
+    for i in range(0, len(fig.get_axes()), 2):
+        fig.get_axes()[i].set_ybound(np.min(allYmin), np.max(allYmax))
+        
+        if (i > 0 and len(fig.get_axes()) > 2) :
+            # remove all but the leftmost swarm axes if it is a multiplot.
+            fig.get_axes()[i].get_yaxis().set_visible(False)        
+
+def normalizeContrastY(fig, floatContrast):
+    allYmax = list()
+    allYmin = list()
+    
+    # First, loop thru the axes and compile a list of their ybounds (aka y-limits).
+    for i in range(1, len(fig.get_axes()), 2):
+        allYmin.append(fig.get_axes()[i].get_ybound()[0])
+        allYmax.append(fig.get_axes()[i].get_ybound()[1])
+        
+    # Then loop thru the axes again to equalize them.
+    for i in range(1, len(fig.get_axes()), 2):
+        fig.get_axes()[i].set_ybound(np.min(allYmin), np.max(allYmax))
+        
+        # If they are floating....
+        if (floatContrast is True and i > 1):
+            # Remove the superfluous x-axis for the floating contrast axes as well.
+            fig.get_axes()[i].get_xaxis().set_visible(False)
+                                     
+        # ... but if they are not floating...
+        if floatContrast is False:
+            if (i > 1 and len(fig.get_axes()) > 2):
+                # ... and remove all but the leftmost one.
+                fig.get_axes()[i].get_yaxis().set_visible(False)
+
+def contrastplot_match(figlist = [], top_ybounds = None, bottom_ybounds = None):
+    ## This function is not used anymore.... but never delete any code, no?
+    # Get the max top ybounds
+    if top_ybounds is None:
+        topY = list()
+        topYscales = list()
+        for f in figlist:
+            topY.append(f.get_axes()[0].get_ybound())
+            r = f.get_axes()[0].get_ybound()[1] - f.get_axes()[0].get_ybound()[0]
+            topYscales.append(r)
+            
+        topY = np.array(topY).flatten()
+        top_ybounds = (topY.min(), topY.max())
+    
+    if bottom_ybounds is None:
+        bottomY = list()
+        bottomYscales = list()
+        for f in figlist:
+            bottomY.append(f.get_axes()[1].get_ybound())
+            r = f.get_axes()[0].get_ybound()[1] - f.get_axes()[0].get_ybound()[0]
+            bottomYscales.append(r)
+            
+        bottomY = np.array(bottomY).flatten()
+        bottom_ybounds = (bottomY.min(), bottomY.max())
+    
+    max_top_idx = np.argmax(topYscales)
+    max_bottom_idx = np.argmax(bottomYscales)
+    
+    for f in figlist:
+        f.get_axes()[0].set_ybound( top_ybounds )
+        f.get_axes()[1].set_ybound( bottom_ybounds )
+        
+        f.get_axes()[0].set_yticks( figlist[max_top_idx].get_axes()[0].get_yticks() )
+        f.get_axes()[1].set_yticks( figlist[max_bottom_idx].get_axes()[1].get_yticks() )
+        
+        sb.despine(ax = f.get_axes()[0], trim = True)
+        sb.despine(ax = f.get_axes()[1], trim = True)
+    
+    return figlist
+
+def halfviolin(v, right = True, color = 'k'):
+    for b in v['bodies']:
+            m = np.mean(b.get_paths()[0].vertices[:, 0])
+            if right is False:
+                b.get_paths()[0].vertices[:, 0] = np.clip(b.get_paths()[0].vertices[:, 0], -np.inf, m)
+            if right is True:
+                b.get_paths()[0].vertices[:, 0] = np.clip(b.get_paths()[0].vertices[:, 0], m, np.inf)
+            b.set_color(color)
+            
+def offsetSwarmX(c, xpos):
+    newx = c.get_offsets().T[0] + xpos
+    newxy = np.array([list(newx), list(c.get_offsets().T[1])]).T
+    c.set_offsets(newxy)
+
+def resetSwarmX(c, newxpos):
+    lengthx = len(c.get_offsets().T[0])
+    newx = [newxpos] * lengthx
+    newxy = np.array([list(newx), list(c.get_offsets().T[1])]).T
+    c.set_offsets(newxy)
+    
