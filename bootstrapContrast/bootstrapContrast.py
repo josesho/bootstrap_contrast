@@ -1173,8 +1173,8 @@ def pairedcontrast(data, x, y, marker, idcol, hue = None,
     sb.despine(ax = ax_float, right = False, left = True, top = True, trim = True)
 
     ## And we're done.
-    return fig
-    #WHAT IS OUR CONTRAST PANDAS DATAFRAME
+    return fig, bootsRaw
+    #NEED TO FORMAT bootsRaw into a nice dataframe?
 
 def normalizeSwarmY(fig):
     allYmax = list()
