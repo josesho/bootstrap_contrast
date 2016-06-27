@@ -885,7 +885,7 @@ def contrastplot(data, x, y, idx = None, statfunction = None, reps = 5000,
     return fig, contrastList
 
 def pairedcontrast(data, x, y, marker, idcol, hue = None,
-    statfunction = None, ylevs = None,
+    statfunction = None, xlevs = None,
     beforeAfterSpacer = 0.1, violinWidth = 0.2, 
     swarmDeltaOffset = 0.3, floatOffset = 0.3, 
     violinOffset = 0.2,
@@ -908,12 +908,12 @@ def pairedcontrast(data, x, y, marker, idcol, hue = None,
     yAfter = y + "_aft"
 
     # Sanity checks below.
-    ## If `ylevs` is not specified, just take the FIRST TWO levels alphabetically.
-    if ylevs is None:
-        ylevs = np.unique(data[x])[0:2]
-    elif ylevs is not None:
-        if len(ylevs) != 2:
-            print("ylevs does not have length 2.")
+    ## If `xlevs` is not specified, just take the FIRST TWO levels alphabetically.
+    if xlevs is None:
+        xlevs = np.unique(data[x])[0:2]
+    elif xlevs is not None:
+        if len(xlevs) != 2:
+            print("xlevs does not have length 2.")
             sys.exit(1)
         
     if statfunction is None:
@@ -927,7 +927,7 @@ def pairedcontrast(data, x, y, marker, idcol, hue = None,
                              x = x, y = y, 
                              hue = hue,
                              color = c, 
-                             order = ylevs,
+                             order = xlevs,
                              axes = ax_left, 
                              size = 8, alpha = 0.75)
     ax_left.set_ylim( (round(min(data[y])), 
@@ -959,8 +959,8 @@ def pairedcontrast(data, x, y, marker, idcol, hue = None,
 
     # Unmelt the dataframe. Need to know the column with individual identity.
     ## Seperate out by levels of grouping
-    first = plotPoints[ plotPoints[x] == ylevs[0] ]
-    second = plotPoints[ plotPoints[x] == ylevs[1] ]
+    first = plotPoints[ plotPoints[x] == xlevs[0] ]
+    second = plotPoints[ plotPoints[x] == xlevs[1] ]
     ## Then paste the levels together via column.
     plotPoints = first.merge(second, 
                               on='id', 
@@ -1134,7 +1134,7 @@ def pairedcontrast(data, x, y, marker, idcol, hue = None,
     ## Set the ticks locations for ax_left.
     ax_left.get_xaxis().set_ticks((0, xposAfter))
     ## Set the tick labels!
-    ax_left.set_xticklabels(ylevs, rotation = 45)
+    ax_left.set_xticklabels(xlevs, rotation = 45)
 
     # Align the left axes and the floating axes.
     align_yaxis(ax_left, statfunction(plotPoints[yBefore]),
