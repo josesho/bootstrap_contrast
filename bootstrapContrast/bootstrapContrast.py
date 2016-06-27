@@ -884,7 +884,7 @@ def contrastplot(data, x, y, idx = None, statfunction = None, reps = 5000,
     # And we're all done.
     return fig, contrastList
 
-def pairedcontrast(data, x, y, marker, idcol, hue = None,
+def pairedcontrast(data, x, y, idcol, hue = None,
     statfunction = None, xlevs = None,
     beforeAfterSpacer = 0.1, violinWidth = 0.2, 
     swarmDeltaOffset = 0.3, floatOffset = 0.3, 
