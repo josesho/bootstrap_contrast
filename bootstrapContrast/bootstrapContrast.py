@@ -963,7 +963,7 @@ def pairedcontrast(data, x, y, idcol, hue = None,
     second = plotPoints[ plotPoints[x] == xlevs[1] ]
     ## Then paste the levels together via column.
     plotPoints = first.merge(second, 
-                              on='id', 
+                              on=idcol, 
                               how='outer', 
                               suffixes=('_bef', '_aft')).reset_index()
 
