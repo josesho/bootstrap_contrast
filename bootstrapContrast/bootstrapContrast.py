@@ -1173,8 +1173,7 @@ def pairedcontrast(data, x, y, marker, idcol, hue = None,
     sb.despine(ax = ax_float, right = False, left = True, top = True, trim = True)
 
     ## And we're done.
-    return fig, bootsRaw
-    #NEED TO FORMAT bootsRaw into a nice dataframe?
+    return fig, dictToDf(bootsDelta, x)
 
 def normalizeSwarmY(fig):
     allYmax = list()
@@ -1276,4 +1275,13 @@ def resetSwarmX(c, newxpos):
     newx = [newxpos] * lengthx
     newxy = np.array([list(newx), list(c.get_offsets().T[1])]).T
     c.set_offsets(newxy)
+
+def dictToDf(df, name):
+	# convenience function to convert orderedDict object to pandas DataFrame.
+	# args: df is an orderedDict, name is a string.
+	l = list()
+	l.append(df)
+	l_df = pd.DataFrame(l).T
+	l_df.columns = [name]
+	return l_df
     
