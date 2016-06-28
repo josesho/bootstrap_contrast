@@ -1,4 +1,4 @@
-from scipy.stats import ttest_ind, mannwhitneyu, norm
+from scipy.stats import ttest_ind, ttest_rel, mannwhitneyu, norm
 from collections import OrderedDict
 from numpy.random import randint
 import matplotlib.gridspec as gridspec
@@ -1144,8 +1144,14 @@ def pairedcontrast(data, x, y, idcol, hue = None,
     sb.despine(ax = ax_left, trim = True)
     sb.despine(ax = ax_float, right = False, left = True, top = True, trim = True)
 
-    ## And we're done.
-    return fig, dictToDf(bootsDelta, x)
+    # Calculate p-values.
+    # 1-sample t-test to see if the mean of the difference is different from 0.
+    ttestresult = ttest_1samp(plotPoints['delta_y'], popmean = 0)[1]
+    result = dictToDf(bootsDelta, x)
+    result.ix['ttest_pval', ] = ttestresult
+
+    # And we're done.
+    return fig, result
 
 def normalizeSwarmY(fig):
     allYmax = list()
