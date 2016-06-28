@@ -884,7 +884,7 @@ def contrastplot(data, x, y, idx = None, statfunction = None, reps = 5000,
     # And we're all done.
     return fig, contrastList
 
-def pairedcontrast(data, x, y, idcol, hue = None,
+def pairedcontrast(data, x, y, idcol, #hue = None,
     statfunction = None, xlevs = None,
     beforeAfterSpacer = 0.1, violinWidth = 0.2, 
     swarmDeltaOffset = 0.3, floatOffset = 0.3, 
@@ -899,13 +899,10 @@ def pairedcontrast(data, x, y, idcol, hue = None,
                             sb.color_palette(n_colors = len(huelevs))
                             )
                        )
-        hueMeltColumn = hue + "_bef"
+        #hueMeltColumn = hue + "_bef"
         c = None
     else:
         c = 'k'
-        
-    yBefore = y + "_bef"
-    yAfter = y + "_aft"
 
     # Sanity checks below.
     ## If `xlevs` is not specified, just take the FIRST TWO levels alphabetically.
@@ -925,11 +922,12 @@ def pairedcontrast(data, x, y, idcol, hue = None,
 
     swarm_raw = sb.swarmplot(data = data, 
                              x = x, y = y, 
-                             hue = hue,
                              color = c, 
                              order = xlevs,
                              axes = ax_left, 
-                             size = 8, alpha = 0.75)
+                             size = 8, 
+                             alpha = 0.75,
+                             **kwargs)
     ax_left.set_ylim( (round(min(data[y])), 
                        round(max(data[y]))) ) # Set a tight y-limit.
 
@@ -944,45 +942,50 @@ def pairedcontrast(data, x, y, idcol, hue = None,
     xAfterShift = minXAfter - xposAfter
     offsetSwarmX(swarm_raw.collections[1], -xAfterShift)
 
-    # Get the x and y coordinates of the plotted swarmdata.
-    plotPoints = pd.concat([ pd.DataFrame( swarm_raw.collections[0].get_offsets() ),
-                            pd.DataFrame( swarm_raw.collections[1].get_offsets() ) ]
-                          )
+    # pivot the original df!
+    data_pivot = data.pivot(index = idcol, columns = x, values = y) 
 
-    # Dress up the DataFrame.
-    plotPoints.columns = ('xval', 'yval')
-    plotPoints = plotPoints.sort_values(by = 'yval')
-    plotPoints.index = data.sort_values(by = y).index
+    # create convenient signifiers for column names.
+    befX = str(xlevs[0] + '_x')
+    aftX = str(xlevs[1] + '_x')
 
-    # Join with data.
-    plotPoints = plotPoints.sort_index().join(data)
+    # pandas DataFrame of 'before' group
+    x1 = pd.DataFrame({str(xlevs[0] + '_x') : pd.Series(swarm_raw.collections[0].get_offsets().T[0]),
+                   xlevs[0] : pd.Series(swarm_raw.collections[0].get_offsets().T[1]),
+                   'R' : pd.Series(swarm_raw.collections[0].get_facecolors().T[0]),
+                   'G' : pd.Series(swarm_raw.collections[0].get_facecolors().T[1]),
+                   'B' : pd.Series(swarm_raw.collections[0].get_facecolors().T[2]),
+                  })
+    x1['hue'] = x1[['R', 'G', 'B']].apply(tuple, axis=1)
+    x1 = x1.sort_values(by = xlevs[0])
+    x1.index = data_pivot.sort_values(by = xlevs[0]).index
 
-    # Unmelt the dataframe. Need to know the column with individual identity.
-    ## Seperate out by levels of grouping
-    first = plotPoints[ plotPoints[x] == xlevs[0] ]
-    second = plotPoints[ plotPoints[x] == xlevs[1] ]
-    ## Then paste the levels together via column.
-    plotPoints = first.merge(second, 
-                              on=idcol, 
-                              how='outer', 
-                              suffixes=('_bef', '_aft')).reset_index()
+    # pandas DataFrame of 'after' group
+    x2 = pd.DataFrame( {aftX : pd.Series(swarm_raw.collections[1].get_offsets().T[0]),
+        xlevs[1] : pd.Series(swarm_raw.collections[1].get_offsets().T[1])} )
+    x2 = x2.sort_values(by = xlevs[1])
+    x2.index = data_pivot.sort_values(by = xlevs[1]).index
+
+    # Join x1 and x2, on both their indexes.
+    plotPoints = x1.merge(x2, left_index = True,right_index = True, how='outer')
 
     # Plot the lines to join the 'before' points to their respective 'after' points.
+
     for i in plotPoints.index:
-        if hue is not None:
-            hueType = plotPoints.ix[i, hueMeltColumn]
-            colors = plotPal[hueType]
-        else:
-            colors = c
+        # if hue is not None:
+        #     hueType = plotPoints.ix[i, hueMeltColumn]
+        #     colors = plotPal[hueType]
+        # else:
+        #     colors = c
         
-        plt.plot([ plotPoints.ix[i,'xval_bef'], 
-                  plotPoints.ix[i,'xval_aft'] ],
-                 [ plotPoints.ix[i,'yval_bef'], 
-                  plotPoints.ix[i,'yval_aft'] ],
-                 color = colors,
-                 alpha = 0.4,
-                 linestyle = 'solid'
-                )
+        ax_left.plot([ plotPoints.ix[i, befX],
+            plotPoints.ix[i, aftX] ],
+            [ plotPoints.ix[i, xlevs[0]], 
+            plotPoints.ix[i, xlevs[1]] ],
+            linestyle = 'solid',
+            color = plotPoints.ix[i, 'hue'],
+            alpha = 0.5
+            )
         
     for i in (0,1):
         # Calculate the boostrapped mean and 95% CI for before and after,
