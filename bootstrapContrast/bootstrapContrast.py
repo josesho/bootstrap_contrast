@@ -884,25 +884,13 @@ def contrastplot(data, x, y, idx = None, statfunction = None, reps = 5000,
     # And we're all done.
     return fig, contrastList
 
-def pairedcontrast(data, x, y, idcol, #hue = None,
+def pairedcontrast(data, x, y, idcol, hue = None,
     statfunction = None, xlevs = None,
     beforeAfterSpacer = 0.1, violinWidth = 0.2, 
     swarmDeltaOffset = 0.3, floatOffset = 0.3, 
     violinOffset = 0.2,
     floatViolinOffset = 0.1,
     **kwargs):
-
-    if hue is not None:
-        huelevs = np.unique(data[hue])
-
-        plotPal = dict( zip( huelevs, 
-                            sb.color_palette(n_colors = len(huelevs))
-                            )
-                       )
-        #hueMeltColumn = hue + "_bef"
-        c = None
-    else:
-        c = 'k'
 
     # Sanity checks below.
     ## If `xlevs` is not specified, just take the FIRST TWO levels alphabetically.
@@ -922,7 +910,8 @@ def pairedcontrast(data, x, y, idcol, #hue = None,
 
     swarm_raw = sb.swarmplot(data = data, 
                              x = x, y = y, 
-                             color = c, 
+                             hue = hue,
+                             #color = c, 
                              order = xlevs,
                              axes = ax_left, 
                              size = 8, 
@@ -956,7 +945,8 @@ def pairedcontrast(data, x, y, idcol, #hue = None,
                    'G' : pd.Series(swarm_raw.collections[0].get_facecolors().T[1]),
                    'B' : pd.Series(swarm_raw.collections[0].get_facecolors().T[2]),
                   })
-    x1['hue'] = x1[['R', 'G', 'B']].apply(tuple, axis=1)
+    # join the RGB columns into a tuple, then assign to a column.
+    x1['hue'] = x1[['R', 'G', 'B']].apply(tuple, axis=1) 
     x1 = x1.sort_values(by = xlevs[0])
     x1.index = data_pivot.sort_values(by = xlevs[0]).index
 
@@ -969,14 +959,13 @@ def pairedcontrast(data, x, y, idcol, #hue = None,
     # Join x1 and x2, on both their indexes.
     plotPoints = x1.merge(x2, left_index = True,right_index = True, how='outer')
 
+    # Add the hue column if hue argument was passed.
+    if hue is not None:
+        plotPoints[hue] = data.pivot(index = idcol, columns = x, values = hue)[xlevs[0]]
+
     # Plot the lines to join the 'before' points to their respective 'after' points.
 
     for i in plotPoints.index:
-        # if hue is not None:
-        #     hueType = plotPoints.ix[i, hueMeltColumn]
-        #     colors = plotPal[hueType]
-        # else:
-        #     colors = c
         
         ax_left.plot([ plotPoints.ix[i, befX],
             plotPoints.ix[i, aftX] ],
@@ -1039,44 +1028,47 @@ def pairedcontrast(data, x, y, idcol, #hue = None,
     ax_float = ax_left.twinx()
         
     # Calculate the summary difference and CI.
-    xpos = xposAfter + swarmDeltaOffset + (violinWidth * 2)
+    xposPlus = xposAfter + swarmDeltaOffset + (violinWidth * 2) 
+    plotPoints['delta_y'] = plotPoints[xlevs[0]] - plotPoints[xlevs[1]]
+    plotPoints['delta_x'] = [xpos] * np.shape(plotPoints)[0]
 
-    # Handle if no hue given.....
-    floatPlot = pd.DataFrame({'x': [xpos] * np.shape(plotPoints)[0],
-                              'y': plotPoints[yAfter] - plotPoints[yBefore]}
-                            )
-    if hue is not None:
-        floatPlot[hue] = pd.Series(plotPoints[hue + "_bef"])
-        # Make sure floatPlot[hue] has same categorical levels as data[hue].
-        floatPlot[hue] = floatPlot[hue].astype('category')
-        floatPlot[hue].cat.set_categories(data[hue].cat.categories, 
-                                                ordered = True, 
-                                                inplace = True)
+    # # Handle if no hue given.....
+    # floatPlot = pd.DataFrame({'x': [xpos] * np.shape(plotPoints)[0],
+    #                           'y': plotPoints[yAfter] - plotPoints[yBefore]}
+    #                         )
+    # if hue is not None:
+    #     floatPlot[hue] = pd.Series(plotPoints[hue + "_bef"])
+    #     # Make sure floatPlot[hue] has same categorical levels as data[hue].
+    #     floatPlot[hue] = floatPlot[hue].astype('category')
+    #     floatPlot[hue].cat.set_categories(data[hue].cat.categories, 
+    #                                             ordered = True, 
+    #                                             inplace = True)
 
-    bootsDelta = bootstrap(floatPlot['y'], statfunction = statfunction)
+    bootsDelta = bootstrap(plotPoints['delta_y'] , statfunction = statfunction)
     summDelta = bootsDelta['summary']
     lowDelta = bootsDelta['bca_ci_low']
     highDelta = bootsDelta['bca_ci_high']
 
     # Plot the delta swarmplot.
-    deltaSwarm = sb.swarmplot(data = floatPlot,
-                              x = 'x',
-                              y = 'y',
-                              marker = '^',
-                              color = c,
-                              hue = hue,
-                              alpha = 0.6,
-                              size = 9)
+    deltaSwarm = sb.swarmplot(data = plotPoints,
+        x = 'delta_x',
+        y = 'delta_y',
+        marker = '^',
+        #color = c,
+        hue = hue,
+        alpha = 0.6,
+        size = 9,
+        **kwargs)
     # Make sure they have the same x-limits and y-limits.
     ax_float.set_xlim(ax_left.get_xlim())
     ax_float.set_ylim(ax_left.get_ylim())
     #ax_float.set_ylim(min(floatPlot['y']), max(floatPlot['y']))
 
     # Shifting the delta swarmplot to appropriate xposition
-    offsetSwarmX(deltaSwarm.collections[0], xpos)
+    offsetSwarmX(deltaSwarm.collections[0], xposPlus)
 
     # set new xpos for delta violin.
-    xpos = deltaSwarmX = xpos + floatViolinOffset
+    xposPlusViolin = deltaSwarmX = xposPlus + floatViolinOffset
 
     # Plot the summary measure.
     plt.plot(xpos, summDelta,
@@ -1088,7 +1080,7 @@ def pairedcontrast(data, x, y, idcol, #hue = None,
             )
 
     # Plot the CI.
-    plt.plot([xpos, xpos],
+    plt.plot([xposPlusViolin, xposPlusViolin],
              [lowDelta, highDelta],
              axes = ax_float,
              color = 'k', 
@@ -1097,26 +1089,27 @@ def pairedcontrast(data, x, y, idcol, #hue = None,
             )
 
     # Plot the violin-plot.
-    v = ax_float.violinplot(bootsDelta['stat_array'], [xpos], 
+    v = ax_float.violinplot(bootsDelta['stat_array'], [xposPlusViolin], 
                              widths = violinWidth * 2, 
                              showextrema = False, 
                              showmeans = False)
     halfviolin(v, right = True, color = 'k')
 
     # Calculate and plot individual deltas.
-    plotPoints['difference'] = plotPoints[yAfter] - plotPoints[yBefore]
-    floatPlot = pd.DataFrame({'x': np.array([1 + floatOffset + (violinWidth * 2)] * 
-                                             np.shape(plotPoints)[0]),
-                               'y': np.array(plotPoints['difference'])})
+    # plotPoints['difference'] = plotPoints[yAfter] - plotPoints[yBefore]
+    # floatPlot = pd.DataFrame({'x': np.array([1 + floatOffset + (violinWidth * 2)] * 
+    #                                          np.shape(plotPoints)[0]),
+    #                            'y': np.array(plotPoints['difference'])})
+
     # Set reference lines
     ## zero line
-    ax_float.hlines(0,                          # y-coordinate
-                    before_xpos, xpos + 0.25,   # x-coordinates, start and end.
+    ax_float.hlines(0,                                    # y-coordinate
+                    before_xpos, xposPlusViolin + 0.25,   # x-coordinates, start and end.
                     linestyle = 'dotted')
 
     ## effect size line
     ax_float.hlines(summDelta, 
-                    after_xpos, xpos + 0.25,    # x-coordinates, start and end.
+                    after_xpos, xposPlusViolin + 0.25,
                     linestyle = 'dotted') 
 
     # Set xlimit to appropriate limits..
@@ -1140,7 +1133,7 @@ def pairedcontrast(data, x, y, idcol, #hue = None,
     ax_left.set_xticklabels(xlevs, rotation = 45)
 
     # Align the left axes and the floating axes.
-    align_yaxis(ax_left, statfunction(plotPoints[yBefore]),
+    align_yaxis(ax_left, statfunction(plotPoints[xlevs[0]]),
                    ax_float, 0)
 
     # Add label to ax_float.
