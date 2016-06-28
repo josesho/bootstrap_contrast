@@ -1089,7 +1089,7 @@ def pairedcontrast(data, x, y, idcol, hue = None,
                     linestyle = 'dotted') 
 
     # Set xlimit to appropriate limits..
-    newxlim = (ax_left.get_xlim()[0], xpos + 0.25)
+    newxlim = (ax_left.get_xlim()[0], xposPlusViolin + 0.25)
     ax_left.set_xlim(newxlim)
 
     # Remove left axes x-axis title.
