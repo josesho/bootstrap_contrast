@@ -915,8 +915,8 @@ def pairedcontrast(data, x, y, idcol, hue = None,
                              order = xlevs,
                              axes = ax_left, 
                              **kwargs)
-    ax_left.set_ylim( (round(min(data[y])), 
-                       round(max(data[y]))) ) # Set a tight y-limit.
+    # ax_left.set_ylim( (round(min(data[y])), 
+    #                    round(max(data[y]))) ) # Set a tight y-limit.
 
     if hue is not None:
         swarm_raw.legend(loc = legendLoc, 
@@ -1053,7 +1053,7 @@ def pairedcontrast(data, x, y, idcol, hue = None,
     xposPlusViolin = deltaSwarmX = xposPlus + floatViolinOffset
 
     # Plot the summary measure.
-    plt.plot(xpos, summDelta,
+    plt.plot(xposPlusViolin, summDelta,
              axes = ax_float,
              marker = 'o',
              markerfacecolor = 'k', 
