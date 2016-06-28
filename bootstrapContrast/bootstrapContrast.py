@@ -890,6 +890,7 @@ def pairedcontrast(data, x, y, idcol, hue = None,
     swarmDeltaOffset = 0.3, floatOffset = 0.3, 
     violinOffset = 0.2,
     floatViolinOffset = 0.1,
+    legendLoc = 2, legendFontSize = 12, legendMarkerScale = 1,
     **kwargs):
 
     # Sanity checks below.
@@ -911,17 +912,16 @@ def pairedcontrast(data, x, y, idcol, hue = None,
     swarm_raw = sb.swarmplot(data = data, 
                              x = x, y = y, 
                              hue = hue,
-                             #color = c, 
                              order = xlevs,
                              axes = ax_left, 
-                             size = 8, 
-                             alpha = 0.75,
                              **kwargs)
     ax_left.set_ylim( (round(min(data[y])), 
                        round(max(data[y]))) ) # Set a tight y-limit.
 
-    swarm_raw.legend(loc = 2, # matplotlib location code for upper left.
-                     fontsize = 18, markerscale = 2)
+    if hue is not None:
+        swarm_raw.legend(loc = legendLoc, 
+            fontsize = legendFontSize, 
+            markerscale = legendMarkerScale)
 
     # Shifting the `after` raw swarmplot to appropriate xposition.
     maxXBefore = max(swarm_raw.collections[0].get_offsets().T[0])
@@ -964,16 +964,14 @@ def pairedcontrast(data, x, y, idcol, hue = None,
         plotPoints[hue] = data.pivot(index = idcol, columns = x, values = hue)[xlevs[0]]
 
     # Plot the lines to join the 'before' points to their respective 'after' points.
-
     for i in plotPoints.index:
-        
         ax_left.plot([ plotPoints.ix[i, befX],
             plotPoints.ix[i, aftX] ],
             [ plotPoints.ix[i, xlevs[0]], 
             plotPoints.ix[i, xlevs[1]] ],
             linestyle = 'solid',
             color = plotPoints.ix[i, 'hue'],
-            alpha = 0.5
+            alpha = 0.25
             )
         
     for i in (0,1):
@@ -1028,21 +1026,8 @@ def pairedcontrast(data, x, y, idcol, hue = None,
     ax_float = ax_left.twinx()
         
     # Calculate the summary difference and CI.
-    xposPlus = xposAfter + swarmDeltaOffset + (violinWidth * 2) 
-    plotPoints['delta_y'] = plotPoints[xlevs[0]] - plotPoints[xlevs[1]]
-    plotPoints['delta_x'] = [xpos] * np.shape(plotPoints)[0]
-
-    # # Handle if no hue given.....
-    # floatPlot = pd.DataFrame({'x': [xpos] * np.shape(plotPoints)[0],
-    #                           'y': plotPoints[yAfter] - plotPoints[yBefore]}
-    #                         )
-    # if hue is not None:
-    #     floatPlot[hue] = pd.Series(plotPoints[hue + "_bef"])
-    #     # Make sure floatPlot[hue] has same categorical levels as data[hue].
-    #     floatPlot[hue] = floatPlot[hue].astype('category')
-    #     floatPlot[hue].cat.set_categories(data[hue].cat.categories, 
-    #                                             ordered = True, 
-    #                                             inplace = True)
+    plotPoints['delta_y'] = plotPoints[xlevs[1]] - plotPoints[xlevs[0]]
+    plotPoints['delta_x'] = [0] * np.shape(plotPoints)[0]
 
     bootsDelta = bootstrap(plotPoints['delta_y'] , statfunction = statfunction)
     summDelta = bootsDelta['summary']
@@ -1054,17 +1039,14 @@ def pairedcontrast(data, x, y, idcol, hue = None,
         x = 'delta_x',
         y = 'delta_y',
         marker = '^',
-        #color = c,
         hue = hue,
-        alpha = 0.6,
-        size = 9,
         **kwargs)
     # Make sure they have the same x-limits and y-limits.
     ax_float.set_xlim(ax_left.get_xlim())
     ax_float.set_ylim(ax_left.get_ylim())
-    #ax_float.set_ylim(min(floatPlot['y']), max(floatPlot['y']))
 
     # Shifting the delta swarmplot to appropriate xposition
+    xposPlus = xposAfter + swarmDeltaOffset + (violinWidth * 2)         
     offsetSwarmX(deltaSwarm.collections[0], xposPlus)
 
     # set new xpos for delta violin.
@@ -1095,12 +1077,6 @@ def pairedcontrast(data, x, y, idcol, hue = None,
                              showmeans = False)
     halfviolin(v, right = True, color = 'k')
 
-    # Calculate and plot individual deltas.
-    # plotPoints['difference'] = plotPoints[yAfter] - plotPoints[yBefore]
-    # floatPlot = pd.DataFrame({'x': np.array([1 + floatOffset + (violinWidth * 2)] * 
-    #                                          np.shape(plotPoints)[0]),
-    #                            'y': np.array(plotPoints['difference'])})
-
     # Set reference lines
     ## zero line
     ax_float.hlines(0,                                    # y-coordinate
@@ -1130,7 +1106,7 @@ def pairedcontrast(data, x, y, idcol, hue = None,
     ## Set the ticks locations for ax_left.
     ax_left.get_xaxis().set_ticks((0, xposAfter))
     ## Set the tick labels!
-    ax_left.set_xticklabels(xlevs, rotation = 45)
+    ax_left.set_xticklabels(xlevs, rotation = 45, horizontalalignment = 'right')
 
     # Align the left axes and the floating axes.
     align_yaxis(ax_left, statfunction(plotPoints[xlevs[0]]),
