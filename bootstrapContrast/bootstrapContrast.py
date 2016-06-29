@@ -730,7 +730,7 @@ def contrastplot(data, x, y, idx = None, statfunction = None, reps = 5000,
 
                 # Add zero reference line on bottom axes.
                 ax_bottom.hlines(y = 0,
-                                 xmin = ax_bottom.get_xlim()[0], 
+                                 xmin = ax_bottom.get_view_interval()[0], 
                                  xmax = ax_bottom.get_xlim()[1],
                                  linestyle = 'dotted')
 
@@ -750,6 +750,10 @@ def contrastplot(data, x, y, idx = None, statfunction = None, reps = 5000,
                 sb.despine(ax = ax_top, trim = True)
                 sb.despine(ax = ax_bottom, left = False, bottom = False, trim = True)
                 
+                # Hide the x-axis for ax_top.
+                ax_top.get_xaxis().set_visible(False)
+
+                # Hide the labels for non leftmost plots.
                 if gsIdx > 0:
                     ax_top.set_ylabel('')
                     ax_bottom.set_ylabel('')
@@ -818,7 +822,7 @@ def contrastplot(data, x, y, idx = None, statfunction = None, reps = 5000,
 
             # Add zero reference line on bottom axes.
             ax_bottom.hlines(y = 0,
-                             xmin = ax_bottom.get_xlim()[0], 
+                             xmin = ax_bottom.get_view_interval()[0], 
                              xmax = ax_bottom.get_xlim()[1],
                              linestyle = 'dotted')
             
@@ -832,6 +836,11 @@ def contrastplot(data, x, y, idx = None, statfunction = None, reps = 5000,
             ax_bottom.set_ylabel(effectSizeYLabel)
             sb.despine(ax = ax_top, trim = True)
             sb.despine(ax = ax_bottom, left = False, bottom = False, trim = True)
+            
+            # Hide the x-axis for ax_top.
+            ax_top.get_xaxis().set_visible(False)
+
+            # Hide the labels for non leftmost plots.
             
             if gsIdx > 0:
                 ax_top.set_ylabel('')
