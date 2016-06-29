@@ -1000,6 +1000,7 @@ def pairedcontrast(data, x, y, idcol, hue = None,
         if i == 0:
             xpos = min(points[0]) - violinOffset
             before_xpos = xpos
+            leftAxAlignRef = summRaw
         if i == 1:
             xpos = max(points[0]) + violinOffset
             after_xpos = xpos
@@ -1125,7 +1126,7 @@ def pairedcontrast(data, x, y, idcol, hue = None,
 
     # Add label to ax_float.
     ax_float.text(x = deltaSwarmX - floatViolinOffset,
-                  y = ax_float.get_yaxis().get_view_interval()[0],
+                  y = ax_left.get_yaxis().get_view_interval()[0],
                   horizontalalignment = 'left',
                   s = 'Difference',
                   fontsize = 15)
