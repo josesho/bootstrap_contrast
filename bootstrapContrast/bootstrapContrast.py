@@ -1,4 +1,4 @@
-from scipy.stats import ttest_ind, ttest_rel, mannwhitneyu, norm
+from scipy.stats import ttest_ind, ttest_1samp, ttest_rel, mannwhitneyu, norm
 from collections import OrderedDict
 from numpy.random import randint
 import matplotlib.gridspec as gridspec
