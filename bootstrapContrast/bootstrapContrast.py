@@ -1000,7 +1000,6 @@ def pairedcontrast(data, x, y, idcol, hue = None,
         if i == 0:
             xpos = min(points[0]) - violinOffset
             before_xpos = xpos
-            leftAxAlignRef = summRaw
         if i == 1:
             xpos = max(points[0]) + violinOffset
             after_xpos = xpos
@@ -1120,6 +1119,10 @@ def pairedcontrast(data, x, y, idcol, hue = None,
     ## Set the tick labels!
     ax_left.set_xticklabels(xlevs, rotation = 45, horizontalalignment = 'right')
 
+    # Align the left axes and the floating axes.
+    align_yaxis(ax_left, statfunction(plotPoints[xlevs[0]]),
+                   ax_float, 0)
+
     # Add label to ax_float.
     ax_float.text(x = deltaSwarmX - floatViolinOffset,
                   y = ax_float.get_yaxis().get_view_interval()[0],
@@ -1162,9 +1165,12 @@ def pairedcontrast(data, x, y, idcol, hue = None,
                                         floatYMax,
                                         leftAxesStep) )
 
+<<<<<<< HEAD
     #Align the left axes and the floating axes.
     align_yaxis(ax_left, leftAxAlignRef, ax_float, 0.)
 
+=======
+>>>>>>> parent of 8b186a3... update v 0.224
     plt.tight_layout()
 
     # Despine all axes.
