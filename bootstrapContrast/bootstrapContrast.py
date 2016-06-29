@@ -650,8 +650,8 @@ def contrastplot(data, x, y, idx = None, statfunction = None, reps = 5000,
                 floatFormat = '.' + str(dp) + 'f'
 
                 ## Set the lower and upper bounds of the floating y-axis.
-                floatYMin = float(format(min(tempbs['diffarray']), floatFormat)) - leftAxesStep
-                floatYMax = float(format(max(tempbs['diffarray']), floatFormat)) + leftAxesStep
+                floatYMin = float(format(min(tempbs['diffarray']), floatFormat)) #- leftAxesStep
+                floatYMax = float(format(max(tempbs['diffarray']), floatFormat)) #+ leftAxesStep
 
                 ## Add appropriate value to make sure both `floatYMin` and `floatXMin`
                 AbsFloatYMin = np.ceil( abs(floatYMin/(leftAxesStep)) ) * leftAxesStep
@@ -1129,7 +1129,7 @@ def pairedcontrast(data, x, y, idcol, hue = None,
                   horizontalalignment = 'left',
                   s = 'Difference',
                   fontsize = 15)
-    
+
     # Trim the floating y-axis to an appropriate range around the bootstrap.
     # Then reformat such that the tick steps are half that of the left y-axis.
 
@@ -1140,8 +1140,8 @@ def pairedcontrast(data, x, y, idcol, hue = None,
     floatFormat = '.' + str(dp) + 'f'
 
     ## Set the lower and upper bounds of the floating y-axis.
-    floatYMin = float(format(min(bootsDelta['stat_array']), floatFormat)) - leftAxesStep
-    floatYMax = float(format(max(bootsDelta['stat_array']), floatFormat)) + leftAxesStep
+    floatYMin = float(format(min(plotPoints['delta_y']), floatFormat)) #- leftAxesStep
+    floatYMax = float(format(max(plotPoints['delta_y']), floatFormat)) #+ leftAxesStep
 
     ## Add appropriate value to make sure both `floatYMin` and `floatXMin`
     AbsFloatYMin = np.ceil( abs(floatYMin/(leftAxesStep)) ) * leftAxesStep
