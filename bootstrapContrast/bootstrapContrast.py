@@ -587,14 +587,9 @@ def contrastplot(data, x, y, idx = None, statfunction = None, reps = 5000,
 
                 # Concatenate the list of y-offsets
                 y_lims = np.concatenate(y_lims)
-                #sb.despine(ax = ax_left, trim = True)
 
                 # Set up floating axis on right.
                 ax_right = ax_left.twinx()
-                #ax_right = fig.add_subplot(gsMain[gsIdx], 
-                #                           sharex = ax_left, 
-                #                           frameon = False) 
-                ## This allows ax_left to be seen beneath ax_right.
 
                 # Then plot the bootstrap
                 # We should only be looking at sw.collections[1],
@@ -645,20 +640,37 @@ def contrastplot(data, x, y, idx = None, statfunction = None, reps = 5000,
                 if gsIdx > 0:
                     ax_right.set_ylabel('')
                     
-                # Trim the floating axes y-axis to an appropriate range around the bootstrap.
+                # Trim the floating y-axis to an appropriate range around the bootstrap.
+                # Then reformat such that the tick steps are half that of the left y-axis.
+
                 ## Get the step size of the left axes y-axis.
                 leftAxesStep = ax_left.get_yticks()[1] - ax_left.get_yticks()[0]
                 ## figure out the number of decimal places for `leftStep`.
                 dp = -Decimal(format(leftAxesStep)).as_tuple().exponent
                 floatFormat = '.' + str(dp) + 'f'
-                strLeftAxesStep = format(leftAxesStep)
+
+                ## Set the lower and upper bounds of the floating y-axis.
                 floatYMin = float(format(min(tempbs['diffarray']), floatFormat)) - leftAxesStep/2
                 floatYMax = float(format(max(tempbs['diffarray']), floatFormat)) + leftAxesStep/2
+
+                ## Add appropriate value to make sure both `floatYMin` and `floatXMin`
+                AbsFloatYMin = np.ceil( abs(floatYMin/(leftAxesStep/2)) ) * leftAxesStep/2
+                if floatYMin < 0:
+                    floatYMin = -AbsFloatYMin
+                else:
+                    floatYMin = AbsFloatYMin
+
+                AbsFloatYMax = np.ceil( abs(floatYMax/(leftAxesStep/2)) ) * leftAxesStep/2
+                if floatYMax < 0:
+                    floatYMax = -AbsFloatYMax
+                else:
+                    floatYMax = AbsFloatYMax
+
                 if floatYMin > 0.:
                     floatYMin = 0.
                 if floatYMax < 0.:
                     floatYMax = 0.
-                    
+                
                 ax_right.yaxis.set_ticks( np.arange(floatYMin,
                                                     floatYMax,
                                                     leftAxesStep/2) )
@@ -703,7 +715,6 @@ def contrastplot(data, x, y, idx = None, statfunction = None, reps = 5000,
                     
                 fig.add_subplot(ax_top)
                 ax_top.set_xlabel('')
-                #sb.despine(ax = ax_top, trim = True)
                 
                 # Initialise bottom axes
                 ax_bottom = plt.Subplot(fig, gsSubGridSpec[1, 0], sharex = ax_top, frame_on = False)
