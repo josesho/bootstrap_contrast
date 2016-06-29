@@ -741,11 +741,13 @@ def contrastplot(data, x, y, idx = None, statfunction = None, reps = 5000,
                 swarm_xbounds = ax_top.get_xbound()
                 ax_bottom.set_xbound(swarm_xbounds[0] - (summaryLineWidth * 1.1), 
                                      swarm_xbounds[1] + (summaryLineWidth * 1.))
+
+                # Equalize the top and bottom sets of axes.
                 
                 # Label the bottom y-axis
                 fig.add_subplot(ax_bottom)
                 ax_bottom.set_ylabel(effectSizeYLabel)
-                sb.despine(ax = ax_top, trim = True, bottom = True)
+                sb.despine(ax = ax_top, trim = True)
                 sb.despine(ax = ax_bottom, left = False, bottom = False, trim = True)
                 
                 # Hide the x-axis for ax_top.
@@ -832,7 +834,7 @@ def contrastplot(data, x, y, idx = None, statfunction = None, reps = 5000,
             # Label the bottom y-axis
             fig.add_subplot(ax_bottom)
             ax_bottom.set_ylabel(effectSizeYLabel)
-            sb.despine(ax = ax_top, trim = True, bottom = True)
+            sb.despine(ax = ax_top, trim = True)
             sb.despine(ax = ax_bottom, left = False, bottom = False, trim = True)
             
             # Hide the x-axis for ax_top.
