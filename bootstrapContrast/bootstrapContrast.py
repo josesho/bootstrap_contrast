@@ -650,17 +650,17 @@ def contrastplot(data, x, y, idx = None, statfunction = None, reps = 5000,
                 floatFormat = '.' + str(dp) + 'f'
 
                 ## Set the lower and upper bounds of the floating y-axis.
-                floatYMin = float(format(min(tempbs['diffarray']), floatFormat)) - leftAxesStep/2
-                floatYMax = float(format(max(tempbs['diffarray']), floatFormat)) + leftAxesStep/2
+                floatYMin = float(format(min(tempbs['diffarray']), floatFormat)) - leftAxesStep
+                floatYMax = float(format(max(tempbs['diffarray']), floatFormat)) + leftAxesStep
 
                 ## Add appropriate value to make sure both `floatYMin` and `floatXMin`
-                AbsFloatYMin = np.ceil( abs(floatYMin/(leftAxesStep/2)) ) * leftAxesStep/2
+                AbsFloatYMin = np.ceil( abs(floatYMin/(leftAxesStep)) ) * leftAxesStep
                 if floatYMin < 0:
                     floatYMin = -AbsFloatYMin
                 else:
                     floatYMin = AbsFloatYMin
 
-                AbsFloatYMax = np.ceil( abs(floatYMax/(leftAxesStep/2)) ) * leftAxesStep/2
+                AbsFloatYMax = np.ceil( abs(floatYMax/(leftAxesStep)) ) * leftAxesStep
                 if floatYMax < 0:
                     floatYMax = -AbsFloatYMax
                 else:
@@ -673,7 +673,7 @@ def contrastplot(data, x, y, idx = None, statfunction = None, reps = 5000,
                 
                 ax_right.yaxis.set_ticks( np.arange(floatYMin,
                                                     floatYMax,
-                                                    leftAxesStep/2) )
+                                                    leftAxesStep) )
 
                 sb.despine(ax = ax_left, trim = True)
                 sb.despine(ax = ax_right, top = True, right = False, 
@@ -1129,25 +1129,41 @@ def pairedcontrast(data, x, y, idcol, hue = None,
                   horizontalalignment = 'left',
                   s = 'Difference',
                   fontsize = 15)
+    
+    # Trim the floating y-axis to an appropriate range around the bootstrap.
+    # Then reformat such that the tick steps are half that of the left y-axis.
 
-    # Trim the floating axes y-axis to an appropriate range around the bootstrap.
     ## Get the step size of the left axes y-axis.
     leftAxesStep = ax_left.get_yticks()[1] - ax_left.get_yticks()[0]
     ## figure out the number of decimal places for `leftStep`.
     dp = -Decimal(format(leftAxesStep)).as_tuple().exponent
     floatFormat = '.' + str(dp) + 'f'
-    floatYMin = float(format(min(bootsDelta['stat_array']), 
-                             floatFormat)) - leftAxesStep/2
-    floatYMax = float(format(max(bootsDelta['stat_array']), 
-                             floatFormat)) + leftAxesStep/2
+
+    ## Set the lower and upper bounds of the floating y-axis.
+    floatYMin = float(format(min(bootsDelta['stat_array']), floatFormat)) - leftAxesStep
+    floatYMax = float(format(max(bootsDelta['stat_array']), floatFormat)) + leftAxesStep
+
+    ## Add appropriate value to make sure both `floatYMin` and `floatXMin`
+    AbsFloatYMin = np.ceil( abs(floatYMin/(leftAxesStep)) ) * leftAxesStep
+    if floatYMin < 0:
+        floatYMin = -AbsFloatYMin
+    else:
+        floatYMin = AbsFloatYMin
+
+    AbsFloatYMax = np.ceil( abs(floatYMax/(leftAxesStep)) ) * leftAxesStep
+    if floatYMax < 0:
+        floatYMax = -AbsFloatYMax
+    else:
+        floatYMax = AbsFloatYMax
+
     if floatYMin > 0.:
         floatYMin = 0.
     if floatYMax < 0.:
         floatYMax = 0.
-        
+    
     ax_float.yaxis.set_ticks( np.arange(floatYMin,
                                         floatYMax,
-                                        leftAxesStep/2) )
+                                        leftAxesStep) )
 
     plt.tight_layout()
 
