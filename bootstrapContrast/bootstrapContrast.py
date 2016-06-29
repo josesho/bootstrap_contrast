@@ -1165,12 +1165,9 @@ def pairedcontrast(data, x, y, idcol, hue = None,
                                         floatYMax,
                                         leftAxesStep) )
 
-<<<<<<< HEAD
     #Align the left axes and the floating axes.
     align_yaxis(ax_left, leftAxAlignRef, ax_float, 0.)
 
-=======
->>>>>>> parent of 8b186a3... update v 0.224
     plt.tight_layout()
 
     # Despine all axes.
