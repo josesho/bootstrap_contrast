@@ -876,8 +876,6 @@ def contrastplot(data, x, y, idx = None, statfunction = None, reps = 5000,
     if floatContrast is False:
         ix = (0,1)
     else:
-        #ix = list(range(1, len(fig.get_axes()), 2))
-        #ix.append(0)
         ix = [0]
     
     for i in ix:
@@ -891,6 +889,10 @@ def contrastplot(data, x, y, idx = None, statfunction = None, reps = 5000,
         fig.get_axes()[i].add_artist(Line2D((x, x), (ymin, ymax), color='black', linewidth=2))
         
     # Draw back the lines for all the x-axis.
+    if floatContrast is False:
+        ix = 1
+    else:
+        ix = 0
 
     for i in range(ix, len(fig.get_axes()) ):
         xmin = fig.get_axes()[i].get_xaxis().get_majorticklocs()[0]
