@@ -888,13 +888,14 @@ def contrastplot(data, x, y, idx = None, statfunction = None, reps = 5000,
         ymax = fig.get_axes()[i].get_yaxis().get_majorticklocs()[-1]
         fig.get_axes()[i].add_artist(Line2D((x, x), (ymin, ymax), color='black', linewidth=2))
         
-    # Draw back the lines for all the x-axis.
+    # Draw back the lines for the relevant x-axes.
     if floatContrast is False:
         ix = 1
+        j = 2
     else:
         ix = 0
-
-    for i in range(ix, len(fig.get_axes()) ):
+        j = 1
+    for i in range(ix, len(fig.get_axes()), j):
         xmin = fig.get_axes()[i].get_xaxis().get_majorticklocs()[0]
         xmax = fig.get_axes()[i].get_xaxis().get_majorticklocs()[-1]
         y, _ = fig.get_axes()[i].get_yaxis().get_view_interval()
