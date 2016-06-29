@@ -872,7 +872,7 @@ def contrastplot(data, x, y, idx = None, statfunction = None, reps = 5000,
     # Draw back the lines for the leftmost swarm and contrast y-axes.
     # So we get the axes we need to re-draw.
     if floatContrast is False:
-        ix = [1]
+        ix = (0,1)
     else:
         #ix = list(range(1, len(fig.get_axes()), 2))
         #ix.append(0)
