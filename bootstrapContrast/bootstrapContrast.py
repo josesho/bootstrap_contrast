@@ -968,7 +968,7 @@ def pairedcontrast(data, x, y, idcol, hue = None,
     x2.index = data_pivot.sort_values(by = xlevs[1]).index
 
     # Join x1 and x2, on both their indexes.
-    plotPoints = x1.merge(x2, left_index = True,right_index = True, how='outer')
+    plotPoints = x1.merge(x2, left_index = True, right_index = True, how='outer')
 
     # Add the hue column if hue argument was passed.
     if hue is not None:
@@ -992,7 +992,7 @@ def pairedcontrast(data, x, y, idcol, hue = None,
         # second column of `points` is the y-values, which is what we want.
         # run bootstrap on it.
         bootsRaw = bootstrap(points[1], statfunction = statfunction)
-        summRaw = bootsRaw['summary']
+        summRaw = statfunction(points[1])
         lowRaw = bootsRaw['bca_ci_low']
         highRaw = bootsRaw['bca_ci_high']
         
@@ -1124,8 +1124,8 @@ def pairedcontrast(data, x, y, idcol, hue = None,
     align_yaxis(ax_left, statfunction(plotPoints[xlevs[0]]),
                    ax_float, 0)
 
-    # Add label to ax_float.
-    ax_float.text(x = deltaSwarmX - floatViolinOffset,
+    # Add label to floating axes. But on ax_left!
+    ax_left.text(x = deltaSwarmX - floatViolinOffset,
                   y = ax_left.get_yaxis().get_view_interval()[0],
                   horizontalalignment = 'left',
                   s = 'Difference',
