@@ -1127,9 +1127,6 @@ def pairedcontrast(data, x, y, idcol, hue = None,
                   s = 'Difference',
                   fontsize = 15)
 
-    #Align the left axes and the floating axes.
-    align_yaxis(ax_left, leftAxAlignRef, ax_float, 0.)
-
     # Trim the floating y-axis to an appropriate range around the bootstrap.
     # Then reformat such that the tick steps are half that of the left y-axis.
 
@@ -1164,6 +1161,9 @@ def pairedcontrast(data, x, y, idcol, hue = None,
     ax_float.yaxis.set_ticks( np.arange(floatYMin,
                                         floatYMax,
                                         leftAxesStep) )
+
+    #Align the left axes and the floating axes.
+    align_yaxis(ax_left, leftAxAlignRef, ax_float, 0.)
 
     plt.tight_layout()
 
