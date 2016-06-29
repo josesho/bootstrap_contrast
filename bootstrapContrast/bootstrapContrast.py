@@ -747,7 +747,7 @@ def contrastplot(data, x, y, idx = None, statfunction = None, reps = 5000,
                 # Label the bottom y-axis
                 fig.add_subplot(ax_bottom)
                 ax_bottom.set_ylabel(effectSizeYLabel)
-                sb.despine(ax = ax_top, trim = True)
+                sb.despine(ax = ax_top, trim = True, bottom = True)
                 sb.despine(ax = ax_bottom, left = False, bottom = False, trim = True)
                 
                 # Hide the x-axis for ax_top.
@@ -834,7 +834,7 @@ def contrastplot(data, x, y, idx = None, statfunction = None, reps = 5000,
             # Label the bottom y-axis
             fig.add_subplot(ax_bottom)
             ax_bottom.set_ylabel(effectSizeYLabel)
-            sb.despine(ax = ax_top, trim = True)
+            sb.despine(ax = ax_top, trim = True, bottom = True)
             sb.despine(ax = ax_bottom, left = False, bottom = False, trim = True)
             
             # Hide the x-axis for ax_top.
@@ -891,7 +891,8 @@ def contrastplot(data, x, y, idx = None, statfunction = None, reps = 5000,
         fig.get_axes()[i].add_artist(Line2D((x, x), (ymin, ymax), color='black', linewidth=2))
         
     # Draw back the lines for all the x-axis.
-    for i in range(0, len(fig.get_axes()) ):
+
+    for i in range(ix, len(fig.get_axes()) ):
         xmin = fig.get_axes()[i].get_xaxis().get_majorticklocs()[0]
         xmax = fig.get_axes()[i].get_xaxis().get_majorticklocs()[-1]
         y, _ = fig.get_axes()[i].get_yaxis().get_view_interval()
