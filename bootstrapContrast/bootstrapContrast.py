@@ -890,8 +890,8 @@ def contrastplot(data, x, y, idx = None, statfunction = None, reps = 5000,
         
         # Add zero reference line on bottom axes.
         fig.get_axes()[i].hlines(y = 0,
-            xmin = ax_bottom.get_xaxis().get_view_interval()[0], 
-            xmax = ax_bottom.get_xaxis().get_view_interval()[1],
+            xmin = fig.get_axes()[i].get_xaxis().get_view_interval()[0], 
+            xmax = fig.get_axes()[i].get_xaxis().get_view_interval()[1],
             linestyle = referenceLineStyle,
             linewidth = 1,
             color = 'k')
