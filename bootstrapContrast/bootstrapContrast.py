@@ -720,14 +720,6 @@ def contrastplot(data, x, y, idx = None, statfunction = None, reps = 5000,
                 # Initialise bottom axes
                 ax_bottom = plt.Subplot(fig, gsSubGridSpec[1, 0], sharex = ax_top, frame_on = False)
 
-                # Add zero reference line on bottom axes.
-                ax_bottom.hlines(y = 0,
-                    xmin = ax_bottom.get_xaxis().get_view_interval()[0], 
-                    xmax = ax_bottom.get_xaxis().get_view_interval()[1],
-                    linestyle = referenceLineStyle,
-                    linewidth = 1,
-                    color = 'k')
-
                 # Plot the CIs on the bottom axes.
                 plotbootstrap(sw.collections[1],
                               bslist = tempbs,
@@ -813,14 +805,6 @@ def contrastplot(data, x, y, idx = None, statfunction = None, reps = 5000,
 
             # Initialise the bottom swarmplot axes.
             ax_bottom = plt.Subplot(fig, gsSubGridSpec[1, 0], sharex = ax_top, frame_on = False)
-            
-            # Add zero reference line on bottom axes.
-            ax_bottom.hlines(y = 0,
-                xmin = ax_bottom.get_xaxis().get_view_interval()[0], 
-                xmax = ax_bottom.get_xaxis().get_view_interval()[1],
-                linestyle = referenceLineStyle,
-                linewidth = 1,
-                color = 'k')
 
             # Plot the CIs on the bottom axes.
             plotbootstrap_hubspoke(bslist = bscontrast,
@@ -890,6 +874,7 @@ def contrastplot(data, x, y, idx = None, statfunction = None, reps = 5000,
         fig.get_axes()[i].add_artist(Line2D((x, x), (ymin, ymax), color='black', linewidth=2))
         
     # Draw back the lines for the relevant x-axes.
+    # Also draw reference zero lines.
     if floatContrast is False:
         ix = 1
         j = 2
@@ -902,6 +887,14 @@ def contrastplot(data, x, y, idx = None, statfunction = None, reps = 5000,
         y, _ = fig.get_axes()[i].get_yaxis().get_view_interval()
         
         fig.get_axes()[i].add_artist(Line2D((xmin, xmax), (y, y), color='black', linewidth=2))
+        
+        # Add zero reference line on bottom axes.
+        fig.get_axes()[i].hlines(y = 0,
+            xmin = ax_bottom.get_xaxis().get_view_interval()[0], 
+            xmax = ax_bottom.get_xaxis().get_view_interval()[1],
+            linestyle = referenceLineStyle,
+            linewidth = 1,
+            color = 'k')
         
     # Tight Layout!
     gsMain.tight_layout(fig)
