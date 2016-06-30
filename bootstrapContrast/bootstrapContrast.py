@@ -728,12 +728,6 @@ def contrastplot(data, x, y, idx = None, statfunction = None, reps = 5000,
                               violinOffset = 0,
                               linewidth = 2)
 
-                # Add zero reference line on bottom axes.
-                ax_bottom.hlines(y = 0,
-                                 xmin = ax_bottom.get_xaxis().get_view_interval()[0], 
-                                 xmax = ax_bottom.get_xlim()[1],
-                                 linestyle = 'dotted')
-
                 # Set bottom axes ybounds
                 ax_bottom.set_ybound( tempbs['diffarray'].min(), tempbs['diffarray'].max() )
                 
@@ -749,6 +743,12 @@ def contrastplot(data, x, y, idx = None, statfunction = None, reps = 5000,
                 ax_bottom.set_ylabel(effectSizeYLabel)
                 sb.despine(ax = ax_top, trim = True, bottom = True)
                 sb.despine(ax = ax_bottom, left = False, bottom = False, trim = True)
+
+                # Add zero reference line on bottom axes.
+                ax_bottom.hlines(y = 0,
+                                 xmin = ax_bottom.get_xaxis().get_view_interval()[0], 
+                                 xmax = ax_bottom.get_xaxis().get_view_interval()[1],
+                                 linestyle = 'dotted')
                 
                 # Hide the x-axis for ax_top.
                 ax_top.get_xaxis().set_visible(False)
@@ -819,12 +819,6 @@ def contrastplot(data, x, y, idx = None, statfunction = None, reps = 5000,
                                    violinWidth = violinWidth,
                                    violinOffset = violinOffset,
                                    linewidth = lineWidth)
-
-            # Add zero reference line on bottom axes.
-            ax_bottom.hlines(y = 0,
-                             xmin = ax_bottom.get_xaxis().get_view_interval()[0], 
-                             xmax = ax_bottom.get_xlim()[1],
-                             linestyle = 'dotted')
             
             # Set xlims so everything is properly visible!
             swarm_xbounds = ax_top.get_xbound()
@@ -836,11 +830,15 @@ def contrastplot(data, x, y, idx = None, statfunction = None, reps = 5000,
             ax_bottom.set_ylabel(effectSizeYLabel)
             sb.despine(ax = ax_top, trim = True, bottom = True)
             sb.despine(ax = ax_bottom, left = False, bottom = False, trim = True)
+
+            # Add zero reference line on bottom axes.
+            ax_bottom.hlines(y = 0,
+                             xmin = ax_top.get_xaxis().get_view_interval()[0], 
+                             xmax = ax_top.get_xaxis().get_view_interval()[0],
+                             linestyle = 'dotted')
             
             # Hide the x-axis for ax_top.
             ax_top.get_xaxis().set_visible(False)
-
-            # Hide the labels for non leftmost plots.
             
             if gsIdx > 0:
                 ax_top.set_ylabel('')
