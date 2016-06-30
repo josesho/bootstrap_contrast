@@ -441,8 +441,9 @@ def contrastplot(data, x, y, idx = None, statfunction = None, reps = 5000,
                  summaryLineWidth = 0.25, figsize = None, 
                  heightRatio = (1, 1), alpha = 0.75,
                  showMeans = True, showMedians = False, 
+                 summaryLine = True, summaryBar = False,
                  showCI = False,  legend = True, 
-                 meansColour = 'black', mediansColour = 'black', 
+                 meansColour = 'black', mediansColour = 'black', summaryBarColor = 'grey',
                  meansSummaryLineStyle = 'dashed', mediansSummaryLineStyle = 'dotted',
                  referenceLineStyle = 'dotted',
                  floatContrast = True, smoothboot = True, floatSwarmSpacer = 0.2,
@@ -455,6 +456,11 @@ def contrastplot(data, x, y, idx = None, statfunction = None, reps = 5000,
     # initialise statfunction
     if statfunction == None:
         statfunction = np.mean
+
+    # Ensure summaryLine and summaryBar are not displayed together.
+    if summaryLine is True and summaryBar is True:
+        summaryBar = True
+        summaryLine = False
         
     # Set palette based on total number of categories in data['x'] or data['hue_column']
     if 'hue' in kwargs:
@@ -698,16 +704,30 @@ def contrastplot(data, x, y, idx = None, statfunction = None, reps = 5000,
 
                 # Then plot the summary lines.
                 if showMeans is True:
-                    for i, m in enumerate(means):
-                        ax_top.plot((i - summaryLineWidth, i + summaryLineWidth),           # x-coordinates
-                                    (m, m),                                                 # y-coordinates
-                                    color = meansColour, linestyle = meansSummaryLineStyle)
+                    if summaryLine is True:
+                        for i, m in enumerate(means):
+                            ax_top.plot((i - summaryLineWidth, i + summaryLineWidth),           # x-coordinates
+                                        (m, m),                                                 # y-coordinates
+                                        color = meansColour, linestyle = meansSummaryLineStyle)
+                    elif summaryBar is True:
+                        sb.barplot(x = means.index, 
+                            y = means.values, 
+                            facecolor = summaryBarColor, 
+                            ax = ax_top, 
+                            alpha = 0.25)
 
                 if showMedians is True:
-                    for i, m in enumerate(medians):
-                        ax_top.plot((i - summaryLineWidth, i + summaryLineWidth), 
-                                    (m, m), 
-                                    color = mediansColour, linestyle = mediansSummaryLineStyle)
+                    if summaryLine is True:
+                        for i, m in enumerate(medians):
+                            ax_top.plot((i - summaryLineWidth, i + summaryLineWidth), 
+                                        (m, m), 
+                                        color = mediansColour, linestyle = mediansSummaryLineStyle)
+                    elif summaryBar is True:
+                        sb.barplot(x = medians.index, 
+                            y = medians.values, 
+                            facecolor = summaryBarColor, 
+                            ax = ax_top, 
+                            alpha = 0.25)
                         
                 if legend is True:
                     ax_top.legend(loc='center left', bbox_to_anchor=(1.1, 1))
@@ -784,16 +804,30 @@ def contrastplot(data, x, y, idx = None, statfunction = None, reps = 5000,
 
             # Then plot the summary lines.
             if showMeans is True:
-                for i, m in enumerate(means):
-                    ax_top.plot((i - summaryLineWidth, i + summaryLineWidth),            # x-coordinates
-                                (m, m),                                                  # y-coordinates
-                                color = meansColour, linestyle = meansSummaryLineStyle)
+                if summaryLine is True:
+                    for i, m in enumerate(means):
+                        ax_top.plot((i - summaryLineWidth, i + summaryLineWidth),           # x-coordinates
+                                    (m, m),                                                 # y-coordinates
+                                    color = meansColour, linestyle = meansSummaryLineStyle)
+                elif summaryBar is True:
+                    sb.barplot(x = means.index, 
+                        y = means.values, 
+                        facecolor = summaryBarColor, 
+                        ax = ax_top, 
+                        alpha = 0.25)
 
             if showMedians is True:
-                for i, m in enumerate(medians):
-                    ax_top.plot((i - summaryLineWidth, i + summaryLineWidth), 
-                                (m, m), 
-                                color = mediansColour, linestyle = mediansSummaryLineStyle)
+                if summaryLine is True:
+                    for i, m in enumerate(medians):
+                        ax_top.plot((i - summaryLineWidth, i + summaryLineWidth), 
+                                    (m, m), 
+                                    color = mediansColour, linestyle = mediansSummaryLineStyle)
+                elif summaryBar is True:
+                    sb.barplot(x = medians.index, 
+                        y = medians.values, 
+                        facecolor = summaryBarColor, 
+                        ax = ax_top, 
+                        alpha = 0.25)
 
             if legend is True:
                 ax_top.legend(loc='center left', bbox_to_anchor=(1.1, 1))
@@ -887,7 +921,7 @@ def contrastplot(data, x, y, idx = None, statfunction = None, reps = 5000,
         y, _ = fig.get_axes()[i].get_yaxis().get_view_interval()
         
         fig.get_axes()[i].add_artist(Line2D((xmin, xmax), (y, y), color='black', linewidth=2))
-        
+
         # Add zero reference line on bottom axes.
         fig.get_axes()[i].hlines(y = 0,
             xmin = fig.get_axes()[i].get_xaxis().get_view_interval()[0], 
