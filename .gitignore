@@ -2,3 +2,6 @@
 bootstrapContrast.egg-info/
 # pycache folder
 bootstrapContrast/__pycache__/
+# .ipynb files used during testing
+bootstrapContrast/*.ipynb
+
