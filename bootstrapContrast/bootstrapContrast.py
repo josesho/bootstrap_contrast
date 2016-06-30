@@ -941,7 +941,7 @@ def pairedcontrast(data, x, y, idcol, hue = None,
     beforeAfterSpacer = 0.1, violinWidth = 0.2, 
     swarmDeltaOffset = 0.3, floatOffset = 0.3, 
     violinOffset = 0.2,
-    floatViolinOffset = 0.1,
+    floatViolinOffset = 0.1, 
     legendLoc = 2, legendFontSize = 12, legendMarkerScale = 1,
     **kwargs):
 
@@ -993,12 +993,12 @@ def pairedcontrast(data, x, y, idcol, hue = None,
     # pandas DataFrame of 'before' group
     x1 = pd.DataFrame({str(xlevs[0] + '_x') : pd.Series(swarm_raw.collections[0].get_offsets().T[0]),
                    xlevs[0] : pd.Series(swarm_raw.collections[0].get_offsets().T[1]),
-                   'R' : pd.Series(swarm_raw.collections[0].get_facecolors().T[0]),
-                   'G' : pd.Series(swarm_raw.collections[0].get_facecolors().T[1]),
-                   'B' : pd.Series(swarm_raw.collections[0].get_facecolors().T[2]),
+                   '_R_' : pd.Series(swarm_raw.collections[0].get_facecolors().T[0]),
+                   '_G_' : pd.Series(swarm_raw.collections[0].get_facecolors().T[1]),
+                   '_B_' : pd.Series(swarm_raw.collections[0].get_facecolors().T[2]),
                   })
     # join the RGB columns into a tuple, then assign to a column.
-    x1['hue'] = x1[['R', 'G', 'B']].apply(tuple, axis=1) 
+    x1['_hue_'] = x1[['_R_', '_G_', '_B_']].apply(tuple, axis=1) 
     x1 = x1.sort_values(by = xlevs[0])
     x1.index = data_pivot.sort_values(by = xlevs[0]).index
 
@@ -1022,7 +1022,7 @@ def pairedcontrast(data, x, y, idcol, hue = None,
             [ plotPoints.ix[i, xlevs[0]], 
             plotPoints.ix[i, xlevs[1]] ],
             linestyle = 'solid',
-            color = plotPoints.ix[i, 'hue'],
+            color = plotPoints.ix[i, '_hue_'],
             alpha = 0.25
             )
         
@@ -1032,7 +1032,18 @@ def pairedcontrast(data, x, y, idcol, hue = None,
         points = pd.DataFrame( swarm_raw.collections[i].get_offsets() )
         # second column of `points` is the y-values, which is what we want.
         # run bootstrap on it.
-        bootsRaw = bootstrap(points[1], statfunction = statfunction)
+
+        tempseries = points[1].tolist()
+        test = tempseries.count(tempseries[0]) != len(tempseries)
+        ## From http://stackoverflow.com/a/3844948/6202321,
+        ## The one-liner x.count(x[0]) == len(x)) checks to see if
+        ## the first element of x appears the same number of times
+        ## as the length of x -- ie, is x composed of just 1 value?
+        ## If x is composed of just 1 value, the line returns True.
+
+        bootsRaw = bootstrap(points[1], 
+            statfunction = statfunction, 
+            smoothboot = test)
         summRaw = statfunction(points[1])
         lowRaw = bootsRaw['bca_ci_low']
         highRaw = bootsRaw['bca_ci_high']
@@ -1040,6 +1051,7 @@ def pairedcontrast(data, x, y, idcol, hue = None,
         # Get the x-position of the summary line/violin.
         if i == 0:
             xpos = min(points[0]) - violinOffset
+            xminPlot = xpos - violinWidth
             before_xpos = xpos
             leftAxAlignRef = summRaw
         if i == 1:
@@ -1082,7 +1094,12 @@ def pairedcontrast(data, x, y, idcol, hue = None,
     plotPoints['delta_y'] = plotPoints[xlevs[1]] - plotPoints[xlevs[0]]
     plotPoints['delta_x'] = [0] * np.shape(plotPoints)[0]
 
-    bootsDelta = bootstrap(plotPoints['delta_y'] , statfunction = statfunction)
+    tempseries = plotPoints['delta_y'].tolist()
+    test = tempseries.count(tempseries[0]) != len(tempseries)
+
+    bootsDelta = bootstrap(plotPoints['delta_y'],
+        statfunction = statfunction, 
+        smoothboot = test)
     summDelta = bootsDelta['summary']
     lowDelta = bootsDelta['bca_ci_low']
     highDelta = bootsDelta['bca_ci_high']
@@ -1129,21 +1146,7 @@ def pairedcontrast(data, x, y, idcol, hue = None,
                              showextrema = False, 
                              showmeans = False)
     halfviolin(v, right = True, color = 'k')
-
-    # Set reference lines
-    ## zero line
-    ax_float.hlines(0,                                    # y-coordinate
-                    before_xpos, xposPlusViolin + 0.25,   # x-coordinates, start and end.
-                    linestyle = 'dotted')
-
-    ## effect size line
-    ax_float.hlines(summDelta, 
-                    after_xpos, xposPlusViolin + 0.25,
-                    linestyle = 'dotted') 
-
-    # Set xlimit to appropriate limits..
-    newxlim = (ax_left.get_xlim()[0], xposPlusViolin + 0.25)
-    ax_left.set_xlim(newxlim)
+    xmaxPlot = xposPlusViolin + violinWidth
 
     # Remove left axes x-axis title.
     ax_left.set_xlabel("")
@@ -1173,7 +1176,6 @@ def pairedcontrast(data, x, y, idcol, hue = None,
                   fontsize = 15)
 
     # Trim the floating y-axis to an appropriate range around the bootstrap.
-    # Then reformat such that the tick steps are half that of the left y-axis.
 
     ## Get the step size of the left axes y-axis.
     leftAxesStep = ax_left.get_yticks()[1] - ax_left.get_yticks()[0]
@@ -1182,8 +1184,8 @@ def pairedcontrast(data, x, y, idcol, hue = None,
     floatFormat = '.' + str(dp) + 'f'
 
     ## Set the lower and upper bounds of the floating y-axis.
-    floatYMin = float(format(min(plotPoints['delta_y']), floatFormat)) #- leftAxesStep
-    floatYMax = float(format(max(plotPoints['delta_y']), floatFormat)) #+ leftAxesStep
+    floatYMin = float(format(min(plotPoints['delta_y']), floatFormat))
+    floatYMax = float(format(max(plotPoints['delta_y']), floatFormat))
 
     ## Add appropriate value to make sure both `floatYMin` and `floatXMin`
     AbsFloatYMin = np.ceil( abs(floatYMin/(leftAxesStep)) ) * leftAxesStep
@@ -1207,7 +1209,22 @@ def pairedcontrast(data, x, y, idcol, hue = None,
                                         floatYMax,
                                         leftAxesStep) )
 
-    #Align the left axes and the floating axes.
+
+    # Set proper x-limits.
+
+    ax_left.set_xlim(xminPlot - 0.2, xmaxPlot + 0.2)
+    # Set reference lines
+    ## zero line
+    ax_float.hlines(0,                              # y-coordinate
+                    before_xpos, xmaxPlot + 0.2,   # x-coordinates, start and end.
+                    linestyle = 'dotted')
+
+    ## effect size line
+    ax_float.hlines(summDelta, 
+                    after_xpos, xmaxPlot + 0.2,
+                    linestyle = 'dotted')
+
+    # Align the left axes and the floating axes.
     align_yaxis(ax_left, leftAxAlignRef, ax_float, 0.)
 
     plt.tight_layout()
