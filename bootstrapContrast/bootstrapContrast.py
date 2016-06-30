@@ -444,6 +444,7 @@ def contrastplot(data, x, y, idx = None, statfunction = None, reps = 5000,
                  showCI = False,  legend = True, 
                  meansColour = 'black', mediansColour = 'black', 
                  meansSummaryLineStyle = 'dashed', mediansSummaryLineStyle = 'dotted',
+                 referenceLineStyle = 'dotted',
                  floatContrast = True, smoothboot = True, floatSwarmSpacer = 0.2,
                  effectSizeYLabel = "Effect Size", swarmShareY = True, contrastShareY = True,
                  **kwargs):
@@ -719,6 +720,14 @@ def contrastplot(data, x, y, idx = None, statfunction = None, reps = 5000,
                 # Initialise bottom axes
                 ax_bottom = plt.Subplot(fig, gsSubGridSpec[1, 0], sharex = ax_top, frame_on = False)
 
+                # Add zero reference line on bottom axes.
+                ax_bottom.hlines(y = 0,
+                    xmin = ax_bottom.get_xaxis().get_view_interval()[0], 
+                    xmax = ax_bottom.get_xaxis().get_view_interval()[1],
+                    linestyle = referenceLineStyle,
+                    linewidth = 1,
+                    color = 'k')
+
                 # Plot the CIs on the bottom axes.
                 plotbootstrap(sw.collections[1],
                               bslist = tempbs,
@@ -735,20 +744,12 @@ def contrastplot(data, x, y, idx = None, statfunction = None, reps = 5000,
                 swarm_xbounds = ax_top.get_xbound()
                 ax_bottom.set_xbound(swarm_xbounds[0] - (summaryLineWidth * 1.1), 
                                      swarm_xbounds[1] + (summaryLineWidth * 1.))
-
-                # Equalize the top and bottom sets of axes.
                 
                 # Label the bottom y-axis
                 fig.add_subplot(ax_bottom)
                 ax_bottom.set_ylabel(effectSizeYLabel)
                 sb.despine(ax = ax_top, trim = True, bottom = True)
                 sb.despine(ax = ax_bottom, left = False, bottom = False, trim = True)
-
-                # Add zero reference line on bottom axes.
-                ax_bottom.hlines(y = 0,
-                                 xmin = ax_bottom.get_xaxis().get_view_interval()[0], 
-                                 xmax = ax_bottom.get_xaxis().get_view_interval()[1],
-                                 linestyle = 'dotted')
                 
                 # Hide the x-axis for ax_top.
                 ax_top.get_xaxis().set_visible(False)
@@ -813,6 +814,14 @@ def contrastplot(data, x, y, idx = None, statfunction = None, reps = 5000,
             # Initialise the bottom swarmplot axes.
             ax_bottom = plt.Subplot(fig, gsSubGridSpec[1, 0], sharex = ax_top, frame_on = False)
             
+            # Add zero reference line on bottom axes.
+            ax_bottom.hlines(y = 0,
+                xmin = ax_bottom.get_xaxis().get_view_interval()[0], 
+                xmax = ax_bottom.get_xaxis().get_view_interval()[1],
+                linestyle = referenceLineStyle,
+                linewidth = 1,
+                color = 'k')
+
             # Plot the CIs on the bottom axes.
             plotbootstrap_hubspoke(bslist = bscontrast,
                                    ax = ax_bottom, 
@@ -830,12 +839,6 @@ def contrastplot(data, x, y, idx = None, statfunction = None, reps = 5000,
             ax_bottom.set_ylabel(effectSizeYLabel)
             sb.despine(ax = ax_top, trim = True, bottom = True)
             sb.despine(ax = ax_bottom, left = False, bottom = False, trim = True)
-
-            # Add zero reference line on bottom axes.
-            ax_bottom.hlines(y = 0,
-                             xmin = ax_bottom.get_xaxis().get_view_interval()[0], 
-                             xmax = ax_bottom.get_xaxis().get_view_interval()[1],
-                             linestyle = 'dotted')
             
             # Hide the x-axis for ax_top.
             ax_top.get_xaxis().set_visible(False)
