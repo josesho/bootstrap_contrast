@@ -1109,8 +1109,7 @@ def pairedcontrast(data, x, y, idcol, hue = None,
         x = 'delta_x',
         y = 'delta_y',
         marker = '^',
-        hue = hue,
-        **kwargs)
+        hue = hue)
     # Make sure they have the same x-limits and y-limits.
     ax_float.set_xlim(ax_left.get_xlim())
     ax_float.set_ylim(ax_left.get_ylim())
