@@ -833,8 +833,8 @@ def contrastplot(data, x, y, idx = None, statfunction = None, reps = 5000,
 
             # Add zero reference line on bottom axes.
             ax_bottom.hlines(y = 0,
-                             xmin = ax_top.get_xaxis().get_view_interval()[0], 
-                             xmax = ax_top.get_xaxis().get_view_interval()[0],
+                             xmin = ax_bottom.get_xaxis().get_view_interval()[0], 
+                             xmax = ax_bottom.get_xaxis().get_view_interval()[1],
                              linestyle = 'dotted')
             
             # Hide the x-axis for ax_top.
