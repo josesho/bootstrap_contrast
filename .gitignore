@@ -5,3 +5,5 @@ bootstrapContrast/__pycache__/
 # .ipynb files used during testing
 bootstrapContrast/*.ipynb
 bootstrapContrast/.ipynb_checkpoints
+# any .CSVs
+bootstrapContrast/*.csv
