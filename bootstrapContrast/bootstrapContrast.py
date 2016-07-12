@@ -940,6 +940,7 @@ def pairedcontrast(data, x, y, idcol, hue = None,
     statfunction = None, xlevs = None,
     beforeAfterSpacer = 0.1, violinWidth = 0.2, 
     swarmDeltaOffset = 0.3, floatOffset = 0.3, 
+    smoothboot = True,
     violinOffset = 0.2,
     floatViolinOffset = 0.1, 
     legendLoc = 2, legendFontSize = 12, legendMarkerScale = 1,
@@ -1034,16 +1035,18 @@ def pairedcontrast(data, x, y, idcol, hue = None,
         # run bootstrap on it.
 
         tempseries = points[1].tolist()
-        test = tempseries.count(tempseries[0]) != len(tempseries)
+        test = tempseries.count(tempseries[0]) == len(tempseries)
         ## From http://stackoverflow.com/a/3844948/6202321,
         ## The one-liner x.count(x[0]) == len(x)) checks to see if
         ## the first element of x appears the same number of times
         ## as the length of x -- ie, is x composed of just 1 value?
         ## If x is composed of just 1 value, the line returns True.
+        if test is True:
+            print("Warning. One or both group(s) contains the same value many times over.")
 
         bootsRaw = bootstrap(points[1], 
             statfunction = statfunction, 
-            smoothboot = test)
+            smoothboot = smoothboot)
         summRaw = statfunction(points[1])
         lowRaw = bootsRaw['bca_ci_low']
         highRaw = bootsRaw['bca_ci_high']
@@ -1099,7 +1102,7 @@ def pairedcontrast(data, x, y, idcol, hue = None,
 
     bootsDelta = bootstrap(plotPoints['delta_y'],
         statfunction = statfunction, 
-        smoothboot = test)
+        smoothboot = smoothboot)
     summDelta = bootsDelta['summary']
     lowDelta = bootsDelta['bca_ci_low']
     highDelta = bootsDelta['bca_ci_high']
