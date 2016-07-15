@@ -1234,7 +1234,7 @@ def pairedcontrast(data, x, y, idcol, hue = None,
     ax_float.hlines(summDelta, 
                     after_xpos, xmaxPlot + 0.2,
                     linestyle = 'solid',
-                    color = 'grey8')
+                    color = 'grey')
 
     # Align the left axes and the floating axes.
     align_yaxis(ax_left, leftAxAlignRef, ax_float, 0.)
