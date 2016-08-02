@@ -10,3 +10,6 @@ bootstrapContrast/*.csv
 bootstrapContrast/*.xlsx
 # any svg outut
 bootstrapContrast/*.svg
+# any png output
+bootstrapContrast/*.png
+
