@@ -450,11 +450,11 @@ def contrastplot(data, x, y, idx = None, statfunction = None, reps = 5000,
                  heightRatio = (1, 1), alpha = 0.75,
                  showMeans = True, showMedians = False, 
                  summaryLine = True, summaryBar = False,
-                 showCI = False,  legend = True, 
+                 showCI = False, legend = True, showAllYAxes = True,
                  meansColour = 'black', mediansColour = 'black', summaryBarColor = 'grey',
                  meansSummaryLineStyle = 'solid', mediansSummaryLineStyle = 'dotted',
                  contrastZeroLineStyle = 'solid', contrastEffectSizeLineStyle = 'solid',
-                 contrastZeroLineColor = 'grey', contrastEffectSizeLineColor = 'grey',
+                 contrastZeroLineColor = 'black', contrastEffectSizeLineColor = 'black',
                  floatContrast = True, smoothboot = True, floatSwarmSpacer = 0.2,
                  swarmYlim = None, contrastYlim = None,
                  effectSizeYLabel = "Effect Size", swarmShareY = True, contrastShareY = True,
@@ -920,17 +920,39 @@ def contrastplot(data, x, y, idx = None, statfunction = None, reps = 5000,
                 color = contrastZeroLineColor)
 
     for i in range(0, len(fig.get_axes()), 2):
-        sb.despine(ax = fig.get_axes()[i], trim = True, bottom = True, right = True)
-        fig.get_axes()[i].xaxis.set_visible(False)
-        # Draw back the lines for the relevant y-axes.
-        ymin = fig.get_axes()[i].get_yaxis().get_majorticklocs()[0]
-        ymax = fig.get_axes()[i].get_yaxis().get_majorticklocs()[-1]
-        x, _ = fig.get_axes()[i].get_xaxis().get_view_interval()
-        fig.get_axes()[i].add_artist(Line2D((x, x), (ymin, ymax), color='black', linewidth=2))                     
+        if floatContrast is True:
+            sb.despine(ax = fig.get_axes()[i], trim = True, right = True)
+            # Draw back the lines for the x-axes.
+            xmin = fig.get_axes()[i].get_xaxis().get_majorticklocs()[0]
+            xmax = fig.get_axes()[i].get_xaxis().get_majorticklocs()[-1]
+            y, _ = fig.get_axes()[i].get_yaxis().get_view_interval()
+            fig.get_axes()[i].add_artist(Line2D((xmin, xmax), (y, y), color='black', linewidth=2))  
+
+        else:
+            sb.despine(ax = fig.get_axes()[i], trim = True, bottom = True, right = True)
+            fig.get_axes()[i].get_xaxis().set_visible(False)
+
+        if (showAllYAxes is False and i in range( 2, len(fig.get_axes())) ):
+            fig.get_axes()[i].get_yaxis().set_visible(showAllYAxes)
+        else:
+            # Draw back the lines for the relevant y-axes.
+            ymin = fig.get_axes()[i].get_yaxis().get_majorticklocs()[0]
+            ymax = fig.get_axes()[i].get_yaxis().get_majorticklocs()[-1]
+            x, _ = fig.get_axes()[i].get_xaxis().get_view_interval()
+            fig.get_axes()[i].add_artist(Line2D((x, x), (ymin, ymax), color='black', linewidth=2))    
+
+        if summaryBar is True:
+            fig.get_axes()[i].add_artist(Line2D(
+                (fig.get_axes()[i].xaxis.get_view_interval()[0], 
+                    fig.get_axes()[i].xaxis.get_view_interval()[1]), 
+                (0,0),
+                color='black', linewidth=1
+                )
+            )                
     
     # Normalize bottom/right axes to each other.
     if (len(fig.get_axes()) > 2 and contrastShareY is True and floatContrast is False):
-        normalizeContrastY(fig, con = contrastList, contrast_ylim = contrastYlim)
+        normalizeContrastY(fig, con = contrastList, contrast_ylim = contrastYlim, show_all_yaxes = showAllYAxes)
 
     # If it's just a simple plot
     if (len(fig.get_axes()) == 2):
@@ -939,16 +961,6 @@ def contrastplot(data, x, y, idx = None, statfunction = None, reps = 5000,
                        left = True, bottom = True, 
                        trim = True)
         if (floatContrast is False):
-            # # if contrastYlim is supplied...
-            # if contrastYlim is not None:
-            #     fig.get_axes()[1].set_ybound(contrastYlim)
-            #     fig.get_axes()[1].get_yaxis().set_view_interval(contrastYlim[0], contrastYlim[1])
-            
-            #     fig.get_axes()[1].yaxis.set_major_locator(AutoLocator())
-            #     axesSteps = fig.get_axes()[i].get_yticks()[1] - fig.get_axes()[i].get_yticks()[0]
-            #     fig.get_axes()[1].yaxis.set_major_locator(MultipleLocator(axesSteps*2))
-            #     fig.get_axes()[1].yaxis.set_minor_locator(MultipleLocator(axesSteps))
-
             sb.despine(ax = fig.get_axes()[1], 
                 top = True, right = True, 
                 left = False, bottom = True, 
@@ -967,7 +979,6 @@ def contrastplot(data, x, y, idx = None, statfunction = None, reps = 5000,
         xmax = fig.get_axes()[1].get_xaxis().get_majorticklocs()[-1]
         fig.get_axes()[1].add_artist(Line2D((xmin, xmax), (y, y), color='black', linewidth=2))
 
-
     if swarmShareY is False:
         for i in range(0, len(fig.get_axes()), 2):
             #sb.despine(ax = fig.get_axes()[i], trim = True)
@@ -984,9 +995,13 @@ def contrastplot(data, x, y, idx = None, statfunction = None, reps = 5000,
                            trim = True)
             else:
                 sb.despine(ax = fig.get_axes()[i], trim = True)
-        
-    # Tight Layout!
-    gsMain.tight_layout(fig)
+
+    # Zero gaps between plots on the same row, if floatContrast is False
+    if (floatContrast is False and showAllYAxes is False):
+        gsMain.update(wspace = 0)
+    else:    
+        # Tight Layout!
+        gsMain.tight_layout(fig)
     
     # And we're all done.
     return fig, contrastList
@@ -1263,7 +1278,6 @@ def pairedcontrast(data, x, y, idcol, hue = None,
                                         floatYMax,
                                         leftAxesStep) )
 
-
     # Set proper x-limits.
 
     ax_left.set_xlim(xminPlot - 0.2, xmaxPlot + 0.2)
@@ -1335,7 +1349,7 @@ def normalizeSwarmY(fig, floatcontrast):
         fig.get_axes()[i].add_artist(Line2D((x, x), (ymin, ymax), color='black', linewidth=2))
             
 
-def normalizeContrastY(fig, con, contrast_ylim):
+def normalizeContrastY(fig, con, contrast_ylim, show_all_yaxes):
     allYmax = list()
     allYmin = list()
     
@@ -1364,13 +1378,16 @@ def normalizeContrastY(fig, con, contrast_ylim):
 
         sb.despine(ax = fig.get_axes()[i], top = True, right = True, 
             left = False, bottom = True, 
-            trim = True)            
+            trim = True)
 
-        # #Draw back the lines for the relevant y-axes.
-        x, _ = fig.get_axes()[i].get_xaxis().get_view_interval()
-        ymin = fig.get_axes()[i].get_yaxis().get_majorticklocs()[0]
-        ymax = fig.get_axes()[i].get_yaxis().get_majorticklocs()[-1]
-        fig.get_axes()[i].add_artist(Line2D((x, x), (ymin, ymax), color='black', linewidth=2))
+        if (show_all_yaxes is False and i in range( 2, len(fig.get_axes())) ):
+            fig.get_axes()[i].get_yaxis().set_visible(show_all_yaxes)            
+        else:
+            ## Draw back the lines for the relevant y-axes.
+            x, _ = fig.get_axes()[i].get_xaxis().get_view_interval()
+            ymin = fig.get_axes()[i].get_yaxis().get_majorticklocs()[0]
+            ymax = fig.get_axes()[i].get_yaxis().get_majorticklocs()[-1]
+            fig.get_axes()[i].add_artist(Line2D((x, x), (ymin, ymax), color='black', linewidth=2))
 
         ## Draw back the lines for the relevant x-axes.
         xmin = fig.get_axes()[i].get_xaxis().get_majorticklocs()[0]
