@@ -1,15 +1,26 @@
 # egg info
 bootstrapContrast.egg-info/
+
 # pycache folder
 bootstrapContrast/__pycache__/
+
 # .ipynb files used during testing
 bootstrapContrast/*.ipynb
 bootstrapContrast/.ipynb_checkpoints
+
 # any .CSVs or excel spreadsheets
 bootstrapContrast/*.csv
 bootstrapContrast/*.xlsx
+
 # any svg outut
 bootstrapContrast/*.svg
+*.svg
+
 # any png output
 bootstrapContrast/*.png
+*.png
+
+# any pdf output
+bootstrapContrast/*.pdf
+*.pdf
 
