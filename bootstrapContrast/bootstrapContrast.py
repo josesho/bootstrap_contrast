@@ -3,7 +3,7 @@ from collections import OrderedDict
 from numpy.random import randint
 import matplotlib.gridspec as gridspec
 from matplotlib.lines import Line2D
-from matplotlib.ticker import MultipleLocator, FormatStrFormatter
+from matplotlib.ticker import MultipleLocator, MaxNLocator, AutoLocator, FormatStrFormatter
 from decimal import Decimal
 import matplotlib.pyplot as plt
 import seaborn as sb
@@ -627,16 +627,6 @@ def contrastplot(data, x, y, idx = None, statfunction = None, reps = 5000,
                 ## Remove left axes x-axis title.
                 ax_left.set_xlabel("")
 
-                # # Get the y-range of the data for y-axis limits
-                # y_lims = list()
-                # for i in range(0, 2):
-                #     # Get the y-offsets, save into a list.
-                #     _, ytemp = np.array(sw.collections[i].get_offsets()).T 
-                #     y_lims.append(ytemp)
-
-                # # Concatenate the list of y-offsets
-                # y_lims = np.concatenate(y_lims)
-
                 # Set up floating axis on right.
                 ax_right = ax_left.twinx()
 
@@ -805,7 +795,10 @@ def contrastplot(data, x, y, idx = None, statfunction = None, reps = 5000,
                               linewidth = 2)
 
                 # Set bottom axes ybounds
-                ax_bottom.set_ybound( tempbs['diffarray'].min(), tempbs['diffarray'].max() )
+                if contrastYlim is None:
+                    ax_bottom.set_ybound( tempbs['diffarray'].min(), tempbs['diffarray'].max() )
+                else:
+                    ax_bottom.set_ybound(contrastYlim)
                 
                 # Set xlims so everything is properly visible!
                 swarm_xbounds = ax_top.get_xbound()
@@ -895,6 +888,9 @@ def contrastplot(data, x, y, idx = None, statfunction = None, reps = 5000,
                                    violinWidth = violinWidth,
                                    violinOffset = violinOffset,
                                    linewidth = lineWidth)
+            # Set bottom axes ybounds
+            if contrastYlim is not None:
+                ax_bottom.set_ybound(contrastYlim)
             
             # Set xlims so everything is properly visible!
             swarm_xbounds = ax_top.get_xbound()
@@ -933,8 +929,8 @@ def contrastplot(data, x, y, idx = None, statfunction = None, reps = 5000,
         fig.get_axes()[i].add_artist(Line2D((x, x), (ymin, ymax), color='black', linewidth=2))                     
     
     # Normalize bottom/right axes to each other.
-    if (len(fig.get_axes()) > 2 and contrastShareY is True):
-        normalizeContrastY(fig, floatcontrast = floatContrast, con = contrastList, contrast_ylim = contrastYlim)
+    if (len(fig.get_axes()) > 2 and contrastShareY is True and floatContrast is False):
+        normalizeContrastY(fig, con = contrastList, contrast_ylim = contrastYlim)
 
     # If it's just a simple plot
     if (len(fig.get_axes()) == 2):
@@ -943,12 +939,22 @@ def contrastplot(data, x, y, idx = None, statfunction = None, reps = 5000,
                        left = True, bottom = True, 
                        trim = True)
         if (floatContrast is False):
-            sb.despine(ax = fig.get_axes()[1], top = True, right = True, 
-                       left = False, bottom = True, 
-                       trim = True)
+            # # if contrastYlim is supplied...
+            # if contrastYlim is not None:
+            #     fig.get_axes()[1].set_ybound(contrastYlim)
+            #     fig.get_axes()[1].get_yaxis().set_view_interval(contrastYlim[0], contrastYlim[1])
+            
+            #     fig.get_axes()[1].yaxis.set_major_locator(AutoLocator())
+            #     axesSteps = fig.get_axes()[i].get_yticks()[1] - fig.get_axes()[i].get_yticks()[0]
+            #     fig.get_axes()[1].yaxis.set_major_locator(MultipleLocator(axesSteps*2))
+            #     fig.get_axes()[1].yaxis.set_minor_locator(MultipleLocator(axesSteps))
+
+            sb.despine(ax = fig.get_axes()[1], 
+                top = True, right = True, 
+                left = False, bottom = True, 
+                trim = True)
 
         for ax in fig.get_axes():
-
             # Draw back the lines for the relevant y-axes.
             x, _ = ax.get_xaxis().get_view_interval()
             ymin = ax.get_yaxis().get_majorticklocs()[0]
@@ -1329,72 +1335,48 @@ def normalizeSwarmY(fig, floatcontrast):
         fig.get_axes()[i].add_artist(Line2D((x, x), (ymin, ymax), color='black', linewidth=2))
             
 
-def normalizeContrastY(fig, floatcontrast, con, contrast_ylim):
+def normalizeContrastY(fig, con, contrast_ylim):
     allYmax = list()
     allYmin = list()
-    axesSteps = list()
     
-    # First, loop thru the axes and compile a list of their ybounds (aka y-limits).
-    for j,i in enumerate(range(1, len(fig.get_axes()), 2)):
-        es = float(con.ix['summary',][j])
-        zero = float(con.ix['statistic_ref',][j])
-        allYmin.append(fig.get_axes()[i].get_ybound()[0])
-        allYmax.append(fig.get_axes()[i].get_ybound()[1])
-        axesSteps.append(fig.get_axes()[i].get_yticks()[1] - fig.get_axes()[i].get_yticks()[0])
+    if contrast_ylim is None:
+        # If no ylim is specified,
+        # loop thru the axes and compile a list of their ybounds (aka y-limits).
+        for j,i in enumerate(range(1, len(fig.get_axes()), 2)):
+            allYmin.append(fig.get_axes()[i].get_ybound()[0])
+            allYmax.append(fig.get_axes()[i].get_ybound()[1])
+            maxYbound = np.array([np.min(allYmin), np.max(allYmax)])
+    else:
+        maxYbound = contrast_ylim
 
-    # Then loop thru the axes again to equalize them.
+    # Loop thru the contrast axes again to re-draw all the y-axes.
     for i in range(1, len(fig.get_axes()), 2):
-        if contrast_ylim is None:
-            fig.get_axes()[i].set_ybound(np.min(allYmin), np.max(allYmax))
-            fig.get_axes()[i].get_yaxis().set_view_interval(np.min(allYmin), np.max(allYmax))
-        else:
-            fig.get_axes()[i].set_ybound(contrast_ylim)
-            fig.get_axes()[i].get_yaxis().set_view_interval(contrast_ylim[0], contrast_ylim[1])
-        if (floatcontrast is True):
-            ## If the effect size is positive, shift the right axis up.
-            if es > 0:
-                rightmin = fig.get_axes()[i].get_ylim()[0] - es
-                rightmax = fig.get_axes()[i].get_ylim()[1] - es
-            ## If the effect size is negative, shift the right axis down.
-            else:
-                rightmin = fig.get_axes()[i].get_ylim()[0] + es
-                rightmax = fig.get_axes()[i].get_ylim()[1] + es
+        ## Set the axes to the max ybounds, or the specified contrast_ylim.
+        fig.get_axes()[i].set_ylim(maxYbound)
+        fig.get_axes()[i].get_yaxis().set_view_interval(maxYbound[0], maxYbound[1])
 
-            align_yaxis(fig.get_axes()[i], zero, fig.get_axes()[i-1], 0)
-
-        # Setup the major tick locators.
-        majorLocator = MultipleLocator(np.max(axesSteps)*2)
+        ## Setup the tick locators.
+        axesSteps = fig.get_axes()[i].get_yticks()[1] - fig.get_axes()[i].get_yticks()[0]
+        majorLocator = MultipleLocator(axesSteps*2)
         minorLocator = MultipleLocator(np.max(axesSteps))
-        #majorFormatter = FormatStrFormatter('%.1f')
         fig.get_axes()[i].yaxis.set_major_locator(majorLocator)
         fig.get_axes()[i].yaxis.set_minor_locator(minorLocator)
-        #fig.get_axes()[i].yaxis.set_major_formatter(majorFormatter)
 
-        if (floatcontrast is True):
-            # minorLocator = MultipleLocator(YAxisStep/2)
-            # fig.get_axes()[i].yaxis.set_minor_locator(minorLocator)
+        sb.despine(ax = fig.get_axes()[i], top = True, right = True, 
+            left = False, bottom = True, 
+            trim = True)            
 
-            sb.despine(ax = fig.get_axes()[i], top = True, right = False, 
-                left = True, bottom = False, 
-                trim = True)
-        else:
-            sb.despine(ax = fig.get_axes()[i], top = True, right = True, 
-                left = False, bottom = True, 
-                trim = True)            
-
-        # Draw back the lines for the relevant y-axes.
+        # #Draw back the lines for the relevant y-axes.
         x, _ = fig.get_axes()[i].get_xaxis().get_view_interval()
         ymin = fig.get_axes()[i].get_yaxis().get_majorticklocs()[0]
         ymax = fig.get_axes()[i].get_yaxis().get_majorticklocs()[-1]
         fig.get_axes()[i].add_artist(Line2D((x, x), (ymin, ymax), color='black', linewidth=2))
 
-        if (len(fig.get_axes()) > 2 and floatcontrast is False):
-            # Draw back the lines for the relevant x-axes.
-            xmin = fig.get_axes()[i].get_xaxis().get_majorticklocs()[0]
-            xmax = fig.get_axes()[i].get_xaxis().get_majorticklocs()[-1]
-            y, _ = fig.get_axes()[i].get_yaxis().get_view_interval()
-            
-            fig.get_axes()[i].add_artist(Line2D((xmin, xmax), (y, y), color='black', linewidth=2))    
+        ## Draw back the lines for the relevant x-axes.
+        xmin = fig.get_axes()[i].get_xaxis().get_majorticklocs()[0]
+        xmax = fig.get_axes()[i].get_xaxis().get_majorticklocs()[-1]
+        y, _ = fig.get_axes()[i].get_yaxis().get_view_interval()
+        fig.get_axes()[i].add_artist(Line2D((xmin, xmax), (y, y), color='black', linewidth=2))    
 
 def halfviolin(v, right = True, color = 'k'):
     for b in v['bodies']:
