@@ -3,7 +3,7 @@ from collections import OrderedDict
 from numpy.random import randint
 import matplotlib.gridspec as gridspec
 from matplotlib.lines import Line2D
-from matplotlib.ticker import MultipleLocator, MaxNLocator, AutoLocator, FormatStrFormatter
+from matplotlib.ticker import AutoMinorLocator, MultipleLocator, MaxNLocator, FixedLocator, AutoLocator, FormatStrFormatter
 from decimal import Decimal
 import matplotlib.pyplot as plt
 import seaborn as sb
@@ -16,7 +16,7 @@ sb.set_style('ticks')
 plt.rcParams['axes.labelsize'] = plt.rcParams['font.size'] * 1.5
 plt.rcParams['xtick.labelsize'] = plt.rcParams['font.size'] * 1.25
 plt.rcParams['ytick.labelsize'] = plt.rcParams['font.size'] * 1.25
-
+plt.rcParams['svg.fonttype'] = 'none'
 
 # Taken without modification from scikits.bootstrap package
 # Keep python 2/3 compatibility, without using six. At some point,
@@ -719,15 +719,8 @@ def contrastplot(data, x, y, idx = None, statfunction = None, reps = 5000,
                 if floatYMax < 0.:
                     floatYMax = 0.
 
-                #### SET MINOR TICKS
-                #ax_right.set_yticks(range(floatYMin,leftAxesStep/2,floatYMax))
-                #majorLocator = MultipleLocator(leftAxesStep)
-                minorLocator = MultipleLocator(leftAxesStep/2)
-                #ax_right.yaxis.set_major_locator(majorLocator)
-                ax_right.yaxis.set_minor_locator(minorLocator)
-
                 sb.despine(ax = ax_left, trim = True)
-                sb.despine(ax = ax_right, top = True, right = False, 
+                sb.despine(ax = ax_right, top = True, right = True, 
                            left = True, bottom = True, 
                            trim = True)
 
@@ -909,15 +902,53 @@ def contrastplot(data, x, y, idx = None, statfunction = None, reps = 5000,
     contrastList = pd.DataFrame(contrastList).T
     contrastList.columns = contrastListNames
     
-    if floatContrast is False:
-        # Add zero reference line on contrast axes.
-        for i in range(1, len(fig.get_axes()), 2):
+    for j,i in enumerate(range(1, len(fig.get_axes()), 2)):
+        if floatContrast is False:
+            # Draw zero reference line.
             fig.get_axes()[i].hlines(y = 0,
                 xmin = fig.get_axes()[i].get_xaxis().get_view_interval()[0], 
                 xmax = fig.get_axes()[i].get_xaxis().get_view_interval()[1],
                 linestyle = contrastZeroLineStyle,
                 linewidth = 1,
                 color = contrastZeroLineColor)
+        else:
+            # Re-draw the floating axis to the correct limits.
+            ## Get the 'correct limits':
+            lower = np.min(contrastList.ix['diffarray',j])
+            upper = np.max(contrastList.ix['diffarray',j])
+            ## Make sure we have zero in the limits.
+            if lower > 0:
+                lower = 0.
+            if upper < 0:
+                upper = 0.
+
+            ## Get the original ticks on the floating y-axis.
+            oldticks = fig.get_axes()[i].get_yticks()
+            tickstep = oldticks[1] - oldticks[0]
+            ## Obtain major ticks that fall within lower and upper.
+            newticks = list()
+            for a,b in enumerate(oldticks):
+                if (b >= lower and b <= upper):
+                    newticks.append(b)
+            newticks = np.array(newticks)
+            ## Re-draw the axis.
+            fig.get_axes()[i].yaxis.set_major_locator(FixedLocator(locs = newticks))
+            fig.get_axes()[i].yaxis.set_minor_locator(AutoMinorLocator(2))
+            
+            ## Obtain minor ticks that fall within the major ticks.
+            majorticks = fig.get_axes()[i].yaxis.get_majorticklocs()
+            oldminorticks = fig.get_axes()[i].yaxis.get_minorticklocs()
+            newminorticks = list()
+            for a,b in enumerate(oldminorticks):
+                if (b >= majorticks[0] and b <= majorticks[-1]):
+                    newminorticks.append(b)
+            newminorticks = np.array(newminorticks)
+            fig.get_axes()[i].yaxis.set_minor_locator(FixedLocator(locs = newminorticks))
+
+            ## Despine, trim, and redraw the lines.
+            sb.despine(ax = fig.get_axes()[i], trim = True, 
+                bottom = False, right = False,
+                left = True, top = True)
 
     for i in range(0, len(fig.get_axes()), 2):
         if floatContrast is True:
@@ -950,11 +981,11 @@ def contrastplot(data, x, y, idx = None, statfunction = None, reps = 5000,
                 )
             )                
     
-    # Normalize bottom/right axes to each other.
+    # Normalize bottom/right axes to each other for Cummings hub-and-spoke plots.
     if (len(fig.get_axes()) > 2 and contrastShareY is True and floatContrast is False):
         normalizeContrastY(fig, con = contrastList, contrast_ylim = contrastYlim, show_all_yaxes = showAllYAxes)
 
-    # If it's just a simple plot
+    # If it's just a simple plot, we despine appropriately.
     if (len(fig.get_axes()) == 2):
         if (floatContrast is True):
             sb.despine(ax = fig.get_axes()[1], top = True, right = False, 
