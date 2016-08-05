@@ -6,6 +6,7 @@ from matplotlib.lines import Line2D
 from matplotlib.ticker import AutoMinorLocator, MultipleLocator, MaxNLocator, FixedLocator, AutoLocator, FormatStrFormatter
 from decimal import Decimal
 import matplotlib.pyplot as plt
+import sys
 import seaborn as sb
 import pandas as pd
 import numpy as np
@@ -27,9 +28,7 @@ except NameError:
     xrange = range
     
 def bootstrap_indexes(data, n_samples=5000):
-    # Taken without modification from scikits.bootstrap package
-    """
-From the scikits.bootstrap package.
+    """From the scikits.bootstrap package.
 Given data points data, where axis 0 is considered to delineate points, return
 an generator for sets of bootstrap indexes. This can be used as a list
 of bootstrap indexes (with list(bootstrap_indexes(data))) as well.
@@ -505,18 +504,14 @@ def contrastplot(data, x, y, idx = None, statfunction = None, reps = 5000,
         elif all(isinstance(element, tuple) for element in idx):
             # if idx is supplied, and it is a list/tuple of tuples or lists, we have a multiplot!
             levs_tuple = idx
-
             if (any(len(element) > 2 for element in levs_tuple) and floatContrast == True):
                 # if any of the tuples in idx has more than 2 groups, we turn set floatContrast as False.
                 floatContrast = False
-            
             # Make sure the widthratio of the seperate multiplot corresponds to how 
             # many groups there are in each one.
             widthratio = []
             for i in levs_tuple:
                 widthratio.append(len(i))
-
-    # Gets overall y-limits for the swarmplots.
     u = list()
     for t in levs_tuple:
         for i in np.unique(t):
@@ -608,7 +603,6 @@ def contrastplot(data, x, y, idx = None, statfunction = None, reps = 5000,
                                   alpha = alpha, palette = plotPal,
                                   **kwargs)
                 sw.set_ylim(swarm_ylim)
-                
                 
                 maxXBefore = max(sw.collections[0].get_offsets().T[0])
                 minXAfter = min(sw.collections[1].get_offsets().T[0])
@@ -954,10 +948,10 @@ def contrastplot(data, x, y, idx = None, statfunction = None, reps = 5000,
         if floatContrast is True:
             sb.despine(ax = fig.get_axes()[i], trim = True, right = True)
             # Draw back the lines for the x-axes.
-            xmin = fig.get_axes()[i].get_xaxis().get_majorticklocs()[0]
-            xmax = fig.get_axes()[i].get_xaxis().get_majorticklocs()[-1]
-            y, _ = fig.get_axes()[i].get_yaxis().get_view_interval()
-            fig.get_axes()[i].add_artist(Line2D((xmin, xmax), (y, y), color='black', linewidth=2))  
+            # xmin = fig.get_axes()[i].get_xaxis().get_majorticklocs()[0]
+            # xmax = fig.get_axes()[i].get_xaxis().get_majorticklocs()[-1]
+            # y, _ = fig.get_axes()[i].get_yaxis().get_view_interval()
+            # fig.get_axes()[i].add_artist(Line2D((xmin, xmax), (y, y), color='black', linewidth=2))  
 
         else:
             sb.despine(ax = fig.get_axes()[i], trim = True, bottom = True, right = True)
@@ -1037,311 +1031,348 @@ def contrastplot(data, x, y, idx = None, statfunction = None, reps = 5000,
     # And we're all done.
     return fig, contrastList
 
-def pairedcontrast(data, x, y, idcol, hue = None,
-    statfunction = None, xlevs = None,
-    beforeAfterSpacer = 0.1, violinWidth = 0.2, 
-    swarmDeltaOffset = 0.3, floatOffset = 0.3, 
+def pairedcontrast(data, x, y, idcol, 
+    statfunction = None, idx = None, figsize = None,
+    beforeAfterSpacer = 0.05, 
+    violinWidth = 0.02, 
+    floatOffset = 0.05, 
+    showRawData = False,
+    floatContrast = True,
     smoothboot = True,
-    violinOffset = 0.2,
-    floatViolinOffset = 0.1, 
+    floatViolinOffset = None, 
+    pal = None,
     legendLoc = 2, legendFontSize = 12, legendMarkerScale = 1,
     **kwargs):
 
-    # Sanity checks below.
-    ## If `xlevs` is not specified, just take the FIRST TWO levels alphabetically.
-    if xlevs is None:
-        xlevs = np.unique(data[x])[0:2]
-    elif xlevs is not None:
-        if len(xlevs) != 2:
-            print("xlevs does not have length 2.")
-            sys.exit(1)
-        
+    # Preliminaries.
+    ## If `idx` is not specified, just take the FIRST TWO levels alphabetically.
+    if idx is None:
+        idx = tuple(np.unique(data[x])[0:2],)
+    else:
+        # check if multi-plot or not
+        if all(isinstance(element, str) for element in idx):
+            # if idx is supplied but not a multiplot (ie single list or tuple)
+            if len(idx) != 2:
+                print(idx, "does not have length 2.")
+                sys.exit(0)
+            else:
+                idx = (tuple(idx, ),)
+        elif all(isinstance(element, tuple) for element in idx):
+            # if idx is supplied, and it is a list/tuple of tuples or lists, we have a multiplot!
+            if ( any(len(element) != 2 for element in idx) ):
+                # If any of the tuples contain more than 2 elements.
+                print(element, "does not have length 2.")
+                sys.exit(0)
+    if floatViolinOffset is None:
+        floatViolinOffset = beforeAfterSpacer/2
+
+    ## Here we define the palette on all the levels of the 'x' column.
+    ## Thus, if the same pandas dataframe is re-used across different plots,
+    ## the color identity of each group will be maintained.
+    ## Set palette based on total number of categories in data['x'] or data['hue_column']
+    if 'hue' in kwargs:
+        u = kwargs['hue']
+    else:
+        u = x
+    if ('color' not in kwargs and 'hue' not in kwargs):
+        kwargs['color'] = 'k'
+
+    if pal is None:
+        pal = dict( zip( data[u].unique(), sb.color_palette(n_colors = len(data[u].unique())) ) 
+                      )
+    else:
+        pal = pal
+
+    # Initialise figure.
+    if figsize is None:
+        if len(idx) > 2:
+            figsize = (12,(12/np.sqrt(2)))
+        else:
+            figsize = (6,6)
+    fig = plt.figure(figsize = figsize)
+
+    # Initialise GridSpec based on `levs_tuple` shape.
+    gsMain = gridspec.GridSpec( 1, np.shape(idx)[0]) # 1 row; columns based on number of tuples in tuple.
+    # Set default statfunction
     if statfunction is None:
         statfunction = np.mean
+    # Create list to collect all the contrast DataFrames generated.
+    contrastList = list()
+    contrastListNames = list()
 
-    ## Start plotting!!
-    fig = plt.figure(figsize = (8,8))
-    ax_left = plt.subplot(111)
+    for gsIdx, xlevs in enumerate(idx):
+        # Start plotting!!
+        if floatContrast is True:
+            ax_raw = fig.add_subplot(gsMain[gsIdx], frame_on = False)
+        else:
+            gsSubGridSpec = gridspec.GridSpecFromSubplotSpec(2, 1, subplot_spec = gsMain[gsIdx])
+            ax_raw = plt.Subplot(fig, gsSubGridSpec[0, 0], frame_on = False)
 
-    swarm_raw = sb.swarmplot(data = data, 
-                             x = x, y = y, 
-                             hue = hue,
-                             order = xlevs,
-                             axes = ax_left, 
-                             **kwargs)
-    if hue is not None:
-        swarm_raw.legend(loc = legendLoc, 
-            fontsize = legendFontSize, 
-            markerscale = legendMarkerScale)
+        ## Plot raw data as swarmplot or stripplot.
+        if showRawData is True:
+            swarm_raw = sb.swarmplot(data = data, 
+                                     x = x, y = y, 
+                                     order = xlevs,
+                                     ax = ax_raw,
+                                     **kwargs)
+        else:
+            swarm_raw = sb.stripplot(data = data, 
+                                     x = x, y = y, 
+                                     order = xlevs,
+                                     ax = ax_raw,
+                                     **kwargs)
 
-    # Shifting the `after` raw swarmplot to appropriate xposition.
-    maxXBefore = max(swarm_raw.collections[0].get_offsets().T[0])
-    minXAfter = min(swarm_raw.collections[1].get_offsets().T[0])
+        ## Get some details about the raw data.
+        maxXBefore = max(swarm_raw.collections[0].get_offsets().T[0])
+        minXAfter = min(swarm_raw.collections[1].get_offsets().T[0])
+        xposAfter = maxXBefore + beforeAfterSpacer
+        xAfterShift = minXAfter - xposAfter
 
-    xposAfter = maxXBefore + beforeAfterSpacer
-    xAfterShift = minXAfter - xposAfter
-    offsetSwarmX(swarm_raw.collections[1], -xAfterShift)
+        offsetSwarmX(swarm_raw.collections[1], -xAfterShift)
 
-    # pivot the original df!
-    data_pivot = data.pivot(index = idcol, columns = x, values = y) 
+        ## Pivot tempdat to get before and after lines.
+        data_pivot = data.pivot(index = idcol, columns = x, values = y)
+        ## pandas DataFrame of 'before' group
+        x1 = pd.DataFrame({str(xlevs[0] + '_x') : pd.Series(swarm_raw.collections[0].get_offsets().T[0]),
+                       xlevs[0] : pd.Series(swarm_raw.collections[0].get_offsets().T[1]),
+                       '_R_' : pd.Series(swarm_raw.collections[0].get_facecolors().T[0]),
+                       '_G_' : pd.Series(swarm_raw.collections[0].get_facecolors().T[1]),
+                       '_B_' : pd.Series(swarm_raw.collections[0].get_facecolors().T[2]),
+                      })
+        ## join the RGB columns into a tuple, then assign to a column.
+        x1['_hue_'] = x1[['_R_', '_G_', '_B_']].apply(tuple, axis=1) 
+        x1 = x1.sort_values(by = xlevs[0])
+        x1.index = data_pivot.sort_values(by = xlevs[0]).index
 
-    # create convenient signifiers for column names.
-    befX = str(xlevs[0] + '_x')
-    aftX = str(xlevs[1] + '_x')
+        ## pandas DataFrame of 'after' group
+        ### create convenient signifiers for column names.
+        befX = str(xlevs[0] + '_x')
+        aftX = str(xlevs[1] + '_x')
 
-    # pandas DataFrame of 'before' group
-    x1 = pd.DataFrame({str(xlevs[0] + '_x') : pd.Series(swarm_raw.collections[0].get_offsets().T[0]),
-                   xlevs[0] : pd.Series(swarm_raw.collections[0].get_offsets().T[1]),
-                   '_R_' : pd.Series(swarm_raw.collections[0].get_facecolors().T[0]),
-                   '_G_' : pd.Series(swarm_raw.collections[0].get_facecolors().T[1]),
-                   '_B_' : pd.Series(swarm_raw.collections[0].get_facecolors().T[2]),
-                  })
-    # join the RGB columns into a tuple, then assign to a column.
-    x1['_hue_'] = x1[['_R_', '_G_', '_B_']].apply(tuple, axis=1) 
-    x1 = x1.sort_values(by = xlevs[0])
-    x1.index = data_pivot.sort_values(by = xlevs[0]).index
+        x2 = pd.DataFrame( {aftX : pd.Series(swarm_raw.collections[1].get_offsets().T[0]),
+            xlevs[1] : pd.Series(swarm_raw.collections[1].get_offsets().T[1])} )
+        x2 = x2.sort_values(by = xlevs[1])
+        x2.index = data_pivot.sort_values(by = xlevs[1]).index
 
-    # pandas DataFrame of 'after' group
-    x2 = pd.DataFrame( {aftX : pd.Series(swarm_raw.collections[1].get_offsets().T[0]),
-        xlevs[1] : pd.Series(swarm_raw.collections[1].get_offsets().T[1])} )
-    x2 = x2.sort_values(by = xlevs[1])
-    x2.index = data_pivot.sort_values(by = xlevs[1]).index
+        ## Join x1 and x2, on both their indexes.
+        plotPoints = x1.merge(x2, left_index = True, right_index = True, how='outer')
 
-    # Join x1 and x2, on both their indexes.
-    plotPoints = x1.merge(x2, left_index = True, right_index = True, how='outer')
+        ## Add the hue column if hue argument was passed.
+        if 'hue' in kwargs:
+            h = kwargs['hue']
+            plotPoints[h] = data.pivot(index = idcol, columns = x, values = h)[xlevs[0]]
 
-    # Add the hue column if hue argument was passed.
-    if hue is not None:
-        plotPoints[hue] = data.pivot(index = idcol, columns = x, values = hue)[xlevs[0]]
+        ## Plot the lines to join the 'before' points to their respective 'after' points.
+        for i in plotPoints.index:
+            ax_raw.plot([ plotPoints.ix[i, befX],
+                plotPoints.ix[i, aftX] ],
+                [ plotPoints.ix[i, xlevs[0]], 
+                plotPoints.ix[i, xlevs[1]] ],
+                linestyle = 'solid',
+                color = plotPoints.ix[i, '_hue_'],
+                linewidth = 0.75,
+                alpha = 0.75
+                )
 
-    # Plot the lines to join the 'before' points to their respective 'after' points.
-    for i in plotPoints.index:
-        ax_left.plot([ plotPoints.ix[i, befX],
-            plotPoints.ix[i, aftX] ],
-            [ plotPoints.ix[i, xlevs[0]], 
-            plotPoints.ix[i, xlevs[1]] ],
-            linestyle = 'solid',
-            color = plotPoints.ix[i, '_hue_'],
-            alpha = 0.25
-            )
-        
-    for i in (0,1):
-        # Calculate the boostrapped mean and 95% CI for before and after,
-        # for each of the swarmplot groups.
-        points = pd.DataFrame( swarm_raw.collections[i].get_offsets() )
-        # second column of `points` is the y-values, which is what we want.
-        # run bootstrap on it.
+        ## Hide the raw swarmplot data if so desired.
+        if showRawData is False:
+            swarm_raw.collections[0].set_visible(False)
+            swarm_raw.collections[1].set_visible(False)
+        if 'hue' in kwargs:
+            swarm_raw.legend(loc = legendLoc, 
+                fontsize = legendFontSize, 
+                markerscale = legendMarkerScale)
 
-        tempseries = points[1].tolist()
-        test = tempseries.count(tempseries[0]) == len(tempseries)
-        ## From http://stackoverflow.com/a/3844948/6202321,
-        ## The one-liner x.count(x[0]) == len(x)) checks to see if
-        ## the first element of x appears the same number of times
-        ## as the length of x -- ie, is x composed of just 1 value?
-        ## If x is composed of just 1 value, the line returns True.
-        if test is True:
-            print("Warning. One or both group(s) contains the same value many times over.")
+        # Get y-limits of the treatment swarm points.
+        beforeRaw = pd.DataFrame( swarm_raw.collections[0].get_offsets() )
+        afterRaw = pd.DataFrame( swarm_raw.collections[1].get_offsets() )
+        before_leftx = min(beforeRaw[0])
+        after_leftx = min(afterRaw[0])
+        after_rightx = max(afterRaw[0])
+        after_stat_summary = statfunction(beforeRaw[1])
 
-        bootsRaw = bootstrap(points[1], 
+        if floatContrast is True:
+            # Generate floating axes on right.
+            ax_contrast = ax_raw.twinx()
+        else:
+            # Generate contrast axes at the bottom.
+            ax_contrast = plt.Subplot(fig, gsSubGridSpec[1, 0], sharex = ax_raw, frame_on = False)
+
+        # Calculate the summary difference and CI.
+        plotPoints['delta_y'] = plotPoints[xlevs[1]] - plotPoints[xlevs[0]]
+        plotPoints['delta_x'] = [0] * np.shape(plotPoints)[0]
+
+        tempseries = plotPoints['delta_y'].tolist()
+        test = tempseries.count(tempseries[0]) != len(tempseries)
+
+        bootsDelta = bootstrap(plotPoints['delta_y'],
             statfunction = statfunction, 
             smoothboot = smoothboot)
-        summRaw = statfunction(points[1])
-        lowRaw = bootsRaw['bca_ci_low']
-        highRaw = bootsRaw['bca_ci_high']
-        
-        # Get the x-position of the summary line/violin.
-        if i == 0:
-            xpos = min(points[0]) - violinOffset
-            xminPlot = xpos - violinWidth
-            before_xpos = xpos
-            leftAxAlignRef = summRaw
-        if i == 1:
-            xpos = max(points[0]) + violinOffset
-            after_xpos = xpos
-        
+        summDelta = bootsDelta['summary']
+        lowDelta = bootsDelta['bca_ci_low']
+        highDelta = bootsDelta['bca_ci_high']
+
+        # set new xpos for delta violin.
+        xposPlusViolin = deltaSwarmX = after_rightx + floatViolinOffset
+
         # Plot the summary measure.
-        plt.plot(xpos, summRaw,
-                 marker = 'D',
+        plt.plot(xposPlusViolin, summDelta,
+                 axes = ax_contrast,
+                 marker = 'o',
                  markerfacecolor = 'k', 
                  markersize = 12,
                  alpha = 0.75
                 )
-        
+
         # Plot the CI.
-        plt.plot([xpos, xpos],
-                 [lowRaw, highRaw],
+        plt.plot([xposPlusViolin, xposPlusViolin],
+                 [lowDelta, highDelta],
+                 axes = ax_contrast,
                  color = 'k', 
                  alpha = 0.75,
                  linestyle = 'solid'
                 )
-        
+
         # Plot the violin-plot.
-        v = swarm_raw.violinplot(bootsRaw['stat_array'], [xpos], 
-                                 widths = violinWidth * 2, 
+        v = ax_contrast.violinplot(bootsDelta['stat_array'], [xposPlusViolin], 
+                                 widths = violinWidth, 
                                  showextrema = False, 
                                  showmeans = False)
-        
-        if i == 0:
-            # show left-half of violin
-            halfviolin(v, right = False)
-        if i == 1:
-            # show right-half of violin
-            halfviolin(v, right = True)
+        halfviolin(v, right = True, color = 'k')
+        xmaxPlot = xposPlusViolin + 0.75*violinWidth
 
-    # Generate floating axes on right
-    ax_float = ax_left.twinx()
-        
-    # Calculate the summary difference and CI.
-    plotPoints['delta_y'] = plotPoints[xlevs[1]] - plotPoints[xlevs[0]]
-    plotPoints['delta_x'] = [0] * np.shape(plotPoints)[0]
+        # Remove left axes x-axis title.
+        ax_raw.set_xlabel("")
+        # Remove floating axes y-axis title.
+        ax_contrast.set_ylabel("")
 
-    tempseries = plotPoints['delta_y'].tolist()
-    test = tempseries.count(tempseries[0]) != len(tempseries)
+        if floatContrast is True:
+            # Make sure they have the same y-limits.
+            ax_contrast.set_ylim(ax_raw.get_ylim())
+            
+            # Drawing in the x-axis for ax_raw.
+            ## Get lowest y-value for ax_raw.
+            y = ax_raw.get_yaxis().get_view_interval()[0] 
+            ## Set the ticks locations for ax_raw.
+            ax_raw.get_xaxis().set_ticks((0, xposAfter))
+            ## Set the tick labels!
+            ax_raw.set_xticklabels(xlevs, rotation = 45, horizontalalignment = 'right')
 
-    bootsDelta = bootstrap(plotPoints['delta_y'],
-        statfunction = statfunction, 
-        smoothboot = smoothboot)
-    summDelta = bootsDelta['summary']
-    lowDelta = bootsDelta['bca_ci_low']
-    highDelta = bootsDelta['bca_ci_high']
+            # Align the left axes and the floating axes.
+            align_yaxis(ax_raw, statfunction(plotPoints[xlevs[0]]),
+                           ax_contrast, 0)
 
-    # Plot the delta swarmplot.
-    deltaSwarm = sb.swarmplot(data = plotPoints,
-        x = 'delta_x',
-        y = 'delta_y',
-        marker = '^',
-        hue = hue)
-    # Make sure they have the same x-limits and y-limits.
-    ax_float.set_xlim(ax_left.get_xlim())
-    ax_float.set_ylim(ax_left.get_ylim())
+            # Add label to floating axes. But on ax_raw!
+            ax_raw.text(x = deltaSwarmX,
+                          y = ax_raw.get_yaxis().get_view_interval()[0],
+                          horizontalalignment = 'left',
+                          s = 'Difference',
+                          fontsize = 15)        
 
-    # Shifting the delta swarmplot to appropriate xposition
-    xposPlus = xposAfter + swarmDeltaOffset + (violinWidth * 2)         
-    offsetSwarmX(deltaSwarm.collections[0], xposPlus)
+            # Set proper x-limits
+            ax_raw.set_xlim(before_leftx - beforeAfterSpacer/2, xmaxPlot)
+            ax_raw.get_xaxis().set_view_interval(before_leftx - beforeAfterSpacer/2, xmaxPlot)
+            ax_contrast.set_xlim(ax_raw.get_xlim())
 
-    # set new xpos for delta violin.
-    xposPlusViolin = deltaSwarmX = xposPlus + floatViolinOffset
+            # Set reference lines
+            ## zero line
+            ax_contrast.hlines(0,                                                # y-coordinate
+                            before_leftx, ax_raw.xaxis.get_view_interval()[1],   # x-coordinates, start and end.
+                            linestyle = 'solid',
+                            linewidth = 0.75,
+                            color = 'black')
 
-    # Plot the summary measure.
-    plt.plot(xposPlusViolin, summDelta,
-             axes = ax_float,
-             marker = 'o',
-             markerfacecolor = 'k', 
-             markersize = 12,
-             alpha = 0.75
-            )
+            ## effect size line
+            ax_contrast.hlines(summDelta, 
+                            after_leftx, ax_raw.xaxis.get_view_interval()[1],
+                            linestyle = 'solid',
+                            linewidth = 0.75,
+                            color = 'black')
 
-    # Plot the CI.
-    plt.plot([xposPlusViolin, xposPlusViolin],
-             [lowDelta, highDelta],
-             axes = ax_float,
-             color = 'k', 
-             alpha = 0.75,
-             linestyle = 'solid'
-            )
+            # Align the left axes and the floating axes.
+            align_yaxis(ax_raw, after_stat_summary, ax_contrast, 0.)
 
-    # Plot the violin-plot.
-    v = ax_float.violinplot(bootsDelta['stat_array'], [xposPlusViolin], 
-                             widths = violinWidth * 2, 
-                             showextrema = False, 
-                             showmeans = False)
-    halfviolin(v, right = True, color = 'k')
-    xmaxPlot = xposPlusViolin + violinWidth
+            # Calculate p-values.
+            # 1-sample t-test to see if the mean of the difference is different from 0.
+            ttestresult = ttest_1samp(plotPoints['delta_y'], popmean = 0)[1]
+            bootsDelta['ttest_pval'] = ttestresult
+            contrastList.append(bootsDelta)
+            contrastListNames.append( str(xlevs[1])+' v.s. '+str(xlevs[0]) )
 
-    # Remove left axes x-axis title.
-    ax_left.set_xlabel("")
-    # Remove floating axes y-axis title.
-    ax_float.set_ylabel("")
-    # Turn off hue legend for floating axes.
-    if hue is not None:
-        ax_float.legend().set_visible(False)
+    # Turn contrastList into a pandas DataFrame,
+    contrastList = pd.DataFrame(contrastList).T
+    contrastList.columns = contrastListNames
 
-    # Drawing in the x-axis for ax_left.
-    ## Get lowest y-value for ax_left.
-    y = ax_left.get_yaxis().get_view_interval()[0] 
-    ## Set the ticks locations for ax_left.
-    ax_left.get_xaxis().set_ticks((0, xposAfter))
-    ## Set the tick labels!
-    ax_left.set_xticklabels(xlevs, rotation = 45, horizontalalignment = 'right')
+    for j,i in enumerate(range(1, len(fig.get_axes()), 2)):
+        if floatContrast is False:
+            # Draw zero reference line.
+            fig.get_axes()[i].hlines(y = 0,
+                xmin = fig.get_axes()[i].get_xaxis().get_view_interval()[0], 
+                xmax = fig.get_axes()[i].get_xaxis().get_view_interval()[1],
+                linestyle = contrastZeroLineStyle,
+                linewidth = 1,
+                color = contrastZeroLineColor)
+        else:
+            # Re-draw the floating axis to the correct limits.
+            ## Get the 'correct limits':
+            lower = np.min(contrastList.ix['stat_array',j])
+            upper = np.max(contrastList.ix['stat_array',j])
+            ## Make sure we have zero in the limits.
+            if lower > 0:
+                lower = 0.
+            if upper < 0:
+                upper = 0.
+            ## Get tick distance on raw axes.
+            ## Half of this will be the tick distance for the contrast axes.
+            rawAxesTickDist = fig.get_axes()[i-1].yaxis.get_majorticklocs()[1] - fig.get_axes()[i-1].yaxis.get_majorticklocs()[0]
+            fig.get_axes()[i].yaxis.set_major_locator(MultipleLocator(rawAxesTickDist/2))
 
-    # Align the left axes and the floating axes.
-    align_yaxis(ax_left, statfunction(plotPoints[xlevs[0]]),
-                   ax_float, 0)
+            ## Get the original ticks on the floating y-axis.
+            oldticks = fig.get_axes()[i].get_yticks()
+            tickstep = oldticks[1] - oldticks[0]
+            ## Obtain major ticks that fall within lower and upper.
+            newticks = list()
+            for a,b in enumerate(oldticks):
+                if (b >= lower and b <= upper):
+                    newticks.append(b)
+            newticks = np.array(newticks)
+            ## Re-draw the axis.
+            fig.get_axes()[i].yaxis.set_major_locator(FixedLocator(locs = newticks))
+            fig.get_axes()[i].yaxis.set_minor_locator(AutoMinorLocator(2))
+            
+            ## Obtain minor ticks that fall within the major ticks.
+            majorticks = fig.get_axes()[i].yaxis.get_majorticklocs()
+            oldminorticks = fig.get_axes()[i].yaxis.get_minorticklocs()
+            newminorticks = list()
+            for a,b in enumerate(oldminorticks):
+                if (b >= majorticks[0] and b <= majorticks[-1]):
+                    newminorticks.append(b)
+            newminorticks = np.array(newminorticks)
+            fig.get_axes()[i].yaxis.set_minor_locator(FixedLocator(locs = newminorticks))
 
-    # Add label to floating axes. But on ax_left!
-    ax_left.text(x = deltaSwarmX - floatViolinOffset,
-                  y = ax_left.get_yaxis().get_view_interval()[0],
-                  horizontalalignment = 'left',
-                  s = 'Difference',
-                  fontsize = 15)
+            ## Despine, trim, and redraw the lines.
+            sb.despine(ax = fig.get_axes()[i], trim = True, 
+                bottom = False, right = False,
+                left = True, top = True)
 
-    # Trim the floating y-axis to an appropriate range around the bootstrap.
+    for i in range(0, len(fig.get_axes()), 2):
+        if floatContrast is True:
+            sb.despine(ax = fig.get_axes()[i], trim = True, right = True)
 
-    ## Get the step size of the left axes y-axis.
-    leftAxesStep = ax_left.get_yticks()[1] - ax_left.get_yticks()[0]
-    ## figure out the number of decimal places for `leftStep`.
-    dp = -Decimal(format(leftAxesStep)).as_tuple().exponent
-    floatFormat = '.' + str(dp) + 'f'
+        else:
+            sb.despine(ax = fig.get_axes()[i], trim = True, bottom = True, right = True)
+            fig.get_axes()[i].get_xaxis().set_visible(False)
 
-    ## Set the lower and upper bounds of the floating y-axis.
-    floatYMin = float(format(min(plotPoints['delta_y']), floatFormat))
-    floatYMax = float(format(max(plotPoints['delta_y']), floatFormat))
-
-    ## Add appropriate value to make sure both `floatYMin` and `floatXMin`
-    AbsFloatYMin = np.ceil( abs(floatYMin/(leftAxesStep)) ) * leftAxesStep
-    if floatYMin < 0:
-        floatYMin = -AbsFloatYMin
-    else:
-        floatYMin = AbsFloatYMin
-
-    AbsFloatYMax = np.ceil( abs(floatYMax/(leftAxesStep)) ) * leftAxesStep
-    if floatYMax < 0:
-        floatYMax = -AbsFloatYMax
-    else:
-        floatYMax = AbsFloatYMax
-
-    if floatYMin > 0.:
-        floatYMin = 0.
-    if floatYMax < 0.:
-        floatYMax = 0.
-    
-    ax_float.yaxis.set_ticks( np.arange(floatYMin,
-                                        floatYMax,
-                                        leftAxesStep) )
-
-    # Set proper x-limits.
-
-    ax_left.set_xlim(xminPlot - 0.2, xmaxPlot + 0.2)
-    # Set reference lines
-    ## zero line
-    ax_float.hlines(0,                              # y-coordinate
-                    before_xpos, xmaxPlot + 0.2,   # x-coordinates, start and end.
-                    linestyle = 'solid',
-                    color = 'grey')
-
-    ## effect size line
-    ax_float.hlines(summDelta, 
-                    after_xpos, xmaxPlot + 0.2,
-                    linestyle = 'solid',
-                    color = 'grey')
-
-    # Align the left axes and the floating axes.
-    align_yaxis(ax_left, leftAxAlignRef, ax_float, 0.)
+        # Draw back the lines for the relevant y-axes.
+        ymin = fig.get_axes()[i].get_yaxis().get_majorticklocs()[0]
+        ymax = fig.get_axes()[i].get_yaxis().get_majorticklocs()[-1]
+        x, _ = fig.get_axes()[i].get_xaxis().get_view_interval()
+        fig.get_axes()[i].add_artist(Line2D((x, x), (ymin, ymax), color='black', linewidth=2))    
 
     plt.tight_layout()
 
-    # Despine all axes.
-    sb.despine(ax = ax_left, trim = True)
-    sb.despine(ax = ax_float, right = False, left = True, top = True, trim = True)
-
-    # Calculate p-values.
-    # 1-sample t-test to see if the mean of the difference is different from 0.
-    ttestresult = ttest_1samp(plotPoints['delta_y'], popmean = 0)[1]
-    result = dictToDf(bootsDelta, x)
-    result.ix['ttest_pval', ] = ttestresult
-
     # And we're done.
-    return fig, result
+    return fig, contrastList
 
 def normalizeSwarmY(fig, floatcontrast):
     allYmax = list()
