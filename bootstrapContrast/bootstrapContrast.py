@@ -1040,6 +1040,9 @@ def pairedcontrast(data, x, y, idcol,
     floatContrast = True,
     smoothboot = True,
     floatViolinOffset = None, 
+    showConnections = True,
+    summaryBar = False,
+    summaryBarColor = 'grey',
     pal = None,
     legendLoc = 2, legendFontSize = 12, legendMarkerScale = 1,
     **kwargs):
@@ -1108,6 +1111,9 @@ def pairedcontrast(data, x, y, idcol,
             gsSubGridSpec = gridspec.GridSpecFromSubplotSpec(2, 1, subplot_spec = gsMain[gsIdx])
             ax_raw = plt.Subplot(fig, gsSubGridSpec[0, 0], frame_on = False)
 
+        ## Pivot tempdat to get before and after lines.
+        data_pivot = data.pivot(index = idcol, columns = x, values = y)
+
         ## Plot raw data as swarmplot or stripplot.
         if showRawData is True:
             swarm_raw = sb.swarmplot(data = data, 
@@ -1128,10 +1134,9 @@ def pairedcontrast(data, x, y, idcol,
         xposAfter = maxXBefore + beforeAfterSpacer
         xAfterShift = minXAfter - xposAfter
 
+        ## shift the after swarmpoints closer for aesthetic purposes.
         offsetSwarmX(swarm_raw.collections[1], -xAfterShift)
 
-        ## Pivot tempdat to get before and after lines.
-        data_pivot = data.pivot(index = idcol, columns = x, values = y)
         ## pandas DataFrame of 'before' group
         x1 = pd.DataFrame({str(xlevs[0] + '_x') : pd.Series(swarm_raw.collections[0].get_offsets().T[0]),
                        xlevs[0] : pd.Series(swarm_raw.collections[0].get_offsets().T[1]),
@@ -1161,27 +1166,68 @@ def pairedcontrast(data, x, y, idcol,
         if 'hue' in kwargs:
             h = kwargs['hue']
             plotPoints[h] = data.pivot(index = idcol, columns = x, values = h)[xlevs[0]]
+            swarm_raw.legend(loc = legendLoc, 
+                fontsize = legendFontSize, 
+                markerscale = legendMarkerScale)
 
         ## Plot the lines to join the 'before' points to their respective 'after' points.
-        for i in plotPoints.index:
-            ax_raw.plot([ plotPoints.ix[i, befX],
-                plotPoints.ix[i, aftX] ],
-                [ plotPoints.ix[i, xlevs[0]], 
-                plotPoints.ix[i, xlevs[1]] ],
-                linestyle = 'solid',
-                color = plotPoints.ix[i, '_hue_'],
-                linewidth = 0.75,
-                alpha = 0.75
-                )
+        if showConnections is True:
+            for i in plotPoints.index:
+                ax_raw.plot([ plotPoints.ix[i, befX],
+                    plotPoints.ix[i, aftX] ],
+                    [ plotPoints.ix[i, xlevs[0]], 
+                    plotPoints.ix[i, xlevs[1]] ],
+                    linestyle = 'solid',
+                    color = plotPoints.ix[i, '_hue_'],
+                    linewidth = 0.75,
+                    alpha = 0.75
+                    )
 
         ## Hide the raw swarmplot data if so desired.
         if showRawData is False:
             swarm_raw.collections[0].set_visible(False)
-            swarm_raw.collections[1].set_visible(False)
-        if 'hue' in kwargs:
-            swarm_raw.legend(loc = legendLoc, 
-                fontsize = legendFontSize, 
-                markerscale = legendMarkerScale)
+            swarm_raw.collections[1].set_visible(False)            
+
+        ## Plot Summary Bar.
+        if summaryBar is True:
+            ## Calulate means or medians
+            # Calculate means
+            means = data.groupby([x], sort = True).mean()[y]
+            # Calculate medians
+            medians = data.groupby([x], sort = True).median()[y]
+
+            ## Draw summary bar.
+            bar_raw = sb.barplot(x = means.index, 
+                        y = means.values, 
+                        order = xlevs,
+                        ax = ax_raw,
+                        ci = 0,
+                        facecolor = summaryBarColor, 
+                        alpha = 0.25)
+            ## Draw zero reference line.
+            ax_raw.add_artist(Line2D(
+                (ax_raw.xaxis.get_view_interval()[0], 
+                    ax_raw.xaxis.get_view_interval()[1]), 
+                (0,0),
+                color='black', linewidth=1
+                )
+            )       
+
+            ## get swarm with largest span, set as max width of each barplot.
+            if showRawData is True:
+                maxSwarmSpan = max(np.array([getSwarmSpan(swarm_raw, 0), getSwarmSpan(swarm_raw, 1)]))/2
+            else:
+                maxSwarmSpan = 0.025
+
+            for i, bar in enumerate(bar_raw.patches):
+                x = bar.get_x()
+                width = bar.get_width()
+                centre = x + width/2.
+                if i == 0:
+                    bar.set_x(centre - maxSwarmSpan/2.)
+                else:
+                    bar.set_x(centre - xAfterShift - maxSwarmSpan/2.)
+                bar.set_width(maxSwarmSpan)
 
         # Get y-limits of the treatment swarm points.
         beforeRaw = pd.DataFrame( swarm_raw.collections[0].get_offsets() )
@@ -1485,4 +1531,7 @@ def dictToDf(df, name):
 	l_df = pd.DataFrame(l).T
 	l_df.columns = [name]
 	return l_df
+
+def getSwarmSpan(swarmplot, groupnum):
+    return swarmplot.collections[groupnum].get_offsets().T[0].ptp(axis = 0)
     
