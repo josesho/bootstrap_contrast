@@ -101,7 +101,7 @@ def bootstrap(data,
               statfunction = None,
               smoothboot = True,
               alpha = 0.05, 
-              reps = 5000):
+              reps = 3000):
     
     # Taken from scikits.bootstrap code
     # Initialise statfunction
@@ -157,7 +157,7 @@ def bootstrap_contrast(data = None,
                        statfunction = None,
                        smoothboot = True,
                        alpha = 0.05, 
-                       reps = 2000):
+                       reps = 3000):
     
     # Taken from scikits.bootstrap code
     # Initialise statfunction
@@ -295,7 +295,7 @@ def plotbootstrap(coll, bslist, ax, violinWidth,
             
     ##  summary line
     #ax.plot([violinbasex, violinbasex + violinWidth], 
-    #        [bslist['summary'], bslist['summary']], color, linewidth=2)
+    #        [bslist['summary'], bslist['summary']], color, linewidth=1.5)
 
     ##  mean CI
     #ax.plot([violinbasex, violinbasex + violinWidth/3], 
@@ -357,7 +357,7 @@ def plotbootstrap_hubspoke(bslist, ax, violinWidth, violinOffset,
 
             ##  summary line
             #ax.plot([i+1, i+1 + violinWidth], 
-            #        [bsi['summary'], bsi['summary']], color, linewidth=2)
+            #        [bsi['summary'], bsi['summary']], color, linewidth=1.5)
             ##  mean CI
             #ax.plot([i+1, i+1 + violinWidth/3], 
             #        [bsi['bca_ci_low'], bsi['bca_ci_low']], color, linewidth)
@@ -443,7 +443,7 @@ def align_yaxis(ax1, v1, ax2, v2):
     miny, maxy = ax2.get_ylim() 
     ax2.set_ylim(miny+dy, maxy+dy)
     
-def contrastplot(data, x, y, idx = None, statfunction = None, reps = 5000,
+def contrastplot(data, x, y, idx = None, statfunction = None, reps = 3000,
                  violinOffset = 0.375, violinWidth = 0.2, lineWidth = 2, pal = None,
                  summaryLineWidth = 0.25, figsize = None, 
                  heightRatio = (1, 1), alpha = 0.75,
@@ -634,7 +634,6 @@ def contrastplot(data, x, y, idx = None, statfunction = None, reps = 5000,
                               violinOffset = violinOffset,
                               color = 'k', 
                               linewidth = 2)
-                #ax_left.set_ylim(swarm_ylim)
 
                 ## If the effect size is positive, shift the right axis up.
                 if float(tempbs['summary']) > 0:
@@ -660,14 +659,14 @@ def contrastplot(data, x, y, idx = None, statfunction = None, reps = 5000,
                 ax_right.hlines(0,                   # y-coordinates
                                 leftxlim, 3.5,       # x-coordinates, start and end.
                                 linestyle = contrastZeroLineStyle,
-                                linewidth = 1,
+                                linewidth = 0.75,
                                 color = contrastZeroLineColor)
 
                 ## effect size line
                 ax_right.hlines(tempbs['summary'], 
                                 rightxlim, 3.5,        # x-coordinates, start and end.
                                 linestyle = contrastEffectSizeLineStyle,
-                                linewidth = 1,
+                                linewidth = 0.75,
                                 color = contrastEffectSizeLineColor) 
 
                 if legend is True:
@@ -691,9 +690,6 @@ def contrastplot(data, x, y, idx = None, statfunction = None, reps = 5000,
                 ## Set the lower and upper bounds of the floating y-axis.
                 floatYMin = float(format(min(tempbs['diffarray']), floatFormat)) - leftAxesStep
                 floatYMax = float(format(max(tempbs['diffarray']), floatFormat)) + leftAxesStep
-
-                # floatYMin = min(tempbs['diffarray']) - leftAxesStep
-                # floatYMax = max(tempbs['diffarray']) + leftAxesStep
 
                 ## Add appropriate value to make sure both `floatYMin` and `floatXMin`
                 AbsFloatYMin = np.ceil( abs(floatYMin/(leftAxesStep)) ) * leftAxesStep
@@ -903,7 +899,7 @@ def contrastplot(data, x, y, idx = None, statfunction = None, reps = 5000,
                 xmin = fig.get_axes()[i].get_xaxis().get_view_interval()[0], 
                 xmax = fig.get_axes()[i].get_xaxis().get_view_interval()[1],
                 linestyle = contrastZeroLineStyle,
-                linewidth = 1,
+                linewidth = 0.75,
                 color = contrastZeroLineColor)
         else:
             # Re-draw the floating axis to the correct limits.
@@ -948,11 +944,10 @@ def contrastplot(data, x, y, idx = None, statfunction = None, reps = 5000,
         if floatContrast is True:
             sb.despine(ax = fig.get_axes()[i], trim = True, right = True)
             # Draw back the lines for the x-axes.
-            # xmin = fig.get_axes()[i].get_xaxis().get_majorticklocs()[0]
-            # xmax = fig.get_axes()[i].get_xaxis().get_majorticklocs()[-1]
-            # y, _ = fig.get_axes()[i].get_yaxis().get_view_interval()
-            # fig.get_axes()[i].add_artist(Line2D((xmin, xmax), (y, y), color='black', linewidth=2))  
-
+            xmin = fig.get_axes()[i].get_xaxis().get_majorticklocs()[0]
+            xmax = fig.get_axes()[i].get_xaxis().get_majorticklocs()[-1]
+            y, _ = fig.get_axes()[i].get_yaxis().get_view_interval()
+            fig.get_axes()[i].add_artist(Line2D((xmin, xmax), (y, y), color='black', linewidth=1.5))  
         else:
             sb.despine(ax = fig.get_axes()[i], trim = True, bottom = True, right = True)
             fig.get_axes()[i].get_xaxis().set_visible(False)
@@ -964,16 +959,21 @@ def contrastplot(data, x, y, idx = None, statfunction = None, reps = 5000,
             ymin = fig.get_axes()[i].get_yaxis().get_majorticklocs()[0]
             ymax = fig.get_axes()[i].get_yaxis().get_majorticklocs()[-1]
             x, _ = fig.get_axes()[i].get_xaxis().get_view_interval()
-            fig.get_axes()[i].add_artist(Line2D((x, x), (ymin, ymax), color='black', linewidth=2))    
+            fig.get_axes()[i].add_artist(Line2D((x, x), (ymin, ymax), color='black', linewidth=1.5))    
 
         if summaryBar is True:
             fig.get_axes()[i].add_artist(Line2D(
                 (fig.get_axes()[i].xaxis.get_view_interval()[0], 
                     fig.get_axes()[i].xaxis.get_view_interval()[1]), 
                 (0,0),
-                color='black', linewidth=1
+                color='black', linewidth=0.75
                 )
-            )                
+            )
+
+        # if showAllYAxes is False:
+        #     # Hide all but the last legend.
+        #     if i != (len(fig.get_axes())-2):
+        #         fig.get_axes()[i].legend().set_visible(False)                
     
     # Normalize bottom/right axes to each other for Cummings hub-and-spoke plots.
     if (len(fig.get_axes()) > 2 and contrastShareY is True and floatContrast is False):
@@ -996,13 +996,13 @@ def contrastplot(data, x, y, idx = None, statfunction = None, reps = 5000,
             x, _ = ax.get_xaxis().get_view_interval()
             ymin = ax.get_yaxis().get_majorticklocs()[0]
             ymax = ax.get_yaxis().get_majorticklocs()[-1]
-            ax.add_artist(Line2D((x, x), (ymin, ymax), color='black', linewidth=2))
+            ax.add_artist(Line2D((x, x), (ymin, ymax), color='black', linewidth=1.5))
 
         # Draw back the lines for the relevant x-axes.
         y, _ = fig.get_axes()[1].get_yaxis().get_view_interval()
         xmin = fig.get_axes()[1].get_xaxis().get_majorticklocs()[0]
         xmax = fig.get_axes()[1].get_xaxis().get_majorticklocs()[-1]
-        fig.get_axes()[1].add_artist(Line2D((xmin, xmax), (y, y), color='black', linewidth=2))
+        fig.get_axes()[1].add_artist(Line2D((xmin, xmax), (y, y), color='black', linewidth=1.5))
 
     if swarmShareY is False:
         for i in range(0, len(fig.get_axes()), 2):
@@ -1010,7 +1010,7 @@ def contrastplot(data, x, y, idx = None, statfunction = None, reps = 5000,
             x, _ = fig.get_axes()[i].get_xaxis().get_view_interval()
             ymin = fig.get_axes()[i].get_yaxis().get_majorticklocs()[0]
             ymax = fig.get_axes()[i].get_yaxis().get_majorticklocs()[-1]
-            fig.get_axes()[i].add_artist(Line2D((x, x), (ymin, ymax), color='black', linewidth=2))
+            fig.get_axes()[i].add_artist(Line2D((x, x), (ymin, ymax), color='black', linewidth=1.5))
                        
     if contrastShareY is False:
         for i in range(1, len(fig.get_axes()), 2):
@@ -1031,10 +1031,10 @@ def contrastplot(data, x, y, idx = None, statfunction = None, reps = 5000,
     # And we're all done.
     return fig, contrastList
 
-def pairedcontrast(data, x, y, idcol, 
+def pairedcontrast(data, x, y, idcol, reps = 3000,
     statfunction = None, idx = None, figsize = None,
-    beforeAfterSpacer = 0.05, 
-    violinWidth = 0.02, 
+    beforeAfterSpacer = 0.025, 
+    violinWidth = 0.01, 
     floatOffset = 0.05, 
     showRawData = False,
     floatContrast = True,
@@ -1042,7 +1042,13 @@ def pairedcontrast(data, x, y, idcol,
     floatViolinOffset = None, 
     showConnections = True,
     summaryBar = False,
+    contrastYlim = None,
+    swarmYlim = None,
+    barWidth = 0.005,
     summaryBarColor = 'grey',
+    meansSummaryLineStyle = 'solid', 
+    contrastZeroLineStyle = 'solid', contrastEffectSizeLineStyle = 'solid',
+    contrastZeroLineColor = 'black', contrastEffectSizeLineColor = 'black',
     pal = None,
     legendLoc = 2, legendFontSize = 12, legendMarkerScale = 1,
     **kwargs):
@@ -1068,6 +1074,10 @@ def pairedcontrast(data, x, y, idcol,
                 sys.exit(0)
     if floatViolinOffset is None:
         floatViolinOffset = beforeAfterSpacer/2
+    if contrastYlim is not None:
+        contrastYlim = np.array([contrastYlim[0],contrastYlim[1]])
+    if swarmYlim is not None:
+        swarmYlim = np.array([swarmYlim[0],swarmYlim[1]])
 
     ## Here we define the palette on all the levels of the 'x' column.
     ## Thus, if the same pandas dataframe is re-used across different plots,
@@ -1104,15 +1114,17 @@ def pairedcontrast(data, x, y, idcol,
     contrastListNames = list()
 
     for gsIdx, xlevs in enumerate(idx):
+        ## Pivot tempdat to get before and after lines.
+        data_pivot = data.pivot_table(index = idcol, columns = x, values = y)
+
         # Start plotting!!
         if floatContrast is True:
             ax_raw = fig.add_subplot(gsMain[gsIdx], frame_on = False)
+            ax_contrast = ax_raw.twinx()
         else:
             gsSubGridSpec = gridspec.GridSpecFromSubplotSpec(2, 1, subplot_spec = gsMain[gsIdx])
             ax_raw = plt.Subplot(fig, gsSubGridSpec[0, 0], frame_on = False)
-
-        ## Pivot tempdat to get before and after lines.
-        data_pivot = data.pivot(index = idcol, columns = x, values = y)
+            ax_contrast = plt.Subplot(fig, gsSubGridSpec[1, 0], sharex = ax_raw, frame_on = False)
 
         ## Plot raw data as swarmplot or stripplot.
         if showRawData is True:
@@ -1127,6 +1139,8 @@ def pairedcontrast(data, x, y, idcol,
                                      order = xlevs,
                                      ax = ax_raw,
                                      **kwargs)
+        if swarmYlim is not None:
+            swarm_raw.set_ylim(swarmYlim)
 
         ## Get some details about the raw data.
         maxXBefore = max(swarm_raw.collections[0].get_offsets().T[0])
@@ -1209,7 +1223,7 @@ def pairedcontrast(data, x, y, idcol,
                 (ax_raw.xaxis.get_view_interval()[0], 
                     ax_raw.xaxis.get_view_interval()[1]), 
                 (0,0),
-                color='black', linewidth=1
+                color='black', linewidth=0.75
                 )
             )       
 
@@ -1217,7 +1231,7 @@ def pairedcontrast(data, x, y, idcol,
             if showRawData is True:
                 maxSwarmSpan = max(np.array([getSwarmSpan(swarm_raw, 0), getSwarmSpan(swarm_raw, 1)]))/2
             else:
-                maxSwarmSpan = 0.025
+                maxSwarmSpan = barWidth
 
             for i, bar in enumerate(bar_raw.patches):
                 x = bar.get_x()
@@ -1237,13 +1251,6 @@ def pairedcontrast(data, x, y, idcol,
         after_rightx = max(afterRaw[0])
         after_stat_summary = statfunction(beforeRaw[1])
 
-        if floatContrast is True:
-            # Generate floating axes on right.
-            ax_contrast = ax_raw.twinx()
-        else:
-            # Generate contrast axes at the bottom.
-            ax_contrast = plt.Subplot(fig, gsSubGridSpec[1, 0], sharex = ax_raw, frame_on = False)
-
         # Calculate the summary difference and CI.
         plotPoints['delta_y'] = plotPoints[xlevs[1]] - plotPoints[xlevs[0]]
         plotPoints['delta_x'] = [0] * np.shape(plotPoints)[0]
@@ -1253,31 +1260,35 @@ def pairedcontrast(data, x, y, idcol,
 
         bootsDelta = bootstrap(plotPoints['delta_y'],
             statfunction = statfunction, 
-            smoothboot = smoothboot)
+            smoothboot = smoothboot,
+            reps = reps)
         summDelta = bootsDelta['summary']
         lowDelta = bootsDelta['bca_ci_low']
         highDelta = bootsDelta['bca_ci_high']
 
         # set new xpos for delta violin.
-        xposPlusViolin = deltaSwarmX = after_rightx + floatViolinOffset
+        if floatContrast is True:
+            xposPlusViolin = deltaSwarmX = after_rightx + floatViolinOffset
+        else:
+            xposPlusViolin = xposAfter
+
+        xmaxPlot = xposPlusViolin + 0.75*violinWidth
 
         # Plot the summary measure.
-        plt.plot(xposPlusViolin, summDelta,
-                 axes = ax_contrast,
-                 marker = 'o',
-                 markerfacecolor = 'k', 
-                 markersize = 12,
-                 alpha = 0.75
-                )
+        ax_contrast.plot(xposPlusViolin, summDelta,
+            marker = 'o',
+            markerfacecolor = 'k', 
+            markersize = 12,
+            alpha = 0.75
+            )
 
         # Plot the CI.
-        plt.plot([xposPlusViolin, xposPlusViolin],
-                 [lowDelta, highDelta],
-                 axes = ax_contrast,
-                 color = 'k', 
-                 alpha = 0.75,
-                 linestyle = 'solid'
-                )
+        ax_contrast.plot([xposPlusViolin, xposPlusViolin],
+            [lowDelta, highDelta],
+            color = 'k', 
+            alpha = 0.75,
+            linestyle = 'solid'
+            )
 
         # Plot the violin-plot.
         v = ax_contrast.violinplot(bootsDelta['stat_array'], [xposPlusViolin], 
@@ -1285,24 +1296,30 @@ def pairedcontrast(data, x, y, idcol,
                                  showextrema = False, 
                                  showmeans = False)
         halfviolin(v, right = True, color = 'k')
-        xmaxPlot = xposPlusViolin + 0.75*violinWidth
 
         # Remove left axes x-axis title.
         ax_raw.set_xlabel("")
         # Remove floating axes y-axis title.
         ax_contrast.set_ylabel("")
 
+        # Set proper x-limits
+        ax_raw.set_xlim(before_leftx - beforeAfterSpacer/2, xmaxPlot)
+        ax_raw.get_xaxis().set_view_interval(before_leftx - beforeAfterSpacer/2, 
+            after_rightx + beforeAfterSpacer/2)
+        ax_contrast.set_xlim(ax_raw.get_xlim())
+
         if floatContrast is True:
+            # Set the ticks locations for ax_raw.
+            ax_raw.get_xaxis().set_ticks((0, xposAfter))
+
             # Make sure they have the same y-limits.
             ax_contrast.set_ylim(ax_raw.get_ylim())
             
             # Drawing in the x-axis for ax_raw.
-            ## Get lowest y-value for ax_raw.
-            y = ax_raw.get_yaxis().get_view_interval()[0] 
-            ## Set the ticks locations for ax_raw.
-            ax_raw.get_xaxis().set_ticks((0, xposAfter))
             ## Set the tick labels!
             ax_raw.set_xticklabels(xlevs, rotation = 45, horizontalalignment = 'right')
+            ## Get lowest y-value for ax_raw.
+            y = ax_raw.get_yaxis().get_view_interval()[0] 
 
             # Align the left axes and the floating axes.
             align_yaxis(ax_raw, statfunction(plotPoints[xlevs[0]]),
@@ -1315,64 +1332,107 @@ def pairedcontrast(data, x, y, idcol,
                           s = 'Difference',
                           fontsize = 15)        
 
-            # Set proper x-limits
-            ax_raw.set_xlim(before_leftx - beforeAfterSpacer/2, xmaxPlot)
-            ax_raw.get_xaxis().set_view_interval(before_leftx - beforeAfterSpacer/2, xmaxPlot)
-            ax_contrast.set_xlim(ax_raw.get_xlim())
-
             # Set reference lines
             ## zero line
-            ax_contrast.hlines(0,                                                # y-coordinate
-                            before_leftx, ax_raw.xaxis.get_view_interval()[1],   # x-coordinates, start and end.
+            ax_contrast.hlines(0,                                           # y-coordinate
+                            ax_contrast.xaxis.get_majorticklocs()[0],       # x-coordinates, start and end.
+                            ax_raw.xaxis.get_view_interval()[1],   
                             linestyle = 'solid',
                             linewidth = 0.75,
                             color = 'black')
 
             ## effect size line
             ax_contrast.hlines(summDelta, 
-                            after_leftx, ax_raw.xaxis.get_view_interval()[1],
+                            ax_contrast.xaxis.get_majorticklocs()[1],
+                            ax_raw.xaxis.get_view_interval()[1],
                             linestyle = 'solid',
                             linewidth = 0.75,
                             color = 'black')
 
             # Align the left axes and the floating axes.
             align_yaxis(ax_raw, after_stat_summary, ax_contrast, 0.)
+        else:
+            # Set the ticks locations for ax_raw.
+            ax_raw.get_xaxis().set_ticks((0, xposAfter))
+            
+            fig.add_subplot(ax_raw)
+            fig.add_subplot(ax_contrast)
 
-            # Calculate p-values.
-            # 1-sample t-test to see if the mean of the difference is different from 0.
-            ttestresult = ttest_1samp(plotPoints['delta_y'], popmean = 0)[1]
-            bootsDelta['ttest_pval'] = ttestresult
-            contrastList.append(bootsDelta)
-            contrastListNames.append( str(xlevs[1])+' v.s. '+str(xlevs[0]) )
+        # Calculate p-values.
+        # 1-sample t-test to see if the mean of the difference is different from 0.
+        ttestresult = ttest_1samp(plotPoints['delta_y'], popmean = 0)[1]
+        bootsDelta['ttest_pval'] = ttestresult
+        contrastList.append(bootsDelta)
+        contrastListNames.append( str(xlevs[1])+' v.s. '+str(xlevs[0]) )
 
     # Turn contrastList into a pandas DataFrame,
     contrastList = pd.DataFrame(contrastList).T
     contrastList.columns = contrastListNames
 
+    # Now we iterate thru the contrast axes to normalize all the ylims.
     for j,i in enumerate(range(1, len(fig.get_axes()), 2)):
+
+        ## Get max and min of the dataset.
+        lower = np.min(contrastList.ix['stat_array',j])
+        upper = np.max(contrastList.ix['stat_array',j])
+        ## Make sure we have zero in the limits.
+        if lower > 0:
+            lower = 0.
+        if upper < 0:
+            upper = 0.
+
+        ## Get tick distance on raw axes.
+        ## Half of this will be the tick distance for the contrast axes.
+        rawAxesTickDist = fig.get_axes()[i-1].yaxis.get_majorticklocs()[1] - fig.get_axes()[i-1].yaxis.get_majorticklocs()[0]
+        fig.get_axes()[i].yaxis.set_major_locator(MultipleLocator(rawAxesTickDist/2))
+
         if floatContrast is False:
-            # Draw zero reference line.
+            # Set the contrast ylim if it is specified.
+            if contrastYlim is not None:
+                fig.get_axes()[i].set_ylim(contrastYlim)
+                lower = contrastYlim[0]
+                upper = contrastYlim[1]
+
+            oldticks = fig.get_axes()[i].get_yticks()
+            tickstep = oldticks[1] - oldticks[0]
+            ## Obtain major ticks that fall within lower and upper.
+            newticks = list()
+            for a,b in enumerate(oldticks):
+                if (b >= lower and b <= upper):
+                    newticks.append(b)
+            newticks = np.array(newticks)
+            ## Re-draw the axis.
+            fig.get_axes()[i].yaxis.set_major_locator(FixedLocator(locs = newticks))
+            fig.get_axes()[i].yaxis.set_minor_locator(AutoMinorLocator(2))
+
+            ## Draw minor ticks appropriately.
+            fig.get_axes()[i].yaxis.set_minor_locator(AutoMinorLocator(2))
+
+            ## Draw zero reference line.
             fig.get_axes()[i].hlines(y = 0,
                 xmin = fig.get_axes()[i].get_xaxis().get_view_interval()[0], 
                 xmax = fig.get_axes()[i].get_xaxis().get_view_interval()[1],
                 linestyle = contrastZeroLineStyle,
-                linewidth = 1,
+                linewidth = 0.75,
                 color = contrastZeroLineColor)
-        else:
-            # Re-draw the floating axis to the correct limits.
-            ## Get the 'correct limits':
-            lower = np.min(contrastList.ix['stat_array',j])
-            upper = np.max(contrastList.ix['stat_array',j])
-            ## Make sure we have zero in the limits.
-            if lower > 0:
-                lower = 0.
-            if upper < 0:
-                upper = 0.
-            ## Get tick distance on raw axes.
-            ## Half of this will be the tick distance for the contrast axes.
-            rawAxesTickDist = fig.get_axes()[i-1].yaxis.get_majorticklocs()[1] - fig.get_axes()[i-1].yaxis.get_majorticklocs()[0]
-            fig.get_axes()[i].yaxis.set_major_locator(MultipleLocator(rawAxesTickDist/2))
 
+            sb.despine(ax = fig.get_axes()[i], trim = True, 
+                bottom = False, right = True,
+                left = False, top = True)
+
+            ## Draw back the lines for the relevant y-axes.
+            ymin = fig.get_axes()[i].get_yaxis().get_majorticklocs()[0]
+            ymax = fig.get_axes()[i].get_yaxis().get_majorticklocs()[-1]
+            x, _ = fig.get_axes()[i].get_xaxis().get_view_interval()
+            fig.get_axes()[i].add_artist(Line2D((x, x), (ymin, ymax), color='black', linewidth=1))    
+
+            ## Draw back the lines for the relevant x-axes.
+            xmin = fig.get_axes()[i].get_xaxis().get_majorticklocs()[0]
+            xmax = fig.get_axes()[i].get_xaxis().get_majorticklocs()[-1]
+            y, _ = fig.get_axes()[i].get_yaxis().get_view_interval()
+            fig.get_axes()[i].add_artist(Line2D((xmin, xmax), (y, y), color='black', linewidth=1.5)) 
+
+        else:
             ## Get the original ticks on the floating y-axis.
             oldticks = fig.get_axes()[i].get_yticks()
             tickstep = oldticks[1] - oldticks[0]
@@ -1394,14 +1454,15 @@ def pairedcontrast(data, x, y, idcol,
                 if (b >= majorticks[0] and b <= majorticks[-1]):
                     newminorticks.append(b)
             newminorticks = np.array(newminorticks)
-            fig.get_axes()[i].yaxis.set_minor_locator(FixedLocator(locs = newminorticks))
+            fig.get_axes()[i].yaxis.set_minor_locator(FixedLocator(locs = newminorticks))    
 
-            ## Despine, trim, and redraw the lines.
+            ## Despine and trim the axes.
             sb.despine(ax = fig.get_axes()[i], trim = True, 
                 bottom = False, right = False,
                 left = True, top = True)
 
     for i in range(0, len(fig.get_axes()), 2):
+
         if floatContrast is True:
             sb.despine(ax = fig.get_axes()[i], trim = True, right = True)
 
@@ -1413,10 +1474,8 @@ def pairedcontrast(data, x, y, idcol,
         ymin = fig.get_axes()[i].get_yaxis().get_majorticklocs()[0]
         ymax = fig.get_axes()[i].get_yaxis().get_majorticklocs()[-1]
         x, _ = fig.get_axes()[i].get_xaxis().get_view_interval()
-        fig.get_axes()[i].add_artist(Line2D((x, x), (ymin, ymax), color='black', linewidth=2))    
-
-    plt.tight_layout()
-
+        fig.get_axes()[i].add_artist(Line2D((x, x), (ymin, ymax), color='black', linewidth=1.5))    
+    
     # And we're done.
     return fig, contrastList
 
@@ -1454,7 +1513,7 @@ def normalizeSwarmY(fig, floatcontrast):
         x, _ = fig.get_axes()[i].get_xaxis().get_view_interval()
         ymin = fig.get_axes()[i].get_yaxis().get_majorticklocs()[0]
         ymax = fig.get_axes()[i].get_yaxis().get_majorticklocs()[-1]
-        fig.get_axes()[i].add_artist(Line2D((x, x), (ymin, ymax), color='black', linewidth=2))
+        fig.get_axes()[i].add_artist(Line2D((x, x), (ymin, ymax), color='black', linewidth=1.5))
             
 
 def normalizeContrastY(fig, con, contrast_ylim, show_all_yaxes):
@@ -1495,13 +1554,13 @@ def normalizeContrastY(fig, con, contrast_ylim, show_all_yaxes):
             x, _ = fig.get_axes()[i].get_xaxis().get_view_interval()
             ymin = fig.get_axes()[i].get_yaxis().get_majorticklocs()[0]
             ymax = fig.get_axes()[i].get_yaxis().get_majorticklocs()[-1]
-            fig.get_axes()[i].add_artist(Line2D((x, x), (ymin, ymax), color='black', linewidth=2))
+            fig.get_axes()[i].add_artist(Line2D((x, x), (ymin, ymax), color='black', linewidth=1.5))
 
         ## Draw back the lines for the relevant x-axes.
         xmin = fig.get_axes()[i].get_xaxis().get_majorticklocs()[0]
         xmax = fig.get_axes()[i].get_xaxis().get_majorticklocs()[-1]
         y, _ = fig.get_axes()[i].get_yaxis().get_view_interval()
-        fig.get_axes()[i].add_artist(Line2D((xmin, xmax), (y, y), color='black', linewidth=2))    
+        fig.get_axes()[i].add_artist(Line2D((xmin, xmax), (y, y), color='black', linewidth=1.5))    
 
 def halfviolin(v, right = True, color = 'k'):
     for b in v['bodies']:
