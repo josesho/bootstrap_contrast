@@ -120,7 +120,7 @@ def bootstrap(data,
     
     ## Convenience function invoked to get array of desired bootstraps see above!
     # statarray = getstatarray(tdata, statfunction, reps, sort = True)
-    statarray = sb.bootstrap(data, func = statfunction, n_boot = reps, smooth = smoothboot)
+    statarray = sb.algorithms.bootstrap(data, func = statfunction, n_boot = reps, smooth = smoothboot)
     statarray.sort()
 
     # Get Percentile indices
@@ -196,9 +196,9 @@ def bootstrap_contrast(data = None,
     
     # Generate statarrays for both arrays
     #ref_statarray = getstatarray(ref_array, statfunction, reps, sort = False)
-    ref_statarray = sb.bootstrap(ref_array, func = statfunction, n_boot = reps, smooth = smoothboot)
+    ref_statarray = sb.algorithms.bootstrap(ref_array, func = statfunction, n_boot = reps, smooth = smoothboot)
     #exp_statarray = getstatarray(exp_array, statfunction, reps, sort = False)
-    exp_statarray = sb.bootstrap(exp_array, func = statfunction, n_boot = reps, smooth = smoothboot)
+    exp_statarray = sb.algorithms.bootstrap(exp_array, func = statfunction, n_boot = reps, smooth = smoothboot)
     
     diff_array = exp_statarray - ref_statarray
     diff_array_t = (diff_array,) # Note tuple form.
