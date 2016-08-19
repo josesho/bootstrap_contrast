@@ -1146,7 +1146,8 @@ def pairedcontrast(data, x, y, idcol, reps = 3000,
         maxXBefore = max(swarm_raw.collections[0].get_offsets().T[0])
         minXAfter = min(swarm_raw.collections[1].get_offsets().T[0])
         if showRawData is True:
-            beforeAfterSpacer = (getSwarmSpan(swarm_raw, 0) + getSwarmSpan(swarm_raw, 1))/2
+            #beforeAfterSpacer = (getSwarmSpan(swarm_raw, 0) + getSwarmSpan(swarm_raw, 1))/2
+            beforeAfterSpacer = 1
         xposAfter = maxXBefore + beforeAfterSpacer
         xAfterShift = minXAfter - xposAfter
 
@@ -1202,7 +1203,13 @@ def pairedcontrast(data, x, y, idcol, reps = 3000,
         ## Hide the raw swarmplot data if so desired.
         if showRawData is False:
             swarm_raw.collections[0].set_visible(False)
-            swarm_raw.collections[1].set_visible(False)            
+            swarm_raw.collections[1].set_visible(False)
+
+        if showRawData is True:
+            #maxSwarmSpan = max(np.array([getSwarmSpan(swarm_raw, 0), getSwarmSpan(swarm_raw, 1)]))/2
+            maxSwarmSpan = 0.5
+        else:
+            maxSwarmSpan = barWidth            
 
         ## Plot Summary Bar.
         if summaryBar is True:
@@ -1230,10 +1237,6 @@ def pairedcontrast(data, x, y, idcol, reps = 3000,
             )       
 
             ## get swarm with largest span, set as max width of each barplot.
-            if showRawData is True:
-                maxSwarmSpan = max(np.array([getSwarmSpan(swarm_raw, 0), getSwarmSpan(swarm_raw, 1)]))/2
-            else:
-                maxSwarmSpan = barWidth
             for i, bar in enumerate(bar_raw.patches):
                 x = bar.get_x()
                 width = bar.get_width()
@@ -1269,15 +1272,18 @@ def pairedcontrast(data, x, y, idcol, reps = 3000,
 
         # set new xpos for delta violin.
         if floatContrast is True:
-            xposPlusViolin = deltaSwarmX = after_rightx + floatViolinOffset
+            if showRawData is False:
+                xposPlusViolin = deltaSwarmX = after_rightx + floatViolinOffset
+            else:
+                xposPlusViolin = deltaSwarmX = after_rightx + maxSwarmSpan
         else:
             xposPlusViolin = xposAfter
-            if showRawData is True:
-                # If showRawData is True and floatContrast is True, 
-                # set violinwidth to the barwidth.
-                violinWidth = maxSwarmSpan
+        if showRawData is True:
+            # If showRawData is True and floatContrast is True, 
+            # set violinwidth to the barwidth.
+            violinWidth = maxSwarmSpan
 
-        xmaxPlot = xposPlusViolin + 0.75*violinWidth
+        xmaxPlot = xposPlusViolin + violinWidth
 
         # Plot the summary measure.
         ax_contrast.plot(xposPlusViolin, summDelta,
