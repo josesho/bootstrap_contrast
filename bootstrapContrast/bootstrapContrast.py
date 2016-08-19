@@ -1033,8 +1033,8 @@ def contrastplot(data, x, y, idx = None, statfunction = None, reps = 3000,
 
 def pairedcontrast(data, x, y, idcol, reps = 3000,
     statfunction = None, idx = None, figsize = None,
-    beforeAfterSpacer = 0.025, 
-    violinWidth = 0.01, 
+    beforeAfterSpacer = 0.01, 
+    violinWidth = 0.005, 
     floatOffset = 0.05, 
     showRawData = False,
     floatContrast = True,
@@ -1141,10 +1141,12 @@ def pairedcontrast(data, x, y, idcol, reps = 3000,
                                      **kwargs)
         if swarmYlim is not None:
             swarm_raw.set_ylim(swarmYlim)
-
+           
         ## Get some details about the raw data.
         maxXBefore = max(swarm_raw.collections[0].get_offsets().T[0])
         minXAfter = min(swarm_raw.collections[1].get_offsets().T[0])
+        if showRawData is True:
+            beforeAfterSpacer = (getSwarmSpan(swarm_raw, 0) + getSwarmSpan(swarm_raw, 1))/2
         xposAfter = maxXBefore + beforeAfterSpacer
         xAfterShift = minXAfter - xposAfter
 
@@ -1232,7 +1234,6 @@ def pairedcontrast(data, x, y, idcol, reps = 3000,
                 maxSwarmSpan = max(np.array([getSwarmSpan(swarm_raw, 0), getSwarmSpan(swarm_raw, 1)]))/2
             else:
                 maxSwarmSpan = barWidth
-
             for i, bar in enumerate(bar_raw.patches):
                 x = bar.get_x()
                 width = bar.get_width()
@@ -1271,6 +1272,10 @@ def pairedcontrast(data, x, y, idcol, reps = 3000,
             xposPlusViolin = deltaSwarmX = after_rightx + floatViolinOffset
         else:
             xposPlusViolin = xposAfter
+            if showRawData is True:
+                # If showRawData is True and floatContrast is True, 
+                # set violinwidth to the barwidth.
+                violinWidth = maxSwarmSpan
 
         xmaxPlot = xposPlusViolin + 0.75*violinWidth
 
