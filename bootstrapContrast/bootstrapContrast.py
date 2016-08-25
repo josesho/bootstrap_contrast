@@ -99,7 +99,7 @@ def bca(data, alphas, statarray, statfunction, ostat, reps):
        
 def bootstrap(data, 
               statfunction = None,
-              smoothboot = True,
+              smoothboot = False,
               alpha = 0.05, 
               reps = 3000):
     
@@ -155,7 +155,7 @@ def bootstrap_contrast(data = None,
                        x = None,
                        y = None,
                        statfunction = None,
-                       smoothboot = True,
+                       smoothboot = False,
                        alpha = 0.05, 
                        reps = 3000):
     
@@ -377,7 +377,7 @@ def plotbootstrap_hubspoke(bslist, ax, violinWidth, violinOffset,
 def swarmsummary(data, x, y, idx = None, statfunction = None, 
                  violinOffset = 0.1, violinWidth = 0.2, 
                  figsize = (7,7), legend = True,
-                 smoothboot = True,
+                 smoothboot = False,
                  **kwargs):
     df = data # so we don't re-order the rawdata!
     # initialise statfunction
@@ -454,7 +454,7 @@ def contrastplot(data, x, y, idx = None, statfunction = None, reps = 3000,
                  meansSummaryLineStyle = 'solid', mediansSummaryLineStyle = 'dotted',
                  contrastZeroLineStyle = 'solid', contrastEffectSizeLineStyle = 'solid',
                  contrastZeroLineColor = 'black', contrastEffectSizeLineColor = 'black',
-                 floatContrast = True, smoothboot = True, floatSwarmSpacer = 0.2,
+                 floatContrast = True, smoothboot = False, floatSwarmSpacer = 0.2,
                  swarmYlim = None, contrastYlim = None,
                  effectSizeYLabel = "Effect Size", swarmShareY = True, contrastShareY = True,
                  **kwargs):
@@ -1038,7 +1038,7 @@ def pairedcontrast(data, x, y, idcol, reps = 3000,
     floatOffset = 0.05, 
     showRawData = False,
     floatContrast = True,
-    smoothboot = True,
+    smoothboot = False,
     floatViolinOffset = None, 
     showConnections = True,
     summaryBar = False,
