@@ -193,6 +193,9 @@ def bootstrap_contrast(data = None,
     #exp_array = (arraylist[1],)
     ref_array = arraylist[0]
     exp_array = arraylist[1]
+    # # Remove NaNs
+    # ref_array = ref_array[~np.isnan(ref_array)]
+    # exp_array = exp_array[~np.isnan(exp_array)]
     
     # Generate statarrays for both arrays
     #ref_statarray = getstatarray(ref_array, statfunction, reps, sort = False)
@@ -779,9 +782,9 @@ def contrastplot(data, x, y, idx = None, statfunction = None, reps = 3000,
 
                 # Set bottom axes ybounds
                 if contrastYlim is None:
-                    ax_bottom.set_ybound( tempbs['diffarray'].min(), tempbs['diffarray'].max() )
+                    ax_bottom.set_ylim( tempbs['diffarray'].min(), tempbs['diffarray'].max() )
                 else:
-                    ax_bottom.set_ybound(contrastYlim)
+                    ax_bottom.set_ylim(contrastYlim)
                 
                 # Set xlims so everything is properly visible!
                 swarm_xbounds = ax_top.get_xbound()
