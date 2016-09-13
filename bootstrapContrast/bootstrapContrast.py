@@ -1407,6 +1407,8 @@ def pairedcontrast(data, x, y, idcol, reps = 3000,
         ## Get max and min of the dataset.
         lower = np.min(contrastList.ix['stat_array',j])
         upper = np.max(contrastList.ix['stat_array',j])
+        meandiff = contrastList.ix['summary', j]
+
         ## Make sure we have zero in the limits.
         if lower > 0:
             lower = 0.
@@ -1414,9 +1416,13 @@ def pairedcontrast(data, x, y, idcol, reps = 3000,
             upper = 0.
 
         ## Get tick distance on raw axes.
-        ## Half of this will be the tick distance for the contrast axes.
-        rawAxesTickDist = fig.get_axes()[i-1].yaxis.get_majorticklocs()[1] - fig.get_axes()[i-1].yaxis.get_majorticklocs()[0]
-        fig.get_axes()[i].yaxis.set_major_locator(MultipleLocator(rawAxesTickDist/2))
+        ## This will be the tick distance for the contrast axes.
+        rawAxesTicks = fig.get_axes()[i-1].yaxis.get_majorticklocs()
+        rawAxesTickDist = rawAxesTicks[1] - rawAxesTicks[0]
+
+        ## First re-draw of axis with new tick interval
+        fig.get_axes()[i].yaxis.set_major_locator(MultipleLocator(rawAxesTickDist))
+        newticks1 = fig.get_axes()[i].get_yticks()
 
         if floatContrast is False:
             # Set the contrast ylim if it is specified.
@@ -1425,20 +1431,33 @@ def pairedcontrast(data, x, y, idcol, reps = 3000,
                 lower = contrastYlim[0]
                 upper = contrastYlim[1]
 
-            oldticks = fig.get_axes()[i].get_yticks()
-            tickstep = oldticks[1] - oldticks[0]
-            ## Obtain major ticks that fall within lower and upper.
-            newticks = list()
-            for a,b in enumerate(oldticks):
+            ## Obtain major ticks that comfortably encompass lower and upper.
+            newticks2 = list()
+            for a,b in enumerate(newticks1):
                 if (b >= lower and b <= upper):
-                    newticks.append(b)
-            newticks = np.array(newticks)
+                    # if the tick lies within upper and lower, take it.
+                    newticks2.append(b)
+            # if the meandiff falls outside of the newticks2 set, add a tick in the right direction.
+            if np.max(newticks2) < meandiff:
+                ind = np.where(newticks1 == np.max(newticks2))[0][0] # find out the max tick index in newticks1.
+                newticks2.append( newticks1[ind+1] )
+            elif meandiff < np.min(newticks2):
+                ind = np.where(newticks1 == np.min(newticks2))[0][0] # find out the min tick index in newticks1.
+                newticks2.append( newticks1[ind-1] )
+            newticks2 = np.array(newticks2)
+            newticks2.sort()
+
+            # newticks = list()
+            # for a,b in enumerate(oldticks):
+            #     if (b >= lower and b <= upper):
+            #         newticks.append(b)
+            # newticks = np.array(newticks)
             ## Re-draw the axis.
-            fig.get_axes()[i].yaxis.set_major_locator(FixedLocator(locs = newticks))
-            fig.get_axes()[i].yaxis.set_minor_locator(AutoMinorLocator(2))
+            fig.get_axes()[i].yaxis.set_major_locator(FixedLocator(locs = newticks2))
+            #fig.get_axes()[i].yaxis.set_minor_locator(AutoMinorLocator(2))
 
             ## Draw minor ticks appropriately.
-            fig.get_axes()[i].yaxis.set_minor_locator(AutoMinorLocator(2))
+            #fig.get_axes()[i].yaxis.set_minor_locator(AutoMinorLocator(2))
 
             ## Draw zero reference line.
             fig.get_axes()[i].hlines(y = 0,
@@ -1466,27 +1485,43 @@ def pairedcontrast(data, x, y, idcol, reps = 3000,
 
         else:
             ## Get the original ticks on the floating y-axis.
-            oldticks = fig.get_axes()[i].get_yticks()
-            tickstep = oldticks[1] - oldticks[0]
-            ## Obtain major ticks that fall within lower and upper.
-            newticks = list()
-            for a,b in enumerate(oldticks):
+            newticks1 = fig.get_axes()[i].get_yticks()
+
+            ## Obtain major ticks that comfortably encompass lower and upper.
+            newticks2 = list()
+            for a,b in enumerate(newticks1):
                 if (b >= lower and b <= upper):
-                    newticks.append(b)
-            newticks = np.array(newticks)
+                    # if the tick lies within upper and lower, take it.
+                    newticks2.append(b)
+            # if the meandiff falls outside of the newticks2 set, add a tick in the right direction.
+            if np.max(newticks2) < meandiff:
+                ind = np.where(newticks1 == np.max(newticks2))[0][0] # find out the max tick index in newticks1.
+                newticks2.append( newticks1[ind+1] )
+            elif meandiff < np.min(newticks2):
+                ind = np.where(newticks1 == np.min(newticks2))[0][0] # find out the min tick index in newticks1.
+                newticks2.append( newticks1[ind-1] )
+            newticks2 = np.array(newticks2)
+            newticks2.sort()
+
+            # newticks = list()
+            # for a,b in enumerate(oldticks):
+            #     if (b >= lower and b <= upper):
+            #         newticks.append(b)
+            # newticks = np.array(newticks)
+
             ## Re-draw the axis.
-            fig.get_axes()[i].yaxis.set_major_locator(FixedLocator(locs = newticks))
-            fig.get_axes()[i].yaxis.set_minor_locator(AutoMinorLocator(2))
+            fig.get_axes()[i].yaxis.set_major_locator(FixedLocator(locs = newticks2))
+            #fig.get_axes()[i].yaxis.set_minor_locator(AutoMinorLocator(2))
             
             ## Obtain minor ticks that fall within the major ticks.
-            majorticks = fig.get_axes()[i].yaxis.get_majorticklocs()
-            oldminorticks = fig.get_axes()[i].yaxis.get_minorticklocs()
-            newminorticks = list()
-            for a,b in enumerate(oldminorticks):
-                if (b >= majorticks[0] and b <= majorticks[-1]):
-                    newminorticks.append(b)
-            newminorticks = np.array(newminorticks)
-            fig.get_axes()[i].yaxis.set_minor_locator(FixedLocator(locs = newminorticks))    
+            # majorticks = fig.get_axes()[i].yaxis.get_majorticklocs()
+            # oldminorticks = fig.get_axes()[i].yaxis.get_minorticklocs()
+            # newminorticks = list()
+            # for a,b in enumerate(oldminorticks):
+            #     if (b >= majorticks[0] and b <= majorticks[-1]):
+            #         newminorticks.append(b)
+            # newminorticks = np.array(newminorticks)
+            # fig.get_axes()[i].yaxis.set_minor_locator(FixedLocator(locs = newminorticks))    
 
             ## Despine and trim the axes.
             sb.despine(ax = fig.get_axes()[i], trim = True, 
