@@ -24,3 +24,6 @@ bootstrapContrast/*.png
 bootstrapContrast/*.pdf
 *.pdf
 
+# all .DS_store files.
+bootstrapContrast/*.DS_Store 
+*.DS_Store
