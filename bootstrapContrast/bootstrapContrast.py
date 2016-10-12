@@ -1066,6 +1066,7 @@ def pairedcontrast(data, x, y, idcol, reps = 3000,
     contrastYlim = None,
     swarmYlim = None,
     barWidth = 0.005,
+    summaryMarkerSize = 10,
     summaryBarColor = 'grey',
     meansSummaryLineStyle = 'solid', 
     contrastZeroLineStyle = 'solid', contrastEffectSizeLineStyle = 'solid',
@@ -1153,15 +1154,16 @@ def pairedcontrast(data, x, y, idcol, reps = 3000,
                                      x = x, y = y, 
                                      order = xlevs,
                                      ax = ax_raw,
+                                     palette = pal,
                                      **kwargs)
         else:
             swarm_raw = sb.stripplot(data = data, 
                                      x = x, y = y, 
                                      order = xlevs,
                                      ax = ax_raw,
+                                     palette = pal,
                                      **kwargs)
-        if swarmYlim is not None:
-            swarm_raw.set_ylim(swarmYlim)
+        swarm_raw.set_ylim(swarmYlim)
            
         ## Get some details about the raw data.
         maxXBefore = max(swarm_raw.collections[0].get_offsets().T[0])
@@ -1310,7 +1312,7 @@ def pairedcontrast(data, x, y, idcol, reps = 3000,
         ax_contrast.plot(xposPlusViolin, summDelta,
             marker = 'o',
             markerfacecolor = 'k', 
-            markersize = 12,
+            markersize = summaryMarkerSize,
             alpha = 0.75
             )
 
@@ -1389,7 +1391,7 @@ def pairedcontrast(data, x, y, idcol, reps = 3000,
             
             fig.add_subplot(ax_raw)
             fig.add_subplot(ax_contrast)
-
+        ax_contrast.set_ylim(contrastYlim)
         # Calculate p-values.
         # 1-sample t-test to see if the mean of the difference is different from 0.
         ttestresult = ttest_1samp(plotPoints['delta_y'], popmean = 0)[1]
@@ -1426,10 +1428,10 @@ def pairedcontrast(data, x, y, idcol, reps = 3000,
 
         if floatContrast is False:
             # Set the contrast ylim if it is specified.
-            if contrastYlim is not None:
-                fig.get_axes()[i].set_ylim(contrastYlim)
-                lower = contrastYlim[0]
-                upper = contrastYlim[1]
+            # if contrastYlim is not None:
+            #     fig.get_axes()[i].set_ylim(contrastYlim)
+            #     lower = contrastYlim[0]
+            #     upper = contrastYlim[1]
 
             ## Obtain major ticks that comfortably encompass lower and upper.
             newticks2 = list()
