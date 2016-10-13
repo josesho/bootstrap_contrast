@@ -1058,6 +1058,7 @@ def pairedcontrast(data, x, y, idcol, reps = 3000,
     violinWidth = 0.005, 
     floatOffset = 0.05, 
     showRawData = False,
+    showAllYAxes = True,
     floatContrast = True,
     smoothboot = False,
     floatViolinOffset = None, 
@@ -1427,63 +1428,65 @@ def pairedcontrast(data, x, y, idcol, reps = 3000,
         newticks1 = fig.get_axes()[i].get_yticks()
 
         if floatContrast is False:
+            if (showAllYAxes is False and i in range( 2, len(fig.get_axes())) ):
+                fig.get_axes()[i].get_yaxis().set_visible(showAllYAxes)
             # Set the contrast ylim if it is specified.
             # if contrastYlim is not None:
             #     fig.get_axes()[i].set_ylim(contrastYlim)
             #     lower = contrastYlim[0]
             #     upper = contrastYlim[1]
+            else:
+                ## Obtain major ticks that comfortably encompass lower and upper.
+                newticks2 = list()
+                for a,b in enumerate(newticks1):
+                    if (b >= lower and b <= upper):
+                        # if the tick lies within upper and lower, take it.
+                        newticks2.append(b)
+                # if the meandiff falls outside of the newticks2 set, add a tick in the right direction.
+                if np.max(newticks2) < meandiff:
+                    ind = np.where(newticks1 == np.max(newticks2))[0][0] # find out the max tick index in newticks1.
+                    newticks2.append( newticks1[ind+1] )
+                elif meandiff < np.min(newticks2):
+                    ind = np.where(newticks1 == np.min(newticks2))[0][0] # find out the min tick index in newticks1.
+                    newticks2.append( newticks1[ind-1] )
+                newticks2 = np.array(newticks2)
+                newticks2.sort()
 
-            ## Obtain major ticks that comfortably encompass lower and upper.
-            newticks2 = list()
-            for a,b in enumerate(newticks1):
-                if (b >= lower and b <= upper):
-                    # if the tick lies within upper and lower, take it.
-                    newticks2.append(b)
-            # if the meandiff falls outside of the newticks2 set, add a tick in the right direction.
-            if np.max(newticks2) < meandiff:
-                ind = np.where(newticks1 == np.max(newticks2))[0][0] # find out the max tick index in newticks1.
-                newticks2.append( newticks1[ind+1] )
-            elif meandiff < np.min(newticks2):
-                ind = np.where(newticks1 == np.min(newticks2))[0][0] # find out the min tick index in newticks1.
-                newticks2.append( newticks1[ind-1] )
-            newticks2 = np.array(newticks2)
-            newticks2.sort()
+                # newticks = list()
+                # for a,b in enumerate(oldticks):
+                #     if (b >= lower and b <= upper):
+                #         newticks.append(b)
+                # newticks = np.array(newticks)
+                ## Re-draw the axis.
+                fig.get_axes()[i].yaxis.set_major_locator(FixedLocator(locs = newticks2))
+                #fig.get_axes()[i].yaxis.set_minor_locator(AutoMinorLocator(2))
 
-            # newticks = list()
-            # for a,b in enumerate(oldticks):
-            #     if (b >= lower and b <= upper):
-            #         newticks.append(b)
-            # newticks = np.array(newticks)
-            ## Re-draw the axis.
-            fig.get_axes()[i].yaxis.set_major_locator(FixedLocator(locs = newticks2))
-            #fig.get_axes()[i].yaxis.set_minor_locator(AutoMinorLocator(2))
+                ## Draw minor ticks appropriately.
+                #fig.get_axes()[i].yaxis.set_minor_locator(AutoMinorLocator(2))
 
-            ## Draw minor ticks appropriately.
-            #fig.get_axes()[i].yaxis.set_minor_locator(AutoMinorLocator(2))
+                ## Draw zero reference line.
+                fig.get_axes()[i].hlines(y = 0,
+                    xmin = fig.get_axes()[i].get_xaxis().get_view_interval()[0], 
+                    xmax = fig.get_axes()[i].get_xaxis().get_view_interval()[1],
+                    linestyle = contrastZeroLineStyle,
+                    linewidth = 0.75,
+                    color = contrastZeroLineColor)
 
-            ## Draw zero reference line.
-            fig.get_axes()[i].hlines(y = 0,
-                xmin = fig.get_axes()[i].get_xaxis().get_view_interval()[0], 
-                xmax = fig.get_axes()[i].get_xaxis().get_view_interval()[1],
-                linestyle = contrastZeroLineStyle,
-                linewidth = 0.75,
-                color = contrastZeroLineColor)
+                sb.despine(ax = fig.get_axes()[i], trim = True, 
+                    bottom = False, right = True,
+                    left = False, top = True)
 
-            sb.despine(ax = fig.get_axes()[i], trim = True, 
-                bottom = False, right = True,
-                left = False, top = True)
+                ## Draw back the lines for the relevant y-axes.
+                ymin = fig.get_axes()[i].get_yaxis().get_majorticklocs()[0]
+                ymax = fig.get_axes()[i].get_yaxis().get_majorticklocs()[-1]
+                x, _ = fig.get_axes()[i].get_xaxis().get_view_interval()
+                fig.get_axes()[i].add_artist(Line2D((x, x), (ymin, ymax), color='black', linewidth=1))    
 
-            ## Draw back the lines for the relevant y-axes.
-            ymin = fig.get_axes()[i].get_yaxis().get_majorticklocs()[0]
-            ymax = fig.get_axes()[i].get_yaxis().get_majorticklocs()[-1]
-            x, _ = fig.get_axes()[i].get_xaxis().get_view_interval()
-            fig.get_axes()[i].add_artist(Line2D((x, x), (ymin, ymax), color='black', linewidth=1))    
-
-            ## Draw back the lines for the relevant x-axes.
-            xmin = fig.get_axes()[i].get_xaxis().get_majorticklocs()[0]
-            xmax = fig.get_axes()[i].get_xaxis().get_majorticklocs()[-1]
-            y, _ = fig.get_axes()[i].get_yaxis().get_view_interval()
-            fig.get_axes()[i].add_artist(Line2D((xmin, xmax), (y, y), color='black', linewidth=1.5)) 
+                ## Draw back the lines for the relevant x-axes.
+                xmin = fig.get_axes()[i].get_xaxis().get_majorticklocs()[0]
+                xmax = fig.get_axes()[i].get_xaxis().get_majorticklocs()[-1]
+                y, _ = fig.get_axes()[i].get_yaxis().get_view_interval()
+                fig.get_axes()[i].add_artist(Line2D((xmin, xmax), (y, y), color='black', linewidth=1.5)) 
 
         else:
             ## Get the original ticks on the floating y-axis.
@@ -1531,7 +1534,7 @@ def pairedcontrast(data, x, y, idcol, reps = 3000,
                 left = True, top = True)
 
     for i in range(0, len(fig.get_axes()), 2):
-
+        # Loop through the raw data swarmplots and despine them appropriately.
         if floatContrast is True:
             sb.despine(ax = fig.get_axes()[i], trim = True, right = True)
 
@@ -1544,7 +1547,14 @@ def pairedcontrast(data, x, y, idcol, reps = 3000,
         ymax = fig.get_axes()[i].get_yaxis().get_majorticklocs()[-1]
         x, _ = fig.get_axes()[i].get_xaxis().get_view_interval()
         fig.get_axes()[i].add_artist(Line2D((x, x), (ymin, ymax), color='black', linewidth=1.5))    
-    
+
+    # Zero gaps between plots on the same row, if floatContrast is False
+    if (floatContrast is False and showAllYAxes is False):
+        gsMain.update(wspace = 0)
+    else:    
+        # Tight Layout!
+        gsMain.tight_layout(fig)
+
     # And we're done.
     return fig, contrastList
 
