@@ -6,6 +6,7 @@ from matplotlib.lines import Line2D
 from matplotlib.ticker import AutoMinorLocator, MultipleLocator, MaxNLocator, FixedLocator, AutoLocator, FormatStrFormatter
 from decimal import Decimal
 import matplotlib.pyplot as plt
+from matplotlib import rc, rcParams, rcdefaults
 import sys
 import seaborn as sb
 import pandas as pd
@@ -13,12 +14,11 @@ import numpy as np
 import warnings
 warnings.filterwarnings("ignore")
 
-# plot params
-sb.set_style('ticks')
-plt.rcParams['axes.labelsize'] = plt.rcParams['font.size'] * 1.5
-plt.rcParams['xtick.labelsize'] = plt.rcParams['font.size'] * 1.25
-plt.rcParams['ytick.labelsize'] = plt.rcParams['font.size'] * 1.25
-plt.rcParams['svg.fonttype'] = 'none'
+# This imports the custom functions used.
+# These have been places in separate .py files for reduced code clutter.
+from .plot_tools import normalizeSwarmY, normalizeContrastY, offsetSwarmX, resetSwarmX, getSwarmSpan
+from .plot_tools import align_yaxis, halfviolin, drawback_y, drawback_x
+from .bootstrap_tools import ci, bootstrap_indexes, jackknife_indexes, getstatarray, bca
 
 # Taken without modification from scikits.bootstrap package
 # Keep python 2/3 compatibility, without using six. At some point,
@@ -32,285 +32,6 @@ class InstabilityWarning(UserWarning):
     """Issued when results may be unstable."""
     pass
 
-def ci(data, statfunction=np.average, alpha=0.05, n_samples=10000, method='bca', output='lowhigh', epsilon=0.001, multi=None):
-    """
-This function is taken from C. Evan's code <https://github.com/cgevans/scikits-bootstrap/>
-The only modification I have made is to return the array of bootstrapped values, along with
-the desired CIs.
-
-Given a set of data ``data``, and a statistics function ``statfunction`` that
-applies to that data, computes the bootstrap confidence interval for
-``statfunction`` on that data. Data points are assumed to be delineated by
-axis 0.
-Parameters
-----------
-data: array_like, shape (N, ...) OR tuple of array_like all with shape (N, ...)
-    Input data. Data points are assumed to be delineated by axis 0. Beyond this,
-    the shape doesn't matter, so long as ``statfunction`` can be applied to the
-    array. If a tuple of array_likes is passed, then samples from each array (along
-    axis 0) are passed in order as separate parameters to the statfunction. The
-    type of data (single array or tuple of arrays) can be explicitly specified
-    by the multi parameter.
-statfunction: function (data, weights=(weights, optional)) -> value
-    This function should accept samples of data from ``data``. It is applied
-    to these samples individually. 
-    
-    If using the ABC method, the function _must_ accept a named ``weights`` 
-    parameter which will be an array_like with weights for each sample, and 
-    must return a _weighted_ result. Otherwise this parameter is not used
-    or required. Note that numpy's np.average accepts this. (default=np.average)
-alpha: float or iterable, optional
-    The percentiles to use for the confidence interval (default=0.05). If this
-    is a float, the returned values are (alpha/2, 1-alpha/2) percentile confidence
-    intervals. If it is an iterable, alpha is assumed to be an iterable of
-    each desired percentile.
-n_samples: float, optional
-    The number of bootstrap samples to use (default=10000)
-method: string, optional
-    The method to use: one of 'pi', 'bca', or 'abc' (default='bca')
-output: string, optional
-    The format of the output. 'lowhigh' gives low and high confidence interval
-    values. 'errorbar' gives transposed abs(value-confidence interval value) values
-    that are suitable for use with matplotlib's errorbar function. (default='lowhigh')
-epsilon: float, optional (only for ABC method)
-    The step size for finite difference calculations in the ABC method. Ignored for
-    all other methods. (default=0.001)
-multi: boolean, optional
-    If False, assume data is a single array. If True, assume data is a tuple/other
-    iterable of arrays of the same length that should be sampled together. If None,
-    decide based on whether the data is an actual tuple. (default=None)
-    
-Returns
--------
-confidences: tuple of floats
-    The confidence percentiles specified by alpha
-Calculation Methods
--------------------
-'pi': Percentile Interval (Efron 13.3)
-    The percentile interval method simply returns the 100*alphath bootstrap
-    sample's values for the statistic. This is an extremely simple method of 
-    confidence interval calculation. However, it has several disadvantages 
-    compared to the bias-corrected accelerated method, which is the default.
-'bca': Bias-Corrected Accelerated (BCa) Non-Parametric (Efron 14.3) (default)
-    This method is much more complex to explain. However, it gives considerably
-    better results, and is generally recommended for normal situations. Note
-    that in cases where the statistic is smooth, and can be expressed with
-    weights, the ABC method will give approximated results much, much faster.
-    Note that in a case where the statfunction results in equal output for every
-    bootstrap sample, the BCa confidence interval is technically undefined, as
-    the acceleration value is undefined. To match the percentile interval method
-    and give reasonable output, the implementation of this method returns a
-    confidence interval of zero width using the 0th bootstrap sample in this
-    case, and warns the user.  
-'abc': Approximate Bootstrap Confidence (Efron 14.4, 22.6)
-    This method provides approximated bootstrap confidence intervals without
-    actually taking bootstrap samples. This requires that the statistic be 
-    smooth, and allow for weighting of individual points with a weights=
-    parameter (note that np.average allows this). This is _much_ faster
-    than all other methods for situations where it can be used.
-Examples
---------
-To calculate the confidence intervals for the mean of some numbers:
->> boot.ci( np.randn(100), np.average )
-Given some data points in arrays x and y calculate the confidence intervals
-for all linear regression coefficients simultaneously:
->> boot.ci( (x,y), scipy.stats.linregress )
-References
-----------
-Efron, An Introduction to the Bootstrap. Chapman & Hall 1993
-    """
-
-    # Deal with the alpha values
-    if np.iterable(alpha):
-        alphas = np.array(alpha)
-    else:
-        alphas = np.array([alpha/2,1-alpha/2])
-
-    if multi == None:
-      if isinstance(data, tuple):
-        multi = True
-      else:
-        multi = False
-
-    # Ensure that the data is actually an array. This isn't nice to pandas,
-    # but pandas seems much much slower and the indexes become a problem.
-    if multi == False:
-      data = np.array(data)
-      tdata = (data,)
-    else:
-      tdata = tuple( np.array(x) for x in data )
-
-    # Deal with ABC *now*, as it doesn't need samples.
-    if method == 'abc':
-        n = tdata[0].shape[0]*1.0
-        nn = tdata[0].shape[0]
-
-        I = np.identity(nn)
-        ep = epsilon / n*1.0
-        p0 = np.repeat(1.0/n,nn)
-
-        t1 = np.zeros(nn); t2 = np.zeros(nn)
-        try:
-          t0 = statfunction(*tdata,weights=p0)
-        except TypeError as e:
-          raise TypeError("statfunction does not accept correct arguments for ABC ({0})".format(e.message))
-
-        # There MUST be a better way to do this!
-        for i in range(0,nn):
-            di = I[i] - p0
-            tp = statfunction(*tdata,weights=p0+ep*di)
-            tm = statfunction(*tdata,weights=p0-ep*di)
-            t1[i] = (tp-tm)/(2*ep)
-            t2[i] = (tp-2*t0+tm)/ep**2
-
-        sighat = np.sqrt(np.sum(t1**2))/n
-        a = (np.sum(t1**3))/(6*n**3*sighat**3)
-        delta = t1/(n**2*sighat)
-        cq = (statfunction(*tdata,weights=p0+ep*delta)-2*t0+statfunction(*tdata,weights=p0-ep*delta))/(2*sighat*ep**2)
-        bhat = np.sum(t2)/(2*n**2)
-        curv = bhat/sighat-cq
-        z0 = norm.ppf(2*norm.cdf(a)*norm.cdf(-curv))
-        Z = z0+norm.ppf(alphas)
-        za = Z/(1-a*Z)**2
-        # stan = t0 + sighat * norm.ppf(alphas)
-        abc = np.zeros_like(alphas)
-        for i in range(0,len(alphas)):
-            abc[i] = statfunction(*tdata,weights=p0+za[i]*delta)
-
-        if output == 'lowhigh':
-            return abc
-        elif output == 'errorbar':
-            return abs(abc-statfunction(tdata))[np.newaxis].T
-        else:
-            raise ValueError("Output option {0} is not supported.".format(output))
-
-    # We don't need to generate actual samples; that would take more memory.
-    # Instead, we can generate just the indexes, and then apply the statfun
-    # to those indexes.
-    bootindexes = bootstrap_indexes( tdata[0], n_samples )
-    stat = np.array([statfunction(*(x[indexes] for x in tdata)) for indexes in bootindexes])
-    stat.sort(axis=0)
-
-    # Percentile Interval Method
-    if method == 'pi':
-        avals = alphas
-
-    # Bias-Corrected Accelerated Method
-    elif method == 'bca':
-
-        # The value of the statistic function applied just to the actual data.
-        ostat = statfunction(*tdata)
-
-        # The bias correction value.
-        z0 = norm.ppf( ( 1.0*np.sum(stat < ostat, axis=0)  ) / n_samples )
-
-        # Statistics of the jackknife distribution
-        jackindexes = jackknife_indexes(tdata[0])
-        jstat = [statfunction(*(x[indexes] for x in tdata)) for indexes in jackindexes]
-        jmean = np.mean(jstat,axis=0)
-
-        # Acceleration value
-        a = np.sum( (jmean - jstat)**3, axis=0 ) / ( 6.0 * np.sum( (jmean - jstat)**2, axis=0)**1.5 )
-        if np.any(np.isnan(a)):
-            nanind = np.nonzero(np.isnan(a))
-            warnings.warn("Some acceleration values were undefined. This is almost certainly because all \
-values for the statistic were equal. Affected confidence intervals will have zero width and \
-may be inaccurate (indexes: {}). Other warnings are likely related.".format(nanind), InstabilityWarning)
-        
-        zs = z0 + norm.ppf(alphas).reshape(alphas.shape+(1,)*z0.ndim)
-
-        avals = norm.cdf(z0 + zs/(1-a*zs))
-
-    else:
-        raise ValueError("Method {0} is not supported.".format(method))
-
-    nvals = np.round((n_samples-1)*avals)
-    
-    if np.any(nvals==0) or np.any(nvals==n_samples-1):
-        warnings.warn("Some values used extremal samples; results are probably unstable.", InstabilityWarning)
-    elif np.any(nvals<10) or np.any(nvals>=n_samples-10):
-        warnings.warn("Some values used top 10 low/high samples; results may be unstable.", InstabilityWarning)
-
-    nvals = np.nan_to_num(nvals).astype('int')
-
-    if output == 'lowhigh':
-        if nvals.ndim == 1:
-            # All nvals are the same. Simple broadcasting
-            return stat[nvals], stat
-        else:
-            # Nvals are different for each data point. Not simple broadcasting.
-            # Each set of nvals along axis 0 corresponds to the data at the same
-            # point in other axes.
-            return stat[(nvals, np.indices(nvals.shape)[1:].squeeze())], stat
-
-    elif output == 'errorbar':
-        if nvals.ndim == 1:
-          return abs(statfunction(data)-stat[nvals])[np.newaxis].T
-        else:
-          return abs(statfunction(data)-stat[(nvals, np.indices(nvals.shape)[1:])])[np.newaxis].T
-    else:
-        raise ValueError("Output option {0} is not supported.".format(output))
-    
-def bootstrap_indexes(data, n_samples=5000):
-    """From the scikits.bootstrap package.
-Given data points data, where axis 0 is considered to delineate points, return
-an generator for sets of bootstrap indexes. This can be used as a list
-of bootstrap indexes (with list(bootstrap_indexes(data))) as well.
-    """
-    for _ in xrange(n_samples):
-        yield randint(data.shape[0], size=(data.shape[0],))
-
-def jackknife_indexes(data):
-    # Taken without modification from scikits.bootstrap package
-    """
-From the scikits.bootstrap package.
-Given data points data, where axis 0 is considered to delineate points, return
-a list of arrays where each array is a set of jackknife indexes.
-For a given set of data Y, the jackknife sample J[i] is defined as the data set
-Y with the ith data point deleted.
-    """
-    base = np.arange(0,len(data))
-    return (np.delete(base,i) for i in base)
-
-def getstatarray(tdata, statfunction, reps, sort = True):
-    # Convenience function for use within `bootstrap` and `bootstrap_contrast`.
-    # Produces `reps` number of bootstrapped samples for `tdata`, using `statfunction`
-    # We don't need to generate actual samples that would take more memory.
-    # Instead, we can generate just the indexes, and then apply the statfun
-    # to those indexes.
-    bootindexes = bootstrap_indexes( tdata[0], reps ) # I use the scikits.bootstrap function here.
-    statarray = np.array([statfunction(*(x[indexes] for x in tdata)) for indexes in bootindexes])
-    if sort is True:
-        statarray.sort(axis=0)
-    return statarray
-        
-def bca(data, alphas, statarray, statfunction, ostat, reps):
-    # Subroutine called to calculate the BCa statistics
-
-    # The bias correction value.
-    z0 = norm.ppf( ( 1.0*np.sum(statarray < ostat, axis=0)  ) / reps )
-
-    # Statistics of the jackknife distribution
-    jackindexes = jackknife_indexes(data[0]) # I use the scikits.bootstrap function here.
-    jstat = [statfunction(*(x[indexes] for x in data)) for indexes in jackindexes]
-    jmean = np.mean(jstat,axis=0)
-
-    # Acceleration value
-    a = np.sum( (jmean - jstat)**3, axis=0 ) / ( 6.0 * np.sum( (jmean - jstat)**2, axis=0)**1.5 )
-    if np.any(np.isnan(a)):
-        nanind = np.nonzero(np.isnan(a))
-        warnings.warn("Some acceleration values were undefined. \
-            This is almost certainly because all values \
-            for the statistic were equal. Affected \
-            confidence intervals will have zero width and \
-            may be inaccurate (indexes: {}). \
-            Other warnings are likely related.".format(nanind))
-    zs = z0 + norm.ppf(alphas).reshape(alphas.shape+(1,)*z0.ndim)
-    avals = norm.cdf(z0 + zs/(1-a*zs))
-    nvals = np.round((reps-1)*avals)
-    nvals = np.nan_to_num(nvals).astype('int')
-    
-    return nvals
        
 def bootstrap(data, 
               statfunction = None,
@@ -403,19 +124,11 @@ def bootstrap_contrast(data = None,
             
     # Pull out the arrays. 
     # The first array in `arraylist` is the reference array. 
-    # Turn into tuple, so can iterate? Not sure.
-    #ref_array = (arraylist[0],)
-    #exp_array = (arraylist[1],)
     ref_array = arraylist[0]
     exp_array = arraylist[1]
-    # # Remove NaNs
-    # ref_array = ref_array[~np.isnan(ref_array)]
-    # exp_array = exp_array[~np.isnan(exp_array)]
     
-    # Generate statarrays for both arrays
-    #ref_statarray = getstatarray(ref_array, statfunction, reps, sort = False)
+    # Generate statarrays for both arrays.
     ref_statarray = sb.algorithms.bootstrap(ref_array, func = statfunction, n_boot = reps, smooth = smoothboot)
-    #exp_statarray = getstatarray(exp_array, statfunction, reps, sort = False)
     exp_statarray = sb.algorithms.bootstrap(exp_array, func = statfunction, n_boot = reps, smooth = smoothboot)
     
     diff_array = exp_statarray - ref_statarray
@@ -467,14 +180,18 @@ def bootstrap_contrast(data = None,
 def plotbootstrap(coll, bslist, ax, violinWidth, 
                   violinOffset, marker = 'o', color = 'k', 
                   markerAlpha = 0.75,
-                  markersize = 12,
+                  markersize = None,
                   CiAlpha = 0.75,
                   offset = True,
                   linewidth = 2, 
                   rightspace = 0.2,
                  **kwargs):
-    # subfunction to plot the bootstrapped distribution along with BCa intervals.
-    
+    '''subfunction to plot the bootstrapped distribution along with BCa intervals.'''
+    if markersize is None:
+         mSize = 12.
+    else:
+        mSize = markersize
+
     autoxmin = ax.get_xlim()[0]
     x, _ = np.array(coll.get_offsets()).T
     xmax = x.max()
@@ -499,7 +216,7 @@ def plotbootstrap(coll, bslist, ax, violinWidth,
     ax.plot(violinbasex, bslist['summary'],
              marker = marker,
              markerfacecolor = color, 
-             markersize = 12,
+             markersize = mSize,
              alpha = markerAlpha
             )
 
@@ -510,18 +227,6 @@ def plotbootstrap(coll, bslist, ax, violinWidth,
              alpha = CiAlpha,
              linestyle = 'solid'
             )
-            
-    ##  summary line
-    #ax.plot([violinbasex, violinbasex + violinWidth], 
-    #        [bslist['summary'], bslist['summary']], color, linewidth=1.5)
-
-    ##  mean CI
-    #ax.plot([violinbasex, violinbasex + violinWidth/3], 
-    #        [bslist['bca_ci_low'], bslist['bca_ci_low']], color, linewidth)
-    #ax.plot([violinbasex, violinbasex + violinWidth/3], 
-    #        [bslist['bca_ci_high'], bslist['bca_ci_high']], color, linewidth)
-    #ax.plot([violinbasex, violinbasex], 
-    #        [bslist['bca_ci_low'], bslist['bca_ci_high']], color, linewidth)
     
     ax.set_xlim(autoxmin, (violinbasex + violinWidth + rightspace))
     
@@ -535,12 +240,18 @@ def plotbootstrap(coll, bslist, ax, violinWidth,
 def plotbootstrap_hubspoke(bslist, ax, violinWidth, violinOffset, 
                            marker = 'o', color = 'k', 
                            markerAlpha = 0.75,
-                           markersize = 12,
+                           markersize = None,
                            CiAlpha = 0.75,
                            linewidth = 2,
                           **kwargs):
     
-    # subfunction to plot the bootstrapped distribution along with BCa intervals for hub-spoke plots.
+    '''subfunction to plot the bootstrapped distribution along with BCa intervals for hub-spoke plots.'''
+
+    if markersize is None:
+        mSize = 12.
+    else:
+        mSize = markersize
+
     ylims = list()
     
     for i in range(0, len(bslist)):
@@ -561,7 +272,7 @@ def plotbootstrap_hubspoke(bslist, ax, violinWidth, violinOffset,
             ax.plot(i+1, bsi['summary'],
                      marker = marker,
                      markerfacecolor = color, 
-                     markersize = 12,
+                     markersize = mSize,
                      alpha = markerAlpha
                     )
 
@@ -572,17 +283,6 @@ def plotbootstrap_hubspoke(bslist, ax, violinWidth, violinOffset,
                      alpha = CiAlpha,
                      linestyle = 'solid'
                     )
-
-            ##  summary line
-            #ax.plot([i+1, i+1 + violinWidth], 
-            #        [bsi['summary'], bsi['summary']], color, linewidth=1.5)
-            ##  mean CI
-            #ax.plot([i+1, i+1 + violinWidth/3], 
-            #        [bsi['bca_ci_low'], bsi['bca_ci_low']], color, linewidth)
-            #ax.plot([i+1, i+1 + violinWidth/3], 
-            #        [bsi['bca_ci_high'], bsi['bca_ci_high']], color, linewidth)
-            #ax.plot([i+1, i+1], 
-            #        [bsi['bca_ci_low'], bsi['bca_ci_high']], color, linewidth)
             
     ylims = np.array(ylims).flatten()
     if ylims.min() < 0 and ylims.max() < 0: # All effect sizes are less than 0.
@@ -596,6 +296,10 @@ def swarmsummary(data, x, y, idx = None, statfunction = None,
                  violinOffset = 0.1, violinWidth = 0.2, 
                  figsize = (7,7), legend = True,
                  smoothboot = False,
+                 rawMarkerSize = 10,
+                 summaryMarkerSize = 12,
+                 rawMarkerType = 'o',
+                 summaryMarkerType = 'o',
                  **kwargs):
     df = data # so we don't re-order the rawdata!
     # initialise statfunction
@@ -620,7 +324,8 @@ def swarmsummary(data, x, y, idx = None, statfunction = None,
     # Initialise figure
     #sb.set_style('ticks')
     fig, ax = plt.subplots(figsize = figsize)
-    sw = sb.swarmplot(data = df, x = x, y = y, order = levs, **kwargs)
+    sw = sb.swarmplot(data = df, x = x, y = y, order = levs, 
+      size = rawMarkerSize, marker = rawMarkerType, **kwargs)
     y_lims = list()
     
     for i in range(0, len(bslist)):
@@ -629,6 +334,8 @@ def swarmsummary(data, x, y, idx = None, statfunction = None,
                       ax = ax, 
                       violinWidth = violinWidth, 
                       violinOffset = violinOffset,
+                      marker = summaryMarkerType,
+                      markersize = summaryMarkerSize,
                       color = 'k', 
                       linewidth = 2)
         
@@ -649,36 +356,74 @@ def swarmsummary(data, x, y, idx = None, statfunction = None,
     
     return fig, pd.DataFrame.from_dict(bslist)
     
-
-def align_yaxis(ax1, v1, ax2, v2):
-    """adjust ax2 ylimit so that v2 in ax2 is aligned to v1 in ax1"""
-    # Taken from 
-    # http://stackoverflow.com/questions/7630778/matplotlib-align-origin-of-right-axis-with-specific-left-axis-value
-    _, y1 = ax1.transData.transform((0, v1))
-    _, y2 = ax2.transData.transform((0, v2))
-    inv = ax2.transData.inverted()
-    _, dy = inv.transform((0, 0)) - inv.transform((0, y1-y2))
-    miny, maxy = ax2.get_ylim() 
-    ax2.set_ylim(miny+dy, maxy+dy)
-    
 def contrastplot(data, x, y, idx = None, statfunction = None, reps = 3000,
-                 violinOffset = 0.375, violinWidth = 0.2, lineWidth = 2, pal = None,
-                 summaryLineWidth = 0.25, figsize = None, 
-                 heightRatio = (1, 1), alpha = 0.75, barWidth = 0.005, showRawData = True,
-                 showMeans = True, showMedians = False, 
-                 summaryLine = True, summaryBar = False, 
-                 showCI = False, legend = True, showAllYAxes = False,
-                 meansColour = 'black', mediansColour = 'black', summaryBarColor = 'grey',
-                 meansSummaryLineStyle = 'solid', mediansSummaryLineStyle = 'dotted',
-                 contrastZeroLineStyle = 'solid', contrastEffectSizeLineStyle = 'solid',
-                 contrastZeroLineColor = 'black', contrastEffectSizeLineColor = 'black',
-                 floatContrast = True, smoothboot = False, floatSwarmSpacer = 0.2,
-                 swarmYlim = None, contrastYlim = None,
-                 effectSizeYLabel = "Effect Size", swarmShareY = True, contrastShareY = True,
+                 violinOffset = 0.375,
+                 violinWidth = 0.2, 
+                 lineWidth = 2, 
+                 
+                 summaryLineWidth = 0.25, 
+                 summaryMarkerSize = 10, 
+                 summaryMarkerType = 'o',
+                 rawMarkerSize = 8,
+                 rawMarkerType = 'o',
+                 heightRatio = (1, 1), 
+                 alpha = 0.75, 
+                 barWidth = 0.005, 
+                 floatSwarmSpacer = 0.2,
+
+                 showRawData = True,
+                 showMeans = True, 
+                 summaryLine = True, 
+                 summaryBar = False, 
+                 showCI = False, 
+                 legend = True, 
+                 showAllYAxes = False,
+                 rawShareY = True, 
+                 contrastShareY = True,
+                 floatContrast = True,
+                 smoothboot = False, 
+                 
+                 figsize = None, 
+                 pal = None,
+                 swarmYlim = None, 
+                 contrastYlim = None,
+                 effectSizeYLabel = "Effect Size", 
+                 axis_title_size = None,
+                 yticksize = None,
+                 xticksize = None,
+
+                 meansColour = 'black', 
+                 summaryBarColor = 'grey',
+                 meansSummaryLineStyle = 'solid', 
+                 contrastZeroLineStyle = 'solid', 
+                 contrastEffectSizeLineStyle = 'solid',
+                 contrastZeroLineColor = 'black', 
+                 contrastEffectSizeLineColor = 'black',
+
                  **kwargs):
-    
+
+    # Drop all nans.
+    data = data.dropna()
+
     # Set clean style
-    sb.set_style('ticks')
+    sb.set(style = 'ticks')
+
+    # plot params
+    if axis_title_size is None:
+        axis_title_size = 15
+    if yticksize is None:
+        yticksize = 12
+    if xticksize is None:
+        xticksize = 12
+
+    axisTitleParams = {'labelsize' : axis_title_size}
+    xtickParams = {'labelsize' : xticksize}
+    ytickParams = {'labelsize' : yticksize}
+
+    rc('axes', **axisTitleParams)
+    rc('xtick', **xtickParams)
+    rc('ytick', **ytickParams)
+
 
     # initialise statfunction
     if statfunction == None:
@@ -794,8 +539,8 @@ def contrastplot(data, x, y, idx = None, statfunction = None, reps = 3000,
         
         # Calculate means
         means = plotdat.groupby([x], sort = True).mean()[y]
-        # Calculate medians
-        medians = plotdat.groupby([x], sort = True).median()[y]
+        # # Calculate medians
+        # medians = plotdat.groupby([x], sort = True).median()[y]
 
         if len(levs) == 2:            
             # Calculate bootstrap contrast. 
@@ -819,6 +564,8 @@ def contrastplot(data, x, y, idx = None, statfunction = None, reps = 3000,
                     sw = sb.swarmplot(data = plotdat, x = x, y = y, 
                                       order = levs, ax = ax_left, 
                                       alpha = alpha, palette = plotPal,
+                                      size = rawMarkerSize,
+                                      marker = rawMarkerType,
                                       **kwargs)
                     sw.set_ylim(swarm_ylim)
                 
@@ -852,7 +599,8 @@ def contrastplot(data, x, y, idx = None, statfunction = None, reps = 3000,
                 ## Set the tick labels!
                 ax_left.set_xticklabels([ax_left.get_xaxis().get_ticklabels()[0].get_text(),
                                          ax_left.get_xaxis().get_ticklabels()[1].get_text()],
-                                       rotation = 45)
+                                       rotation = 45,
+                                       horizontalalignment = 'right')
                 ## Remove left axes x-axis title.
                 ax_left.set_xlabel("")
 
@@ -867,20 +615,10 @@ def contrastplot(data, x, y, idx = None, statfunction = None, reps = 3000,
                               ax = ax_right,
                               violinWidth = violinWidth, 
                               violinOffset = violinOffset,
+                              markersize = summaryMarkerSize,
+                              marker = summaryMarkerType,
                               color = 'k', 
                               linewidth = 2)
-
-                ## If the effect size is positive, shift the right axis up.
-                if float(tempbs['summary']) > 0:
-                    rightmin = ax_left.get_ylim()[0] - float(tempbs['summary'])
-                    rightmax = ax_left.get_ylim()[1] - float(tempbs['summary'])
-                ## If the effect size is negative, shift the right axis down.
-                elif float(tempbs['summary']) < 0:
-                    rightmin = ax_left.get_ylim()[0] + float(tempbs['summary'])
-                    rightmax = ax_left.get_ylim()[1] + float(tempbs['summary'])
-
-                ax_right.set_ylim(rightmin, rightmax)
-                align_yaxis(ax_left, float(tempbs['statistic_ref']), ax_right, 0)
 
                 # Set reference lines
                 ## First get leftmost limit of left reference group
@@ -902,7 +640,19 @@ def contrastplot(data, x, y, idx = None, statfunction = None, reps = 3000,
                                 rightxlim, 3.5,        # x-coordinates, start and end.
                                 linestyle = contrastEffectSizeLineStyle,
                                 linewidth = 0.75,
-                                color = contrastEffectSizeLineColor) 
+                                color = contrastEffectSizeLineColor)
+
+                
+                ## If the effect size is positive, shift the right axis up.
+                if float(tempbs['summary']) > 0:
+                    rightmin = ax_left.get_ylim()[0] - float(tempbs['summary'])
+                    rightmax = ax_left.get_ylim()[1] - float(tempbs['summary'])
+                ## If the effect size is negative, shift the right axis down.
+                elif float(tempbs['summary']) < 0:
+                    rightmin = ax_left.get_ylim()[0] + float(tempbs['summary'])
+                    rightmax = ax_left.get_ylim()[1] + float(tempbs['summary'])
+
+                ax_right.set_ylim(rightmin, rightmax)
 
                 if legend is True:
                     ax_left.legend(loc='center left', bbox_to_anchor=(1.1, 1))
@@ -911,37 +661,8 @@ def contrastplot(data, x, y, idx = None, statfunction = None, reps = 3000,
                     
                 if gsIdx > 0:
                     ax_right.set_ylabel('')
-                    
-                # Trim the floating y-axis to an appropriate range around the bootstrap.
-                ## Get the step size of the left axes y-axis.
-                leftAxesStep = ax_left.get_yticks()[1] - ax_left.get_yticks()[0]
-                ## figure out the number of decimal places for `leftStep`.
-                dp = -Decimal(format(leftAxesStep)).as_tuple().exponent
-                floatFormat = '.' + str(dp) + 'f'
 
-                leftAxesStep = ax_left.get_yticks()[1] - ax_left.get_yticks()[0]
-
-                ## Set the lower and upper bounds of the floating y-axis.
-                floatYMin = float(format(min(tempbs['diffarray']), floatFormat)) - leftAxesStep
-                floatYMax = float(format(max(tempbs['diffarray']), floatFormat)) + leftAxesStep
-
-                ## Add appropriate value to make sure both `floatYMin` and `floatXMin`
-                AbsFloatYMin = np.ceil( abs(floatYMin/(leftAxesStep)) ) * leftAxesStep
-                if floatYMin < 0:
-                    floatYMin = -AbsFloatYMin
-                else:
-                    floatYMin = AbsFloatYMin
-
-                AbsFloatYMax = np.ceil( abs(floatYMax/(leftAxesStep)) ) * leftAxesStep
-                if floatYMax < 0:
-                    floatYMax = -AbsFloatYMax
-                else:
-                    floatYMax = AbsFloatYMax
-
-                if floatYMin > 0.:
-                    floatYMin = 0.
-                if floatYMax < 0.:
-                    floatYMax = 0.
+                align_yaxis(ax_left, tempbs['statistic_ref'], ax_right, 0.)
 
             elif floatContrast is False:
                 # Create subGridSpec with 2 rows and 1 column.
@@ -956,6 +677,8 @@ def contrastplot(data, x, y, idx = None, statfunction = None, reps = 3000,
                 sw = sb.swarmplot(data = plotdat, x = x, y = y, 
                                   order = levs, ax = ax_top, 
                                   alpha = alpha, palette = plotPal,
+                                  size = rawMarkerSize,
+                                  marker = rawMarkerType,
                                   **kwargs)
                 sw.set_ylim(swarm_ylim)
 
@@ -973,18 +696,18 @@ def contrastplot(data, x, y, idx = None, statfunction = None, reps = 3000,
                             ax = ax_top, 
                             alpha = 0.25)
 
-                if showMedians is True:
-                    if summaryLine is True:
-                        for i, m in enumerate(medians):
-                            ax_top.plot((i - summaryLineWidth, i + summaryLineWidth), 
-                                        (m, m), 
-                                        color = mediansColour, linestyle = mediansSummaryLineStyle)
-                    elif summaryBar is True:
-                        sb.barplot(x = medians.index, 
-                            y = medians.values, 
-                            facecolor = summaryBarColor, 
-                            ax = ax_top, 
-                            alpha = 0.25)
+                # if showMedians is True:
+                #     if summaryLine is True:
+                #         for i, m in enumerate(medians):
+                #             ax_top.plot((i - summaryLineWidth, i + summaryLineWidth), 
+                #                         (m, m), 
+                #                         color = mediansColour, linestyle = mediansSummaryLineStyle)
+                #     elif summaryBar is True:
+                #         sb.barplot(x = medians.index, 
+                #             y = medians.values, 
+                #             facecolor = summaryBarColor, 
+                #             ax = ax_top, 
+                #             alpha = 0.25)
                         
                 if legend is True:
                     ax_top.legend(loc='center left', bbox_to_anchor=(1.1, 1))
@@ -1002,14 +725,16 @@ def contrastplot(data, x, y, idx = None, statfunction = None, reps = 3000,
                               bslist = tempbs,
                               ax = ax_bottom, 
                               violinWidth = violinWidth,
+                              markersize = summaryMarkerSize,
+                              marker = summaryMarkerType,
                               offset = False,
                               violinOffset = 0,
                               linewidth = 2)
 
                 # Set bottom axes ybounds
-                if contrastYlim is None:
-                    ax_bottom.set_ylim( tempbs['diffarray'].min(), tempbs['diffarray'].max() )
-                else:
+                if contrastYlim is not None:
+                #     ax_bottom.set_ylim( tempbs['diffarray'].min(), tempbs['diffarray'].max() )
+                # else:
                     ax_bottom.set_ylim(contrastYlim)
                 
                 # Set xlims so everything is properly visible!
@@ -1031,7 +756,6 @@ def contrastplot(data, x, y, idx = None, statfunction = None, reps = 3000,
                                                      subplot_spec = gsMain[gsIdx])
                         
             # Calculate the hub-and-spoke bootstrap contrast.
-
             for i in range (1, len(levs)): # Note that you start from one. No need to do auto-contrast!
                 tempbs = bootstrap_contrast(data = data,
                                             x = x, 
@@ -1053,6 +777,8 @@ def contrastplot(data, x, y, idx = None, statfunction = None, reps = 3000,
             sw = sb.swarmplot(data = plotdat, x = x, y = y, 
                               order = levs, ax = ax_top, 
                               alpha = alpha, palette = plotPal,
+                              size = rawMarkerSize,
+                              marker = rawMarkerType,
                               **kwargs)
             sw.set_ylim(swarm_ylim)
 
@@ -1070,18 +796,18 @@ def contrastplot(data, x, y, idx = None, statfunction = None, reps = 3000,
                         ax = ax_top, 
                         alpha = 0.25)
 
-            if showMedians is True:
-                if summaryLine is True:
-                    for i, m in enumerate(medians):
-                        ax_top.plot((i - summaryLineWidth, i + summaryLineWidth), 
-                                    (m, m), 
-                                    color = mediansColour, linestyle = mediansSummaryLineStyle)
-                elif summaryBar is True:
-                    sb.barplot(x = medians.index, 
-                        y = medians.values, 
-                        facecolor = summaryBarColor, 
-                        ax = ax_top, 
-                        alpha = 0.25)
+            # if showMedians is True:
+            #     if summaryLine is True:
+            #         for i, m in enumerate(medians):
+            #             ax_top.plot((i - summaryLineWidth, i + summaryLineWidth), 
+            #                         (m, m), 
+            #                         color = mediansColour, linestyle = mediansSummaryLineStyle)
+            #     elif summaryBar is True:
+            #         sb.barplot(x = medians.index, 
+            #             y = medians.values, 
+            #             facecolor = summaryBarColor, 
+            #             ax = ax_top, 
+            #             alpha = 0.25)
 
             if legend is True:
                 ax_top.legend(loc='center left', bbox_to_anchor=(1.1, 1))
@@ -1099,6 +825,8 @@ def contrastplot(data, x, y, idx = None, statfunction = None, reps = 3000,
                                    ax = ax_bottom, 
                                    violinWidth = violinWidth,
                                    violinOffset = violinOffset,
+                                   markersize = summaryMarkerSize,
+                                   marker = summaryMarkerType,
                                    linewidth = lineWidth)
             # Set bottom axes ybounds
             if contrastYlim is not None:
@@ -1139,16 +867,10 @@ def contrastplot(data, x, y, idx = None, statfunction = None, reps = 3000,
 
             if len(fig.get_axes()) == 2:
                 # Draw back the lines for the relevant y-axes.
-                x, _ = fig.get_axes()[i].get_xaxis().get_view_interval()
-                ymin = fig.get_axes()[i].get_yaxis().get_majorticklocs()[0]
-                ymax = fig.get_axes()[i].get_yaxis().get_majorticklocs()[-1]
-                fig.get_axes()[i].add_artist(Line2D((x, x), (ymin, ymax), color='black', linewidth=1.5))
+                drawback_y(fig.get_axes()[i])
 
                 # Draw back the lines for the relevant x-axes.
-                y, _ = fig.get_axes()[i].get_yaxis().get_view_interval()
-                xmin = fig.get_axes()[i].get_xaxis().get_majorticklocs()[0]
-                xmax = fig.get_axes()[i].get_xaxis().get_majorticklocs()[-1]
-                fig.get_axes()[i].add_artist(Line2D((xmin, xmax), (y, y), color='black', linewidth=1.5))
+                drawback_x(fig.get_axes()[i])
 
         else:
             # Re-draw the floating axis to the correct limits.
@@ -1189,17 +911,10 @@ def contrastplot(data, x, y, idx = None, statfunction = None, reps = 3000,
 
             ## Second re-draw of axis to shrink it to desired limits.
             fig.get_axes()[i].yaxis.set_major_locator(FixedLocator(locs = newticks2))
-            #fig.get_axes()[i].yaxis.set_minor_locator(AutoMinorLocator(2))
             
-            ## Obtain minor ticks that fall within the major ticks.
-            majorticks = fig.get_axes()[i].yaxis.get_majorticklocs()
-            oldminorticks = fig.get_axes()[i].yaxis.get_minorticklocs()
-            # newminorticks = list()
-            # for a,b in enumerate(oldminorticks):
-            #     if (b >= majorticks[0] and b <= majorticks[-1]):
-            #         newminorticks.append(b)
-            # newminorticks = np.array(newminorticks)
-            # fig.get_axes()[i].yaxis.set_minor_locator(FixedLocator(locs = newminorticks))
+            # ## Obtain minor ticks that fall within the major ticks.
+            # majorticks = fig.get_axes()[i].yaxis.get_majorticklocs()
+            # oldminorticks = fig.get_axes()[i].yaxis.get_minorticklocs()
 
             ## Despine, trim, and redraw the lines.
             sb.despine(ax = fig.get_axes()[i], trim = True, 
@@ -1222,10 +937,7 @@ def contrastplot(data, x, y, idx = None, statfunction = None, reps = 3000,
             fig.get_axes()[i].get_yaxis().set_visible(showAllYAxes)
         else:
             # Draw back the lines for the relevant y-axes.
-            ymin = fig.get_axes()[i].get_yaxis().get_majorticklocs()[0]
-            ymax = fig.get_axes()[i].get_yaxis().get_majorticklocs()[-1]
-            x, _ = fig.get_axes()[i].get_xaxis().get_view_interval()
-            fig.get_axes()[i].add_artist(Line2D((x, x), (ymin, ymax), color='black', linewidth=1.5))    
+            drawback_y(fig.get_axes()[i])
 
         if summaryBar is True:
             fig.get_axes()[i].add_artist(Line2D(
@@ -1237,16 +949,23 @@ def contrastplot(data, x, y, idx = None, statfunction = None, reps = 3000,
             )
 
     # Normalize bottom/right axes to each other for Cummings hub-and-spoke plots.
-    if (len(fig.get_axes()) > 2 and contrastShareY is True and floatContrast is False):
-        normalizeContrastY(fig, con = contrastList, contrast_ylim = contrastYlim, show_all_yaxes = showAllYAxes)
+    if (len(fig.get_axes()) > 2 and 
+      contrastShareY is True and 
+      floatContrast is False):
 
-    if swarmShareY is False:
+        # Set contrast ylim as max ticks of leftmost swarm axes.
+        if contrastYlim is None:
+          contrastYmin = fig.axes[1].yaxis.get_ticklocs()[0]
+          contrastYmax = fig.axes[1].yaxis.get_ticklocs()[-1]
+
+        normalizeContrastY(fig, 
+            con = contrastList, 
+            contrast_ylim = contrastYlim, 
+            show_all_yaxes = showAllYAxes)
+
+    if rawShareY is False:
         for i in range(0, len(fig.get_axes()), 2):
-            #sb.despine(ax = fig.get_axes()[i], trim = True)
-            x, _ = fig.get_axes()[i].get_xaxis().get_view_interval()
-            ymin = fig.get_axes()[i].get_yaxis().get_majorticklocs()[0]
-            ymax = fig.get_axes()[i].get_yaxis().get_majorticklocs()[-1]
-            fig.get_axes()[i].add_artist(Line2D((x, x), (ymin, ymax), color='black', linewidth=1.5))
+            drawback_y(fig.get_axes()[i])
                        
     if contrastShareY is False:
         for i in range(1, len(fig.get_axes()), 2):
@@ -1265,6 +984,8 @@ def contrastplot(data, x, y, idx = None, statfunction = None, reps = 3000,
         gsMain.tight_layout(fig)
     
     # And we're all done.
+    rcdefaults() # restore matplotlib defaults.
+    sb.set() # restore seaborn defaults.
     return fig, contrastList
 
 def pairedcontrast(data, x, y, idcol, reps = 3000,
@@ -1282,16 +1003,40 @@ def pairedcontrast(data, x, y, idcol, reps = 3000,
     contrastYlim = None,
     swarmYlim = None,
     barWidth = 0.005,
+    rawMarkerSize = 8,
+    rawMarkerType = 'o',
     summaryMarkerSize = 10,
+    summaryMarkerType = 'o',
     summaryBarColor = 'grey',
     meansSummaryLineStyle = 'solid', 
     contrastZeroLineStyle = 'solid', contrastEffectSizeLineStyle = 'solid',
     contrastZeroLineColor = 'black', contrastEffectSizeLineColor = 'black',
     pal = None,
     legendLoc = 2, legendFontSize = 12, legendMarkerScale = 1,
+    axis_title_size = None,
+    yticksize = None,
+    xticksize = None, 
     **kwargs):
 
     # Preliminaries.
+    data = data.dropna()
+
+    # plot params
+    if axis_title_size is None:
+        axis_title_size = 15
+    if yticksize is None:
+        yticksize = 12
+    if xticksize is None:
+        xticksize = 12
+
+    axisTitleParams = {'labelsize' : axis_title_size}
+    xtickParams = {'labelsize' : xticksize}
+    ytickParams = {'labelsize' : yticksize}
+
+    rc('axes', **axisTitleParams)
+    rc('xtick', **xtickParams)
+    rc('ytick', **ytickParams)
+
     ## If `idx` is not specified, just take the FIRST TWO levels alphabetically.
     if idx is None:
         idx = tuple(np.unique(data[x])[0:2],)
@@ -1371,6 +1116,8 @@ def pairedcontrast(data, x, y, idcol, reps = 3000,
                                      order = xlevs,
                                      ax = ax_raw,
                                      palette = pal,
+                                     size = rawMarkerSize,
+                                     marker = rawMarkerType,
                                      **kwargs)
         else:
             swarm_raw = sb.stripplot(data = data, 
@@ -1452,11 +1199,10 @@ def pairedcontrast(data, x, y, idcol, reps = 3000,
 
         ## Plot Summary Bar.
         if summaryBar is True:
-            ## Calulate means or medians
             # Calculate means
             means = data.groupby([x], sort = True).mean()[y]
-            # Calculate medians
-            medians = data.groupby([x], sort = True).median()[y]
+            # # Calculate medians
+            # medians = data.groupby([x], sort = True).median()[y]
 
             ## Draw summary bar.
             bar_raw = sb.barplot(x = means.index, 
@@ -1771,142 +1517,6 @@ def pairedcontrast(data, x, y, idcol, reps = 3000,
         gsMain.tight_layout(fig)
 
     # And we're done.
+    rcdefaults() # restore matplotlib defaults.
+    sb.set() # restore seaborn defaults.
     return fig, contrastList
-
-def normalizeSwarmY(fig, floatcontrast):
-    allYmax = list()
-    allYmin = list()
-    
-    for i in range(0, len(fig.get_axes()), 2):
-        # First, loop thru the axes and compile a list of their ybounds.
-        allYmin.append(fig.get_axes()[i].get_ybound()[0])
-        allYmax.append(fig.get_axes()[i].get_ybound()[1])
-
-    # Then loop thru the axes again to equalize them.
-    for i in range(0, len(fig.get_axes()), 2):
-        fig.get_axes()[i].set_ylim(np.min(allYmin), np.max(allYmax))
-        fig.get_axes()[i].get_yaxis().set_view_interval(np.min(allYmin), np.max(allYmax))
-
-        YAxisStep = fig.get_axes()[i].get_yticks()[1] - fig.get_axes()[i].get_yticks()[0]
-        # Setup the major tick locators.
-        majorLocator = MultipleLocator(YAxisStep)
-        majorFormatter = FormatStrFormatter('%.1f')
-        fig.get_axes()[i].yaxis.set_major_locator(majorLocator)
-        fig.get_axes()[i].yaxis.set_major_formatter(majorFormatter)
-
-        if (floatcontrast is False):
-            sb.despine(ax = fig.get_axes()[i], top = True, right = True, 
-                       left = False, bottom = True, 
-                       trim = True)
-        else:
-            sb.despine(ax = fig.get_axes()[i], top = True, right = True, 
-                   left = False, bottom = False, 
-                   trim = True)
-
-        # Draw back the lines for the relevant y-axes.
-        x, _ = fig.get_axes()[i].get_xaxis().get_view_interval()
-        ymin = fig.get_axes()[i].get_yaxis().get_majorticklocs()[0]
-        ymax = fig.get_axes()[i].get_yaxis().get_majorticklocs()[-1]
-        fig.get_axes()[i].add_artist(Line2D((x, x), (ymin, ymax), color='black', linewidth=1.5))
-            
-
-def normalizeContrastY(fig, con, contrast_ylim, show_all_yaxes):
-    allYmax = list()
-    allYmin = list()
-    tickintervals = list()
-    # loop thru the axes and compile a list of their y-axis tick intervals.
-    # Then get the max tick interval.
-    for i in range(1, len(fig.get_axes()), 2):
-        ticklocs = fig.get_axes()[i].yaxis.get_majorticklocs()
-        tickintervals.append(ticklocs[1] - ticklocs[0])
-    maxTickInterval = np.max(tickintervals)
-
-    if contrast_ylim is None:
-        # If no ylim is specified,
-        # loop thru the axes and compile a list of their ybounds (aka y-limits)
-        for j,i in enumerate(range(1, len(fig.get_axes()), 2)):
-            allYmin.append(fig.get_axes()[i].get_ybound()[0])
-            allYmax.append(fig.get_axes()[i].get_ybound()[1])
-            maxYbound = np.array([np.min(allYmin), np.max(allYmax)])
-    else:
-        maxYbound = contrast_ylim
-
-    # Loop thru the contrast axes again to re-draw all the y-axes.
-    for i in range(1, len(fig.get_axes()), 2):
-        ## Set the axes to the max ybounds, or the specified contrast_ylim.
-        #fig.get_axes()[i].set_ylim(maxYbound)
-        fig.get_axes()[i].get_yaxis().set_view_interval(maxYbound[0], maxYbound[1])
-
-        ## Setup the tick locators.
-        majorLocator = MultipleLocator(maxTickInterval)
-        #minorLocator = MultipleLocator(maxTickInterval/2)
-        fig.get_axes()[i].yaxis.set_major_locator(majorLocator)
-        #fig.get_axes()[i].yaxis.set_minor_locator(minorLocator)
-
-        ## Reset the view interval to the limits of the major ticks.
-        majorticklocs_y = fig.get_axes()[i].yaxis.get_majorticklocs()
-        fig.get_axes()[i].get_yaxis().set_view_interval(majorticklocs_y[0], majorticklocs_y[-1])
-
-        sb.despine(ax = fig.get_axes()[i], top = True, right = True, 
-            left = False, bottom = True, 
-            trim = True)
-
-        ## Draw back the lines for the relevant x-axes.
-        xmin = fig.get_axes()[i].get_xaxis().get_majorticklocs()[0]
-        xmax = fig.get_axes()[i].get_xaxis().get_majorticklocs()[-1]
-        y, _ = fig.get_axes()[i].get_yaxis().get_view_interval()
-        fig.get_axes()[i].add_artist(Line2D((xmin, xmax), (y, y), color='black', linewidth=1.5))  
-
-        ## Draw back the lines for the relevant y-axes.
-        x, _ = fig.get_axes()[i].get_xaxis().get_view_interval()
-        if show_all_yaxes is False:
-            ## Draw the leftmost contrast y-axis in first...
-            fig.get_axes()[1].add_artist(Line2D((x, x), 
-                (majorticklocs_y[0], majorticklocs_y[-1]), color='black', linewidth=1.5))
-
-            ## ... then hide the non left-most contrast y-axes.
-            if i > 1:
-                fig.get_axes()[i].get_yaxis().set_visible(False)
-
-        else:
-            ## If you want to see all contrast y-axes, draw in their lines.
-            fig.get_axes()[i].add_artist(Line2D((x, x), 
-                (majorticklocs_y[0], majorticklocs_y[-1]), color='black', linewidth=1.5))
-
-def halfviolin(v, half = 'right', color = 'k'):
-    for b in v['bodies']:
-            mVertical = np.mean(b.get_paths()[0].vertices[:, 0])
-            mHorizontal = np.mean(b.get_paths()[0].vertices[:, 1])
-            if half is 'left':
-                b.get_paths()[0].vertices[:, 0] = np.clip(b.get_paths()[0].vertices[:, 0], -np.inf, mVertical)
-            if half is 'right':
-                b.get_paths()[0].vertices[:, 0] = np.clip(b.get_paths()[0].vertices[:, 0], mVertical, np.inf)
-            if half is 'bottom':
-                b.get_paths()[0].vertices[:, 1] = np.clip(b.get_paths()[0].vertices[:, 1], -np.inf, mHorizontal)
-            if half is 'top':
-                b.get_paths()[0].vertices[:, 1] = np.clip(b.get_paths()[0].vertices[:, 1], mHorizontal, np.inf)
-            b.set_color(color)
-            
-def offsetSwarmX(c, xpos):
-    newx = c.get_offsets().T[0] + xpos
-    newxy = np.array([list(newx), list(c.get_offsets().T[1])]).T
-    c.set_offsets(newxy)
-
-def resetSwarmX(c, newxpos):
-    lengthx = len(c.get_offsets().T[0])
-    newx = [newxpos] * lengthx
-    newxy = np.array([list(newx), list(c.get_offsets().T[1])]).T
-    c.set_offsets(newxy)
-
-def dictToDf(df, name):
-	# convenience function to convert orderedDict object to pandas DataFrame.
-	# args: df is an orderedDict, name is a string.
-	l = list()
-	l.append(df)
-	l_df = pd.DataFrame(l).T
-	l_df.columns = [name]
-	return l_df
-
-def getSwarmSpan(swarmplot, groupnum):
-    return swarmplot.collections[groupnum].get_offsets().T[0].ptp(axis = 0)
-    
