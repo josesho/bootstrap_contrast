@@ -15,7 +15,7 @@ import warnings
 warnings.filterwarnings("ignore")
 
 # This imports the custom functions used.
-# These have been places in separate .py files for reduced code clutter.
+# These have been placed in separate .py files for reduced code clutter.
 from .plot_tools import normalizeSwarmY, normalizeContrastY, offsetSwarmX, resetSwarmX, getSwarmSpan
 from .plot_tools import align_yaxis, halfviolin, drawback_y, drawback_x
 from .bootstrap_tools import ci, bootstrap_indexes, jackknife_indexes, getstatarray, bca
@@ -400,9 +400,21 @@ def contrastplot(data, x, y, idx = None, statfunction = None, reps = 3000,
                  contrastZeroLineColor = 'black', 
                  contrastEffectSizeLineColor = 'black',
 
-                 **kwargs):
+                 tickAngle=45,
+                 tickAlignment='right',
 
-    # Drop all nans.
+                 **kwargs):
+    '''Takes a pandas dataframe and produces a contrast plot:
+    either a Cummings hub-and-spoke plot or a Gardner-Altman contrast plot'''
+
+    # Check that `data` is a pandas dataframe
+    if 'DataFrame' not in str(type(data)):
+        raise TypeError("The object passed to the command is not not a pandas DataFrame.\
+         Please convert it to a pandas DataFrame.")
+
+    # Select only the columns for plotting and grouping.
+    data = data[[x,y]]
+    # Drop all nans. 
     data = data.dropna()
 
     # Set clean style
@@ -920,6 +932,9 @@ def contrastplot(data, x, y, idx = None, statfunction = None, reps = 3000,
             sb.despine(ax = fig.get_axes()[i], trim = True, 
                 bottom = False, right = False,
                 left = True, top = True)
+
+        # Rotate tick labels.
+        rotateTicks(fig.get_axes()[i],tickAngle,tickAlignment)
 
     for i in range(0, len(fig.get_axes()), 2):
 

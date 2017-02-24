@@ -4,6 +4,11 @@ import matplotlib.pyplot as plt
 import seaborn as sb
 import numpy as np
 
+def rotateTicks(axes, angle, alignment='right'):
+    for tick in axes.get_xticklabels():
+        tick.set_rotation(angle)
+        tick.set_horizontalalignment(alignment)
+
 def normalizeSwarmY(fig, floatcontrast):
     allYmax = list()
     allYmin = list()
