@@ -412,8 +412,15 @@ def contrastplot(data, x, y, idx = None, statfunction = None, reps = 3000,
         raise TypeError("The object passed to the command is not not a pandas DataFrame.\
          Please convert it to a pandas DataFrame.")
 
-    # Select only the columns for plotting and grouping.
-    data = data[[x,y]]
+    # Select only the columns for plotting and grouping. 
+    # Also set palette based on total number of categories in data['x'] or data['hue_column']
+    if 'hue' in kwargs:
+        data = data[[x,y,hue]]
+        u = kwargs['hue']
+    else:
+        data = data[[x,y]]
+        u = x
+    
     # Drop all nans. 
     data = data.dropna()
 
