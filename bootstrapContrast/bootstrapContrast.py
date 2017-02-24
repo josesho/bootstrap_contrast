@@ -16,7 +16,7 @@ warnings.filterwarnings("ignore")
 
 # This imports the custom functions used.
 # These have been placed in separate .py files for reduced code clutter.
-from .plot_tools import normalizeSwarmY, normalizeContrastY, offsetSwarmX, resetSwarmX, getSwarmSpan
+from .plot_tools import rotateTicks, normalizeSwarmY, normalizeContrastY, offsetSwarmX, resetSwarmX, getSwarmSpan
 from .plot_tools import align_yaxis, halfviolin, drawback_y, drawback_x
 from .bootstrap_tools import ci, bootstrap_indexes, jackknife_indexes, getstatarray, bca
 
