@@ -8,7 +8,7 @@ from decimal import Decimal
 import matplotlib.pyplot as plt
 from matplotlib import rc, rcParams, rcdefaults
 import sys
-import seaborn as sb
+import seaborn.apionly as sns
 import pandas as pd
 import numpy as np
 import warnings
@@ -56,7 +56,7 @@ def bootstrap(data,
     
     ## Convenience function invoked to get array of desired bootstraps see above!
     # statarray = getstatarray(tdata, statfunction, reps, sort = True)
-    statarray = sb.algorithms.bootstrap(data, func = statfunction, n_boot = reps, smooth = smoothboot)
+    statarray = sns.algorithms.bootstrap(data, func = statfunction, n_boot = reps, smooth = smoothboot)
     statarray.sort()
 
     # Get Percentile indices
@@ -128,8 +128,8 @@ def bootstrap_contrast(data = None,
     exp_array = arraylist[1]
     
     # Generate statarrays for both arrays.
-    ref_statarray = sb.algorithms.bootstrap(ref_array, func = statfunction, n_boot = reps, smooth = smoothboot)
-    exp_statarray = sb.algorithms.bootstrap(exp_array, func = statfunction, n_boot = reps, smooth = smoothboot)
+    ref_statarray = sns.algorithms.bootstrap(ref_array, func = statfunction, n_boot = reps, smooth = smoothboot)
+    exp_statarray = sns.algorithms.bootstrap(exp_array, func = statfunction, n_boot = reps, smooth = smoothboot)
     
     diff_array = exp_statarray - ref_statarray
     diff_array_t = (diff_array,) # Note tuple form.
@@ -322,9 +322,9 @@ def swarmsummary(data, x, y, idx = None, statfunction = None,
     bsplotlist = list(bslist.items())
     
     # Initialise figure
-    #sb.set_style('ticks')
+    #sns.set_style('ticks')
     fig, ax = plt.subplots(figsize = figsize)
-    sw = sb.swarmplot(data = df, x = x, y = y, order = levs, 
+    sw = sns.swarmplot(data = df, x = x, y = y, order = levs, 
       size = rawMarkerSize, marker = rawMarkerType, **kwargs)
     y_lims = list()
     
@@ -352,7 +352,7 @@ def swarmsummary(data, x, y, idx = None, statfunction = None,
     elif legend is False:
         ax.legend().set_visible(False)
         
-    sb.despine(ax = ax, trim = True)
+    sns.despine(ax = ax, trim = True)
     
     return fig, pd.DataFrame.from_dict(bslist)
     
@@ -375,7 +375,7 @@ def contrastplot(data, x, y, idx = None, statfunction = None, reps = 3000,
                  showMeans = True, 
                  summaryLine = True, 
                  summaryBar = False, 
-                 showCI = False, 
+                 show95CI = False, 
                  legend = True, 
                  showAllYAxes = False,
                  rawShareY = True, 
@@ -426,7 +426,7 @@ def contrastplot(data, x, y, idx = None, statfunction = None, reps = 3000,
     data = data.dropna()
 
     # Set clean style
-    sb.set(style = 'ticks')
+    sns.set(style = 'ticks')
 
     # plot params
     if axis_title_size is None:
@@ -439,10 +439,12 @@ def contrastplot(data, x, y, idx = None, statfunction = None, reps = 3000,
     axisTitleParams = {'labelsize' : axis_title_size}
     xtickParams = {'labelsize' : xticksize}
     ytickParams = {'labelsize' : yticksize}
+    svgParams = {'fonttype' : 'none'}
 
     rc('axes', **axisTitleParams)
     rc('xtick', **xtickParams)
     rc('ytick', **ytickParams)
+    rc('svg', **svgParams)
 
 
     # initialise statfunction
@@ -453,18 +455,12 @@ def contrastplot(data, x, y, idx = None, statfunction = None, reps = 3000,
     if summaryLine is True and summaryBar is True:
         summaryBar = True
         summaryLine = False
-        
-    # Set palette based on total number of categories in data['x'] or data['hue_column']
-    if 'hue' in kwargs:
-        u = kwargs['hue']
-    else:
-        u = x
     
     # Here we define the palette on all the levels of the 'x' column.
     # Thus, if the same pandas dataframe is re-used across different plots,
     # the color identity of each group will be maintained.
     if pal is None:
-        plotPal = dict( zip( data[u].unique(), sb.color_palette(n_colors = len(data[u].unique())) ) 
+        plotPal = dict( zip( data[u].unique(), sns.color_palette(n_colors = len(data[u].unique())) ) 
                       )
     else:
         plotPal = pal
@@ -558,11 +554,7 @@ def contrastplot(data, x, y, idx = None, statfunction = None, reps = 3000,
         plotdat.sort_values(by = [x])
 
         # Calculate means, and determine number per group.
-        plotdat_grp=plotdat.groupby([x], sort=True)
-        means=plotdat_grp.mean()[y]
-        
-        # # Calculate medians
-        # medians = plotdat.groupby([x], sort = True).median()[y]
+        means=plotdat.groupby([x], sort=True).mean()[y]
 
         if len(levs) == 2:            
             # Calculate bootstrap contrast. 
@@ -583,7 +575,7 @@ def contrastplot(data, x, y, idx = None, statfunction = None, reps = 3000,
                 
                 if showRawData is True:
                     # Plot the raw data as a swarmplot.
-                    sw = sb.swarmplot(data = plotdat, x = x, y = y, 
+                    sw = sns.swarmplot(data = plotdat, x = x, y = y, 
                                       order = levs, ax = ax_left, 
                                       alpha = alpha, palette = plotPal,
                                       size = rawMarkerSize,
@@ -599,11 +591,11 @@ def contrastplot(data, x, y, idx = None, statfunction = None, reps = 3000,
                 offsetSwarmX(sw.collections[1], -xAfterShift)
 
                 if summaryBar is True:
-                    bar_raw = sb.barplot(x = means.index, 
-                        y = means.values, 
-                        facecolor = summaryBarColor, 
-                        ax = ax_left, 
-                        alpha = 0.25)
+                    bar_raw = sns.barplot(x = means.index.tolist(),
+                     y = means.values, 
+                     facecolor = summaryBarColor,
+                     ax = ax_left,
+                     alpha = 0.25)
                     ## get swarm with largest span, set as max width of each barplot.
                     for i, bar in enumerate(bar_raw.patches):
                         x_width = bar.get_x()
@@ -694,11 +686,11 @@ def contrastplot(data, x, y, idx = None, statfunction = None, reps = 3000,
                                                                  subplot_spec = gsMain[gsIdx])
                 ax_top = plt.Subplot(fig, gsSubGridSpec[0, 0], frame_on = False)
 
-                if showCI is True:
-                    sb.barplot(data = plotdat, x = x, y = y, ax = ax_top, alpha = 0, ci = 95)
+                if show95CI is True:
+                    sns.barplot(data = plotdat, x = x, y = y, ax = ax_top, alpha = 0, ci = 95)
 
                 # Plot the swarmplot on the top axes.
-                sw = sb.swarmplot(data = plotdat, x = x, y = y, 
+                sw = sns.swarmplot(data = plotdat, x = x, y = y, 
                                   order = levs, ax = ax_top, 
                                   alpha = alpha, palette = plotPal,
                                   size = rawMarkerSize,
@@ -714,24 +706,12 @@ def contrastplot(data, x, y, idx = None, statfunction = None, reps = 3000,
                                         (m, m),                                                 # y-coordinates
                                         color = meansColour, linestyle = meansSummaryLineStyle)
                     elif summaryBar is True:
-                        sb.barplot(x = means.index, 
+                        sns.barplot(x = means.index.tolist(), 
                             y = means.values, 
                             facecolor = summaryBarColor, 
+                            ci=0,
                             ax = ax_top, 
                             alpha = 0.25)
-
-                # if showMedians is True:
-                #     if summaryLine is True:
-                #         for i, m in enumerate(medians):
-                #             ax_top.plot((i - summaryLineWidth, i + summaryLineWidth), 
-                #                         (m, m), 
-                #                         color = mediansColour, linestyle = mediansSummaryLineStyle)
-                #     elif summaryBar is True:
-                #         sb.barplot(x = medians.index, 
-                #             y = medians.values, 
-                #             facecolor = summaryBarColor, 
-                #             ax = ax_top, 
-                #             alpha = 0.25)
                         
                 if legend is True:
                     ax_top.legend(loc='center left', bbox_to_anchor=(1.1, 1))
@@ -795,10 +775,10 @@ def contrastplot(data, x, y, idx = None, statfunction = None, reps = 3000,
             # Initialize the top swarmplot axes.
             ax_top = plt.Subplot(fig, gsSubGridSpec[0, 0], frame_on = False)
             
-            if showCI is True:
-                sb.barplot(data = plotdat, x = x, y = y, ax = ax_top, alpha = 0, ci = 95)
+            if show95CI is True:
+                sns.barplot(data = plotdat, x = x, y = y, ax = ax_top, alpha = 0, ci = 95)
 
-            sw = sb.swarmplot(data = plotdat, x = x, y = y, 
+            sw = sns.swarmplot(data = plotdat, x = x, y = y, 
                               order = levs, ax = ax_top, 
                               alpha = alpha, palette = plotPal,
                               size = rawMarkerSize,
@@ -814,7 +794,7 @@ def contrastplot(data, x, y, idx = None, statfunction = None, reps = 3000,
                                     (m, m),                                                 # y-coordinates
                                     color = meansColour, linestyle = meansSummaryLineStyle)
                 elif summaryBar is True:
-                    sb.barplot(x = means.index, 
+                    sns.barplot(x = means.index, 
                         y = means.values, 
                         facecolor = summaryBarColor, 
                         ax = ax_top, 
@@ -827,7 +807,7 @@ def contrastplot(data, x, y, idx = None, statfunction = None, reps = 3000,
             #                         (m, m), 
             #                         color = mediansColour, linestyle = mediansSummaryLineStyle)
             #     elif summaryBar is True:
-            #         sb.barplot(x = medians.index, 
+            #         sns.barplot(x = medians.index, 
             #             y = medians.values, 
             #             facecolor = summaryBarColor, 
             #             ax = ax_top, 
@@ -888,7 +868,7 @@ def contrastplot(data, x, y, idx = None, statfunction = None, reps = 3000,
                 linewidth = 0.75,
                 color = contrastZeroLineColor)
 
-            sb.despine(ax = axx, 
+            sns.despine(ax = axx, 
                 top = True, right = True, 
                 left = False, bottom = True, 
                 trim = True)
@@ -947,7 +927,7 @@ def contrastplot(data, x, y, idx = None, statfunction = None, reps = 3000,
             # oldminorticks = fig.get_axes()[i].yaxis.get_minorticklocs()
 
             ## Despine, trim, and redraw the lines.
-            sb.despine(ax = axx, trim = True, 
+            sns.despine(ax = axx, trim = True, 
                 bottom = False, right = False,
                 left = True, top = True)
 
@@ -960,9 +940,9 @@ def contrastplot(data, x, y, idx = None, statfunction = None, reps = 3000,
             axx.legend().set_visible(False)
 
         if floatContrast is True:
-            sb.despine(ax = axx, trim = True, right = True)
+            sns.despine(ax = axx, trim = True, right = True)
         else:
-            sb.despine(ax = axx, trim = True, bottom = True, right = True)
+            sns.despine(ax = axx, trim = True, bottom = True, right = True)
             axx.get_xaxis().set_visible(False)
 
         if (showAllYAxes is False and i in range( 2, len(fig.get_axes())) ):
@@ -1012,11 +992,11 @@ def contrastplot(data, x, y, idx = None, statfunction = None, reps = 3000,
     if contrastShareY is False:
         for i in range(1, axesCount, 2):
             if floatContrast is True:
-                sb.despine(ax = fig.get_axes()[i], 
+                sns.despine(ax = fig.get_axes()[i], 
                            top = True, right = False, left = True, bottom = True, 
                            trim = True)
             else:
-                sb.despine(ax = fig.get_axes()[i], trim = True)
+                sns.despine(ax = fig.get_axes()[i], trim = True)
 
     # Zero gaps between plots on the same row, if floatContrast is False
     if (floatContrast is False and showAllYAxes is False):
@@ -1026,8 +1006,8 @@ def contrastplot(data, x, y, idx = None, statfunction = None, reps = 3000,
         gsMain.tight_layout(fig)
     
     # And we're all done.
-    rcdefaults() # restore matplotlib defaults.
-    sb.set() # restore seaborn defaults.
+    # rcdefaults() # restore matplotlib defaults.
+    sns.set() # restore seaborn defaults.
     return fig, contrastList
 
 def pairedcontrast(data, x, y, idcol, reps = 3000,
@@ -1116,7 +1096,7 @@ def pairedcontrast(data, x, y, idcol, reps = 3000,
         kwargs['color'] = 'k'
 
     if pal is None:
-        pal = dict( zip( data[u].unique(), sb.color_palette(n_colors = len(data[u].unique())) ) 
+        pal = dict( zip( data[u].unique(), sns.color_palette(n_colors = len(data[u].unique())) ) 
                       )
     else:
         pal = pal
@@ -1153,7 +1133,7 @@ def pairedcontrast(data, x, y, idcol, reps = 3000,
 
         ## Plot raw data as swarmplot or stripplot.
         if showRawData is True:
-            swarm_raw = sb.swarmplot(data = data, 
+            swarm_raw = sns.swarmplot(data = data, 
                                      x = x, y = y, 
                                      order = xlevs,
                                      ax = ax_raw,
@@ -1162,7 +1142,7 @@ def pairedcontrast(data, x, y, idcol, reps = 3000,
                                      marker = rawMarkerType,
                                      **kwargs)
         else:
-            swarm_raw = sb.stripplot(data = data, 
+            swarm_raw = sns.stripplot(data = data, 
                                      x = x, y = y, 
                                      order = xlevs,
                                      ax = ax_raw,
@@ -1247,7 +1227,7 @@ def pairedcontrast(data, x, y, idcol, reps = 3000,
             # medians = data.groupby([x], sort = True).median()[y]
 
             ## Draw summary bar.
-            bar_raw = sb.barplot(x = means.index, 
+            bar_raw = sns.barplot(x = means.index, 
                         y = means.values, 
                         order = xlevs,
                         ax = ax_raw,
@@ -1475,7 +1455,7 @@ def pairedcontrast(data, x, y, idcol, reps = 3000,
                     linewidth = 0.75,
                     color = contrastZeroLineColor)
 
-                sb.despine(ax = fig.get_axes()[i], trim = True, 
+                sns.despine(ax = fig.get_axes()[i], trim = True, 
                     bottom = False, right = True,
                     left = False, top = True)
 
@@ -1532,17 +1512,17 @@ def pairedcontrast(data, x, y, idcol, reps = 3000,
             # fig.get_axes()[i].yaxis.set_minor_locator(FixedLocator(locs = newminorticks))    
 
             ## Despine and trim the axes.
-            sb.despine(ax = fig.get_axes()[i], trim = True, 
+            sns.despine(ax = fig.get_axes()[i], trim = True, 
                 bottom = False, right = False,
                 left = True, top = True)
 
     for i in range(0, len(fig.get_axes()), 2):
         # Loop through the raw data swarmplots and despine them appropriately.
         if floatContrast is True:
-            sb.despine(ax = fig.get_axes()[i], trim = True, right = True)
+            sns.despine(ax = fig.get_axes()[i], trim = True, right = True)
 
         else:
-            sb.despine(ax = fig.get_axes()[i], trim = True, bottom = True, right = True)
+            sns.despine(ax = fig.get_axes()[i], trim = True, bottom = True, right = True)
             fig.get_axes()[i].get_xaxis().set_visible(False)
 
         # Draw back the lines for the relevant y-axes.
@@ -1560,5 +1540,5 @@ def pairedcontrast(data, x, y, idcol, reps = 3000,
 
     # And we're done.
     rcdefaults() # restore matplotlib defaults.
-    sb.set() # restore seaborn defaults.
+    sns.set() # restore seaborn defaults.
     return fig, contrastList
