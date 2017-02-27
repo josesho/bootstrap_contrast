@@ -402,6 +402,7 @@ def contrastplot(data, x, y, idx = None, statfunction = None, reps = 3000,
 
                  tickAngle=45,
                  tickAlignment='right',
+                 showGroupCount=True,
 
                  **kwargs):
     '''Takes a pandas dataframe and produces a contrast plot:
@@ -555,9 +556,11 @@ def contrastplot(data, x, y, idx = None, statfunction = None, reps = 3000,
         
         # then order according to `levs`!
         plotdat.sort_values(by = [x])
+
+        # Calculate means, and determine number per group.
+        plotdat_grp=plotdat.groupby([x], sort=True)
+        means=plotdat_grp.mean()[y]
         
-        # Calculate means
-        means = plotdat.groupby([x], sort = True).mean()[y]
         # # Calculate medians
         # medians = plotdat.groupby([x], sort = True).median()[y]
 
@@ -615,11 +618,13 @@ def contrastplot(data, x, y, idx = None, statfunction = None, reps = 3000,
                 ## Set the ticks locations for ax_left.
                 axLeftLab = ax_left.get_xaxis().get_ticklabels
                 ax_left.get_xaxis().set_ticks((0, xposAfter))
+                firstTick=ax_left.get_xaxis().get_ticklabels()[0].get_text()
+                secondTick=ax_left.get_xaxis().get_ticklabels()[1].get_text()
                 ## Set the tick labels!
-                ax_left.set_xticklabels([ax_left.get_xaxis().get_ticklabels()[0].get_text(),
-                                         ax_left.get_xaxis().get_ticklabels()[1].get_text()],
-                                       rotation = 45,
-                                       horizontalalignment = 'right')
+                ax_left.set_xticklabels([firstTick+' n='+count[firstTick],
+                                         secondTick+' n='+count[secondTick]],
+                                       rotation = tickAngle,
+                                       horizontalalignment = tickAlignment)
                 ## Remove left axes x-axis title.
                 ax_left.set_xlabel("")
 
@@ -759,7 +764,7 @@ def contrastplot(data, x, y, idx = None, statfunction = None, reps = 3000,
                 # Set xlims so everything is properly visible!
                 swarm_xbounds = ax_top.get_xbound()
                 ax_bottom.set_xbound(swarm_xbounds[0] - (summaryLineWidth * 1.1), 
-                                     swarm_xbounds[1] + (summaryLineWidth * 1.))
+                                     swarm_xbounds[1] + (summaryLineWidth * 1.1))
                 
                 fig.add_subplot(ax_bottom)
 
@@ -854,7 +859,7 @@ def contrastplot(data, x, y, idx = None, statfunction = None, reps = 3000,
             # Set xlims so everything is properly visible!
             swarm_xbounds = ax_top.get_xbound()
             ax_bottom.set_xbound(swarm_xbounds[0] - (summaryLineWidth * 1.1), 
-                                 swarm_xbounds[1] + (summaryLineWidth * 1.))
+                                 swarm_xbounds[1] + (summaryLineWidth * 1.1))
             
             # Label the bottom y-axis
             fig.add_subplot(ax_bottom)
@@ -867,29 +872,35 @@ def contrastplot(data, x, y, idx = None, statfunction = None, reps = 3000,
     # Turn contrastList into a pandas DataFrame,
     contrastList = pd.DataFrame(contrastList).T
     contrastList.columns = contrastListNames
-    
-    for j,i in enumerate(range(1, len(fig.get_axes()), 2)):
+
+    axesCount=len(fig.get_axes())
+
+    # Loop thru the CONTRAST axes and perform aesthetic touch-ups.
+    for j,i in enumerate(range(1, axesCount, 2)):
+        axx=fig.get_axes()[i]
 
         if floatContrast is False:
             # Draw zero reference line.
-            fig.get_axes()[i].hlines(y = 0,
-                xmin = fig.get_axes()[i].get_xaxis().get_view_interval()[0], 
-                xmax = fig.get_axes()[i].get_xaxis().get_view_interval()[1],
+            axx.hlines(y = 0,
+                xmin = axx.get_xaxis().get_view_interval()[0], 
+                xmax = axx.get_xaxis().get_view_interval()[1],
                 linestyle = contrastZeroLineStyle,
                 linewidth = 0.75,
                 color = contrastZeroLineColor)
 
-            sb.despine(ax = fig.get_axes()[i], 
+            sb.despine(ax = axx, 
                 top = True, right = True, 
                 left = False, bottom = True, 
                 trim = True)
 
             if len(fig.get_axes()) == 2:
                 # Draw back the lines for the relevant y-axes.
-                drawback_y(fig.get_axes()[i])
-
+                drawback_y(axx)
                 # Draw back the lines for the relevant x-axes.
-                drawback_x(fig.get_axes()[i])
+                drawback_x(axx)
+
+            # Rotate tick labels.
+            rotateTicks(axx,tickAngle,tickAlignment)
 
         else:
             # Re-draw the floating axis to the correct limits.
@@ -909,8 +920,8 @@ def contrastplot(data, x, y, idx = None, statfunction = None, reps = 3000,
             tickstep = leftticks[1] - leftticks[0]
 
             ## First re-draw of axis with new tick interval
-            fig.get_axes()[i].yaxis.set_major_locator(MultipleLocator(base = tickstep))
-            newticks1 = fig.get_axes()[i].get_yticks()
+            axx.yaxis.set_major_locator(MultipleLocator(base = tickstep))
+            newticks1 = axx.get_yticks()
 
             ## Obtain major ticks that comfortably encompass lower and upper.
             newticks2 = list()
@@ -929,51 +940,60 @@ def contrastplot(data, x, y, idx = None, statfunction = None, reps = 3000,
             newticks2.sort()
 
             ## Second re-draw of axis to shrink it to desired limits.
-            fig.get_axes()[i].yaxis.set_major_locator(FixedLocator(locs = newticks2))
+            axx.yaxis.set_major_locator(FixedLocator(locs = newticks2))
             
             # ## Obtain minor ticks that fall within the major ticks.
             # majorticks = fig.get_axes()[i].yaxis.get_majorticklocs()
             # oldminorticks = fig.get_axes()[i].yaxis.get_minorticklocs()
 
             ## Despine, trim, and redraw the lines.
-            sb.despine(ax = fig.get_axes()[i], trim = True, 
+            sb.despine(ax = axx, trim = True, 
                 bottom = False, right = False,
                 left = True, top = True)
 
-        # Rotate tick labels.
-        rotateTicks(fig.get_axes()[i],tickAngle,tickAlignment)
+    # Now loop thru SWARM axes for aesthetic touchups.
+    for i in range(0, axesCount, 2):
+        axx=fig.get_axes()[i]
 
-    for i in range(0, len(fig.get_axes()), 2):
-
-        if i != len(fig.get_axes()) - 2 and 'hue' in kwargs:
+        if i != axesCount - 2 and 'hue' in kwargs:
             # If this is not the final swarmplot, remove the hue legend.
-            fig.get_axes()[i].legend().set_visible(False)
+            axx.legend().set_visible(False)
 
         if floatContrast is True:
-            sb.despine(ax = fig.get_axes()[i], trim = True, right = True)
+            sb.despine(ax = axx, trim = True, right = True)
         else:
-            sb.despine(ax = fig.get_axes()[i], trim = True, bottom = True, right = True)
-            fig.get_axes()[i].get_xaxis().set_visible(False)
+            sb.despine(ax = axx, trim = True, bottom = True, right = True)
+            axx.get_xaxis().set_visible(False)
 
         if (showAllYAxes is False and i in range( 2, len(fig.get_axes())) ):
-            fig.get_axes()[i].get_yaxis().set_visible(showAllYAxes)
+            axx.get_yaxis().set_visible(showAllYAxes)
         else:
             # Draw back the lines for the relevant y-axes.
-            drawback_y(fig.get_axes()[i])
+            drawback_y(axx)
 
         if summaryBar is True:
-            fig.get_axes()[i].add_artist(Line2D(
-                (fig.get_axes()[i].xaxis.get_view_interval()[0], 
-                    fig.get_axes()[i].xaxis.get_view_interval()[1]), 
+            axx.add_artist(Line2D(
+                (axx.xaxis.get_view_interval()[0], 
+                    axx.xaxis.get_view_interval()[1]), 
                 (0,0),
                 color='black', linewidth=0.75
                 )
             )
+        # I don't know why the swarm axes controls the contrast axes ticks....
+        if showGroupCount:
+            count=data.groupby(x).count()[y]
+            newticks=list()
+            for ix, t in enumerate(axx.xaxis.get_ticklabels()):
+                t_text=t.get_text()
+                nt=t_text+' n='+str(count[t_text])
+                newticks.append(nt)
+            axx.xaxis.set_ticklabels(newticks)
+
 
     # Normalize bottom/right axes to each other for Cummings hub-and-spoke plots.
-    if (len(fig.get_axes()) > 2 and 
-      contrastShareY is True and 
-      floatContrast is False):
+    if (axesCount > 2 and 
+        contrastShareY is True and 
+        floatContrast is False):
 
         # Set contrast ylim as max ticks of leftmost swarm axes.
         if contrastYlim is None:
@@ -986,11 +1006,11 @@ def contrastplot(data, x, y, idx = None, statfunction = None, reps = 3000,
             show_all_yaxes = showAllYAxes)
 
     if rawShareY is False:
-        for i in range(0, len(fig.get_axes()), 2):
+        for i in range(0, axesCount, 2):
             drawback_y(fig.get_axes()[i])
                        
     if contrastShareY is False:
-        for i in range(1, len(fig.get_axes()), 2):
+        for i in range(1, axesCount, 2):
             if floatContrast is True:
                 sb.despine(ax = fig.get_axes()[i], 
                            top = True, right = False, left = True, bottom = True, 
@@ -1335,7 +1355,7 @@ def pairedcontrast(data, x, y, idcol, reps = 3000,
             
             # Drawing in the x-axis for ax_raw.
             ## Set the tick labels!
-            ax_raw.set_xticklabels(xlevs, rotation = 45, horizontalalignment = 'right')
+            ax_raw.set_xticklabels(xlevs, rotation = tickAngle, horizontalalignment = tickAlignment)
             ## Get lowest y-value for ax_raw.
             y = ax_raw.get_yaxis().get_view_interval()[0] 
 
