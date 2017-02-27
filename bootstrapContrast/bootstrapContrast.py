@@ -621,8 +621,8 @@ def contrastplot(data, x, y, idx = None, statfunction = None, reps = 3000,
                 firstTick=ax_left.get_xaxis().get_ticklabels()[0].get_text()
                 secondTick=ax_left.get_xaxis().get_ticklabels()[1].get_text()
                 ## Set the tick labels!
-                ax_left.set_xticklabels([firstTick+' n='+count[firstTick],
-                                         secondTick+' n='+count[secondTick]],
+                ax_left.set_xticklabels([firstTick,#+' n='+count[firstTick],
+                                         secondTick],#+' n='+count[secondTick]],
                                        rotation = tickAngle,
                                        horizontalalignment = tickAlignment)
                 ## Remove left axes x-axis title.
