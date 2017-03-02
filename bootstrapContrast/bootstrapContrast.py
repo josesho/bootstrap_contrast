@@ -356,57 +356,70 @@ def swarmsummary(data, x, y, idx = None, statfunction = None,
     
     return fig, pd.DataFrame.from_dict(bslist)
     
-def contrastplot(data, x, y, idx = None, statfunction = None, reps = 3000,
-                 violinOffset = 0.375,
-                 violinWidth = 0.2, 
-                 lineWidth = 2, 
-                 
-                 summaryLineWidth = 0.25, 
-                 summaryMarkerSize = 10, 
-                 summaryMarkerType = 'o',
-                 rawMarkerSize = 8,
-                 rawMarkerType = 'o',
-                 heightRatio = (1, 1), 
-                 alpha = 0.75, 
-                 barWidth = 0.005, 
-                 floatSwarmSpacer = 0.2,
+def contrastplot(data, x, y, idx = None, 
+    
+    alpha = 0.75, 
+    axis_title_size = None,
 
-                 showRawData = True,
-                 showMeans = True, 
-                 summaryLine = True, 
-                 summaryBar = False, 
-                 show95CI = False, 
-                 legend = True, 
-                 showAllYAxes = False,
-                 rawShareY = True, 
-                 contrastShareY = True,
-                 floatContrast = True,
-                 smoothboot = False, 
-                 
-                 figsize = None, 
-                 pal = None,
-                 swarmYlim = None, 
-                 contrastYlim = None,
-                 effectSizeYLabel = "Effect Size", 
-                 axis_title_size = None,
-                 yticksize = None,
-                 xticksize = None,
+    barWidth = 5,
 
-                 meansColour = 'black', 
-                 summaryBarColor = 'grey',
-                 meansSummaryLineStyle = 'solid', 
-                 contrastZeroLineStyle = 'solid', 
-                 contrastEffectSizeLineStyle = 'solid',
-                 contrastZeroLineColor = 'black', 
-                 contrastEffectSizeLineColor = 'black',
+    contrastShareY = True,
+    contrastEffectSizeLineStyle = 'solid',
+    contrastEffectSizeLineColor = 'black',
+    contrastYlim = None,
+    contrastZeroLineStyle = 'solid', 
+    contrastZeroLineColor = 'black', 
 
-                 tickAngle=45,
-                 tickAlignment='right',
-                 showGroupCount=True,
+    effectSizeYLabel = "Effect Size", 
 
-                 **kwargs):
+    figsize = None, 
+    floatContrast = True,
+    floatSwarmSpacer = 0.2,
+
+    heightRatio = (1, 1),
+
+    lineWidth = 2,
+    legend = True,
+
+    pal = None, 
+
+    rawMarkerSize = 8,
+    rawMarkerType = 'o',
+    reps = 3000,
+    
+    showGroupCount=True,
+    show95CI = False, 
+    showAllYAxes = False,
+    showRawData = True,
+    smoothboot = False, 
+    statfunction = None, 
+    summaryBar = False, 
+    summaryBarColor = 'grey',
+    summaryColour = 'black', 
+    summaryLine = True, 
+    summaryLineStyle = 'solid', 
+    summaryLineWidth = 0.25, 
+    summaryMarkerSize = 10, 
+    summaryMarkerType = 'o',
+    swarmShareY = True, 
+    swarmYlim = None, 
+
+    tickAngle=45,
+    tickAlignment='right',
+
+    violinOffset = 0.375,
+    violinWidth = 0.2, 
+
+    xticksize = None,
+    yticksize = None,
+
+    **kwargs):
     '''Takes a pandas dataframe and produces a contrast plot:
-    either a Cummings hub-and-spoke plot or a Gardner-Altman contrast plot'''
+    either a Cummings hub-and-spoke plot or a Gardner-Altman contrast plot.
+    -----------------------------------------------------------------------
+    Description of flags upcoming.'''
+
+    sns.set_context(font_scale=1.5)
 
     # Check that `data` is a pandas dataframe
     if 'DataFrame' not in str(type(data)):
@@ -528,6 +541,7 @@ def contrastplot(data, x, y, idx = None, statfunction = None, reps = 3000,
         else:
             figsize = (8,(8/np.sqrt(2)))
 
+    barWidth=barWidth/1000 # Not sure why have to reduce the barwidth by this much! 
 
     if showRawData is True:
         maxSwarmSpan = 0.25
@@ -539,7 +553,8 @@ def contrastplot(data, x, y, idx = None, statfunction = None, reps = 3000,
     
     # Initialise GridSpec based on `levs_tuple` shape.
     gsMain = gridspec.GridSpec( 1, np.shape(levs_tuple)[0], # 1 row; columns based on number of tuples in tuple.
-                               width_ratios = widthratio ) 
+                               width_ratios = widthratio,
+                               wspace=0 ) 
     
     for gsIdx, levs in enumerate(levs_tuple):
         # Create temp copy of the data for plotting!
@@ -553,8 +568,9 @@ def contrastplot(data, x, y, idx = None, statfunction = None, reps = 3000,
         # then order according to `levs`!
         plotdat.sort_values(by = [x])
 
-        # Calculate means, and determine number per group.
-        means=plotdat.groupby([x], sort=True).mean()[y]
+        # Calculate summaries.
+        # means=plotdat.groupby([x], sort=True).mean()[y]
+        summaries=plotdat.groupby([x], sort=True)[y].apply(statfunction)
 
         if len(levs) == 2:            
             # Calculate bootstrap contrast. 
@@ -591,8 +607,8 @@ def contrastplot(data, x, y, idx = None, statfunction = None, reps = 3000,
                 offsetSwarmX(sw.collections[1], -xAfterShift)
 
                 if summaryBar is True:
-                    bar_raw = sns.barplot(x = means.index.tolist(),
-                     y = means.values, 
+                    bar_raw = sns.barplot(x = summaries.index.tolist(),
+                     y = summaries.values, 
                      facecolor = summaryBarColor,
                      ax = ax_left,
                      alpha = 0.25)
@@ -683,7 +699,8 @@ def contrastplot(data, x, y, idx = None, statfunction = None, reps = 3000,
             elif floatContrast is False:
                 # Create subGridSpec with 2 rows and 1 column.
                 gsSubGridSpec = gridspec.GridSpecFromSubplotSpec(2, 1, 
-                                                                 subplot_spec = gsMain[gsIdx])
+                                                                 subplot_spec = gsMain[gsIdx],
+                                                                 wspace=0)
                 ax_top = plt.Subplot(fig, gsSubGridSpec[0, 0], frame_on = False)
 
                 if show95CI is True:
@@ -699,20 +716,19 @@ def contrastplot(data, x, y, idx = None, statfunction = None, reps = 3000,
                 sw.set_ylim(swarm_ylim)
 
                 # Then plot the summary lines.
-                if showMeans is True:
-                    if summaryLine is True:
-                        for i, m in enumerate(means):
-                            ax_top.plot((i - summaryLineWidth, i + summaryLineWidth),           # x-coordinates
-                                        (m, m),                                                 # y-coordinates
-                                        color = meansColour, linestyle = meansSummaryLineStyle)
-                    elif summaryBar is True:
-                        sns.barplot(x = means.index.tolist(), 
-                            y = means.values, 
-                            facecolor = summaryBarColor, 
-                            ci=0,
-                            ax = ax_top, 
-                            alpha = 0.25)
-                        
+                if summaryLine is True:
+                    for i, m in enumerate(summaries):
+                        ax_top.plot((i - summaryLineWidth, i + summaryLineWidth),           # x-coordinates
+                                    (m, m),                                                 # y-coordinates
+                                    color = summaryColour, linestyle = summaryLineStyle)
+                elif summaryBar is True:
+                    sns.barplot(x = summaries.index.tolist(), 
+                        y = summaries.values, 
+                        facecolor = summaryBarColor, 
+                        ci=0,
+                        ax = ax_top, 
+                        alpha = 0.25)
+                    
                 if legend is True:
                     ax_top.legend(loc='center left', bbox_to_anchor=(1.1, 1))
                 elif legend is False:
@@ -757,7 +773,8 @@ def contrastplot(data, x, y, idx = None, statfunction = None, reps = 3000,
             bscontrast = list()
             # Create subGridSpec with 2 rows and 1 column.
             gsSubGridSpec = gridspec.GridSpecFromSubplotSpec(2, 1, 
-                                                     subplot_spec = gsMain[gsIdx])
+                                                     subplot_spec = gsMain[gsIdx],
+                                                     wspace=0)
                         
             # Calculate the hub-and-spoke bootstrap contrast.
             for i in range (1, len(levs)): # Note that you start from one. No need to do auto-contrast!
@@ -787,31 +804,17 @@ def contrastplot(data, x, y, idx = None, statfunction = None, reps = 3000,
             sw.set_ylim(swarm_ylim)
 
             # Then plot the summary lines.
-            if showMeans is True:
-                if summaryLine is True:
-                    for i, m in enumerate(means):
-                        ax_top.plot((i - summaryLineWidth, i + summaryLineWidth),           # x-coordinates
-                                    (m, m),                                                 # y-coordinates
-                                    color = meansColour, linestyle = meansSummaryLineStyle)
-                elif summaryBar is True:
-                    sns.barplot(x = means.index, 
-                        y = means.values, 
-                        facecolor = summaryBarColor, 
-                        ax = ax_top, 
-                        alpha = 0.25)
-
-            # if showMedians is True:
-            #     if summaryLine is True:
-            #         for i, m in enumerate(medians):
-            #             ax_top.plot((i - summaryLineWidth, i + summaryLineWidth), 
-            #                         (m, m), 
-            #                         color = mediansColour, linestyle = mediansSummaryLineStyle)
-            #     elif summaryBar is True:
-            #         sns.barplot(x = medians.index, 
-            #             y = medians.values, 
-            #             facecolor = summaryBarColor, 
-            #             ax = ax_top, 
-            #             alpha = 0.25)
+            if summaryLine is True:
+                for i, m in enumerate(summaries):
+                    ax_top.plot((i - summaryLineWidth, i + summaryLineWidth),           # x-coordinates
+                                (m, m),                                                 # y-coordinates
+                                color = summaryColour, linestyle = summaryLineStyle)
+            elif summaryBar is True:
+                sns.barplot(x = summaries.index.tolist(), 
+                    y = summaries.values, 
+                    facecolor = summaryBarColor, 
+                    ax = ax_top, 
+                    alpha = 0.25)
 
             if legend is True:
                 ax_top.legend(loc='center left', bbox_to_anchor=(1.1, 1))
@@ -870,14 +873,8 @@ def contrastplot(data, x, y, idx = None, statfunction = None, reps = 3000,
 
             sns.despine(ax = axx, 
                 top = True, right = True, 
-                left = False, bottom = True, 
+                left = False, bottom = False, 
                 trim = True)
-
-            if len(fig.get_axes()) == 2:
-                # Draw back the lines for the relevant y-axes.
-                drawback_y(axx)
-                # Draw back the lines for the relevant x-axes.
-                drawback_x(axx)
 
             # Rotate tick labels.
             rotateTicks(axx,tickAngle,tickAlignment)
@@ -969,8 +966,8 @@ def contrastplot(data, x, y, idx = None, statfunction = None, reps = 3000,
                 newticks.append(nt)
             axx.xaxis.set_ticklabels(newticks)
 
-
-    # Normalize bottom/right axes to each other for Cummings hub-and-spoke plots.
+    ########
+    # Normalize bottom/right Contrast axes to each other for Cummings hub-and-spoke plots.
     if (axesCount > 2 and 
         contrastShareY is True and 
         floatContrast is False):
@@ -985,7 +982,12 @@ def contrastplot(data, x, y, idx = None, statfunction = None, reps = 3000,
             contrast_ylim = contrastYlim, 
             show_all_yaxes = showAllYAxes)
 
-    if rawShareY is False:
+    if (axesCount==2 and 
+        floatContrast is False):
+        drawback_x(fig.get_axes()[1])
+        drawback_y(fig.get_axes()[1])
+
+    if swarmShareY is False:
         for i in range(0, axesCount, 2):
             drawback_y(fig.get_axes()[i])
                        
@@ -1000,14 +1002,15 @@ def contrastplot(data, x, y, idx = None, statfunction = None, reps = 3000,
 
     # Zero gaps between plots on the same row, if floatContrast is False
     if (floatContrast is False and showAllYAxes is False):
-        gsMain.update(wspace = 0)
+        gsMain.update(wspace = 0.)
+
     else:    
         # Tight Layout!
         gsMain.tight_layout(fig)
     
     # And we're all done.
     # rcdefaults() # restore matplotlib defaults.
-    sns.set() # restore seaborn defaults.
+    # sns.set() # restore seaborn defaults.
     return fig, contrastList
 
 def pairedcontrast(data, x, y, idcol, reps = 3000,
