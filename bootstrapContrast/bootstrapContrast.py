@@ -863,13 +863,16 @@ def contrastplot(data, x, y, idx = None,
         axx=fig.get_axes()[i]
 
         if floatContrast is False:
+            xleft, xright=axx.xaxis.get_view_interval()
             # Draw zero reference line.
             axx.hlines(y = 0,
-                xmin = axx.get_xaxis().get_view_interval()[0], 
-                xmax = axx.get_xaxis().get_view_interval()[1],
+                xmin = xleft-1, 
+                xmax = xright+1,
                 linestyle = contrastZeroLineStyle,
                 linewidth = 0.75,
                 color = contrastZeroLineColor)
+            # reset view interval.
+            axx.set_xlim(xleft, xright)
 
             sns.despine(ax = axx, 
                 top = True, right = True, 

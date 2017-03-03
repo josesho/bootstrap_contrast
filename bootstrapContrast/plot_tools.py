@@ -14,16 +14,17 @@ def normalizeSwarmY(fig, floatcontrast):
     allYmin = list()
     
     for i in range(0, len(fig.get_axes()), 2):
+        axx=fig.get_axes()[i]
         # First, loop thru the axes and compile a list of their ybounds.
-        allYmin.append(fig.get_axes()[i].get_ybound()[0])
-        allYmax.append(fig.get_axes()[i].get_ybound()[1])
+        allYmin.append(axx.get_ybound()[0])
+        allYmax.append(axx.get_ybound()[1])
 
     # Then loop thru the axes again to equalize them.
     for i in range(0, len(fig.get_axes()), 2):
-        fig.get_axes()[i].set_ylim(np.min(allYmin), np.max(allYmax))
-        fig.get_axes()[i].get_yaxis().set_view_interval(np.min(allYmin), np.max(allYmax))
+        axx.set_ylim(np.min(allYmin), np.max(allYmax))
+        axx.get_yaxis().set_view_interval(np.min(allYmin), np.max(allYmax))
 
-        YAxisStep = fig.get_axes()[i].get_yticks()[1] - fig.get_axes()[i].get_yticks()[0]
+        YAxisStep = axx.get_yticks()[1] - fig.get_axes()[i].get_yticks()[0]
         # Setup the major tick locators.
         majorLocator = MultipleLocator(YAxisStep)
         majorFormatter = FormatStrFormatter('%.1f')
@@ -31,19 +32,16 @@ def normalizeSwarmY(fig, floatcontrast):
         fig.get_axes()[i].yaxis.set_major_formatter(majorFormatter)
 
         if (floatcontrast is False):
-            sb.despine(ax = fig.get_axes()[i], top = True, right = True, 
+            sb.despine(ax = axx, top = True, right = True, 
                        left = False, bottom = True, 
                        trim = True)
         else:
-            sb.despine(ax = fig.get_axes()[i], top = True, right = True, 
+            sb.despine(ax = axx, top = True, right = True, 
                    left = False, bottom = False, 
                    trim = True)
 
         # Draw back the lines for the relevant y-axes.
-        x, _ = fig.get_axes()[i].get_xaxis().get_view_interval()
-        ymin = fig.get_axes()[i].get_yaxis().get_majorticklocs()[0]
-        ymax = fig.get_axes()[i].get_yaxis().get_majorticklocs()[-1]
-        fig.get_axes()[i].add_artist(Line2D((x, x), (ymin, ymax), color='black', linewidth=1.5))
+        drawback_y(axx,linewidth=1.5)
             
 
 def normalizeContrastY(fig, con, contrast_ylim, show_all_yaxes):
@@ -69,43 +67,38 @@ def normalizeContrastY(fig, con, contrast_ylim, show_all_yaxes):
 
     # Loop thru the contrast axes again to re-draw all the y-axes.
     for i in range(1, len(fig.get_axes()), 2):
+        axx=fig.get_axes()[i]
         ## Set the axes to the max ybounds, or the specified contrast_ylim.
 
-        fig.get_axes()[i].get_yaxis().set_view_interval(maxYbound[0], maxYbound[1])
+        axx.yaxis.set_view_interval(maxYbound[0], maxYbound[1])
 
         ## Setup the tick locators.
         majorLocator = MultipleLocator(maxTickInterval)
-        fig.get_axes()[i].yaxis.set_major_locator(majorLocator)
+        axx.yaxis.set_major_locator(majorLocator)
 
         ## Reset the view interval to the limits of the major ticks.
-        majorticklocs_y = fig.get_axes()[i].yaxis.get_majorticklocs()
-        fig.get_axes()[i].get_yaxis().set_view_interval(majorticklocs_y[0], majorticklocs_y[-1])
+        majorticklocs_y = axx.yaxis.get_majorticklocs()
+        axx.yaxis.set_view_interval(majorticklocs_y[0], majorticklocs_y[-1])
 
-        sb.despine(ax = fig.get_axes()[i], top = True, right = True, 
+        sb.despine(ax = axx, top = True, right = True, 
             left = False, bottom = True, 
             trim = True)
 
         ## Draw back the lines for the relevant x-axes.
-        xmin = fig.get_axes()[i].get_xaxis().get_majorticklocs()[0]
-        xmax = fig.get_axes()[i].get_xaxis().get_majorticklocs()[-1]
-        y, _ = fig.get_axes()[i].get_yaxis().get_view_interval()
-        fig.get_axes()[i].add_artist(Line2D((xmin, xmax), (y, y), color='black', linewidth=1.5))  
+        drawback_x(ax=axx,linewidth=1.5)
 
         ## Draw back the lines for the relevant y-axes.
-        x, _ = fig.get_axes()[i].get_xaxis().get_view_interval()
+        x, _ = axx.get_xaxis().get_view_interval()
         if show_all_yaxes is False:
             ## Draw the leftmost contrast y-axis in first...
-            fig.get_axes()[1].add_artist(Line2D((x, x), 
-                (majorticklocs_y[0], majorticklocs_y[-1]), color='black', linewidth=1.5))
-
+            drawback_y(ax=fig.get_axes()[1],linewidth=1.5)
             ## ... then hide the non left-most contrast y-axes.
             if i > 1:
-                fig.get_axes()[i].get_yaxis().set_visible(False)
+                axx.get_yaxis().set_visible(False)
 
         else:
             ## If you want to see all contrast y-axes, draw in their lines.
-            fig.get_axes()[i].add_artist(Line2D((x, x), 
-                (majorticklocs_y[0], majorticklocs_y[-1]), color='black', linewidth=1.5))
+            drawback_y(ax=axx,linewidth=1.5)
 
 
 def align_yaxis(ax1, v1, ax2, v2):
@@ -156,16 +149,16 @@ def dictToDf(df, name):
 def getSwarmSpan(swarmplot, groupnum):
     return swarmplot.collections[groupnum].get_offsets().T[0].ptp(axis = 0)
 
-def drawback_y(ax):
+def drawback_y(ax,color='black',linewidth=1):
     # Draw back the lines for the relevant y-axes.
-    x, _ = ax.get_xaxis().get_view_interval()
-    ymin = ax.get_yaxis().get_majorticklocs()[0]
-    ymax = ax.get_yaxis().get_majorticklocs()[-1]
-    ax.add_artist(Line2D((x, x), (ymin, ymax), color='black', linewidth=1))
+    x, _ = ax.xaxis.get_view_interval()
+    ymin = ax.yaxis.get_majorticklocs()[0]
+    ymax = ax.yaxis.get_majorticklocs()[-1]
+    ax.add_artist(Line2D((x, x), (ymin, ymax), color=color, linewidth=linewidth))
 
-def drawback_x(ax):
+def drawback_x(ax,color='black',linewidth=1.5):
     # Draw back the lines for the relevant x-axes.
-    y, _ = ax.get_yaxis().get_view_interval()
-    xmin = ax.get_xaxis().get_majorticklocs()[0]
-    xmax = ax.get_xaxis().get_majorticklocs()[-1]
-    ax.add_artist(Line2D((xmin, xmax), (y, y), color='black', linewidth=1))
+    y, _ = ax.yaxis.get_view_interval()
+    xmin = ax.xaxis.get_majorticklocs()[0]
+    xmax = ax.xaxis.get_majorticklocs()[-1]
+    ax.add_artist(Line2D((xmin, xmax), (y, y), color=color, linewidth=linewidth))
