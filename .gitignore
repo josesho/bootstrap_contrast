@@ -29,3 +29,6 @@ bootstrapContrast/*.pdf
 # all .DS_store files.
 bootstrapContrast/*.DS_Store 
 *.DS_Store
+
+# Any temporary python file
+*._py

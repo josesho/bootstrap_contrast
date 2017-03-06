@@ -1,9 +1,155 @@
 
 import numpy as np
+import seaborn as sns
 from scipy.stats import norm
 from collections import OrderedDict
 from numpy.random import randint
+from scipy.stats import ttest_ind, ttest_1samp, ttest_rel, mannwhitneyu, norm
 import warnings
+
+def bootstrap(data, 
+              statfunction = None,
+              smoothboot = False,
+              alpha = 0.05, 
+              reps = 3000):
+    
+    # Taken from scikits.bootstrap code
+    # Initialise statfunction
+    if statfunction == None:
+        statfunction = np.mean
+    
+    # Compute two-sided alphas.
+    alphas = np.array([alpha/2, 1-alpha/2])
+    
+    # Turns data into array, then tuple.
+    data = np.array(data)
+    tdata = (data,)
+
+    # The value of the statistic function applied just to the actual data.
+    ostat = statfunction(*tdata)
+    
+    ## Convenience function invoked to get array of desired bootstraps see above!
+    # statarray = getstatarray(tdata, statfunction, reps, sort = True)
+    statarray = sns.algorithms.bootstrap(data, func = statfunction, n_boot = reps, smooth = smoothboot)
+    statarray.sort()
+
+    # Get Percentile indices
+    pct_low_high = np.round((reps-1)*alphas)
+    pct_low_high = np.nan_to_num(pct_low_high).astype('int')
+
+    # Get Bias-Corrected Accelerated indices convenience function invoked.
+    bca_low_high = bca(tdata, alphas, statarray, statfunction, ostat, reps)
+    
+    # Warnings for unstable or extreme indices.
+    for ind in [pct_low_high, bca_low_high]:
+        if np.any(ind==0) or np.any(ind==reps-1):
+            warnings.warn("Some values used extremal samples results are probably unstable.")
+        elif np.any(ind<10) or np.any(ind>=reps-10):
+            warnings.warn("Some values used top 10 low/high samples results may be unstable.")
+        
+    result = OrderedDict()
+    result['summary'] = ostat
+    result['statistic'] = str(statfunction)
+    result['bootstrap_reps'] = reps
+    result['pct_ci_low'] = statarray[pct_low_high[0]]
+    result['pct_ci_high'] = statarray[pct_low_high[1]]
+    result['bca_ci_low'] = statarray[bca_low_high[0]]
+    result['bca_ci_high'] = statarray[bca_low_high[1]]
+    result['stat_array'] = np.array(statarray)
+    result['pct_low_high_indices'] = pct_low_high
+    result['bca_low_high_indices'] = bca_low_high
+    return result
+
+def bootstrap_contrast(data = None,
+                   idx = None,
+                   x = None,
+                   y = None,
+                   statfunction = None,
+                   smoothboot = False,
+                   alpha = 0.05, 
+                   reps = 3000):
+    
+    # Taken from scikits.bootstrap code
+    # Initialise statfunction
+    if statfunction == None:
+        statfunction = np.mean
+    # check if idx was parsed
+    if idx == None:
+        idx = [0,1]
+        
+    # Compute two-sided alphas.
+    alphas = np.array([alpha/2, 1-alpha/2])
+    
+    levels = data[x].unique()
+
+    # Two types of dictionaries
+    levels_to_idx = dict( zip(list(levels), range(0,len(levels))) ) # levels are the keys.
+    idx_to_levels = dict( zip(range(0,len(levels)), list(levels)) ) # level indexes are the keys.
+                                                                    # Not sure if I need this latter dict.
+    
+    # The loop approach below allows us to mix and match level and indices
+    # when declaring the idx above.
+    arraylist = list() # list to temporarily store the rawdata arrays.
+    for i in idx:
+        if i in levels_to_idx: # means the supplied id is an actual level
+            arraylist.append( np.array(data.ix[data[x] == levels[levels_to_idx[i]]][y]) ) # when I get levels
+        elif i in idx_to_levels: # means the supplied id is the level index (does this make sense?)
+            arraylist.append( np.array(data.ix[data[x] == levels[i]][y]) ) # when I get level indexes
+            
+    # Pull out the arrays. 
+    # The first array in `arraylist` is the reference array. 
+    ref_array = arraylist[0]
+    exp_array = arraylist[1]
+    
+    # Generate statarrays for both arrays.
+    ref_statarray = sns.algorithms.bootstrap(ref_array, func = statfunction, n_boot = reps, smooth = smoothboot)
+    exp_statarray = sns.algorithms.bootstrap(exp_array, func = statfunction, n_boot = reps, smooth = smoothboot)
+    
+    diff_array = exp_statarray - ref_statarray
+    diff_array_t = (diff_array,) # Note tuple form.
+    diff_array.sort()
+
+    # The difference as one would calculate it.
+    ostat = statfunction(exp_array) - statfunction(ref_array)
+    
+    # Get Percentile indices
+    pct_low_high = np.round((reps-1)*alphas)
+    pct_low_high = np.nan_to_num(pct_low_high).astype('int')
+
+    # Get Bias-Corrected Accelerated indices convenience function invoked.
+    bca_low_high = bca(diff_array_t, alphas, diff_array, statfunction, ostat, reps)
+    
+    # Warnings for unstable or extreme indices.
+    for ind in [pct_low_high, bca_low_high]:
+        if np.any(ind==0) or np.any(ind==reps-1):
+            warnings.warn("Some values used extremal samples results are probably unstable.")
+        elif np.any(ind<10) or np.any(ind>=reps-10):
+            warnings.warn("Some values used top 10 low/high samples results may be unstable.")
+            
+    # two-tailed t-test to see if the means of both arrays are different.
+    ttestresult = ttest_ind(arraylist[0], arraylist[1])
+    
+    # Mann-Whitney test to see if the mean of the diff_array is not zero.
+    mannwhitneyresult = mannwhitneyu(arraylist[0], arraylist[1])
+    
+    result = OrderedDict()
+    result['summary'] = ostat
+    result['statistic'] = str(statfunction)
+    result['bootstrap_reps'] = reps
+    result['pct_ci_low'] = diff_array[pct_low_high[0]]
+    result['pct_ci_high'] = diff_array[pct_low_high[1]]
+    result['bca_ci_low'] = diff_array[bca_low_high[0]]
+    result['bca_ci_high'] = diff_array[bca_low_high[1]]
+    result['diffarray'] = np.array(diff_array)
+    result['pct_low_high_indices'] = pct_low_high
+    result['bca_low_high_indices'] = bca_low_high
+    result['statistic_ref'] = statfunction(ref_array)
+    result['statistic_exp'] = statfunction(exp_array)
+    result['ref_input'] = arraylist[0]
+    result['test_input'] = arraylist[1]
+    result['pvalue_ttest'] = ttestresult[1]
+    result['pvalue_mannWhitney'] = mannwhitneyresult[1] * 2 # two-sided test result.
+    return result
 
 def ci(data, statfunction=np.average, alpha=0.05, n_samples=10000, 
     method='bca', output='lowhigh', epsilon=0.001, multi=None):
