@@ -123,11 +123,11 @@ def contrastplot(data, x, y, idx = None,
 
     # plot params
     if axis_title_size is None:
-        axis_title_size = 15
+        axis_title_size = 20
     if yticksize is None:
-        yticksize = 12
+        yticksize = 16
     if xticksize is None:
-        xticksize = 12
+        xticksize = 16
 
     axisTitleParams = {'labelsize' : axis_title_size}
     xtickParams = {'labelsize' : xticksize}
@@ -138,7 +138,8 @@ def contrastplot(data, x, y, idx = None,
     rc('xtick', **xtickParams)
     rc('ytick', **ytickParams)
     rc('svg', **svgParams)
-
+    rc('legend',**{'fontsize':16})
+    rc('legend',**{'markerscale':1.75})
 
     # initialise statfunction
     if statfunction == None:
@@ -304,7 +305,7 @@ def contrastplot(data, x, y, idx = None,
                         bar.set_width(maxSwarmSpan)
                 
                 ## Set the ticks locations for ax_left.
-                axLeftLab = ax_left.get_xaxis().get_ticklabels
+                # axLeftLab = ax_left.get_xaxis().get_ticklabels
                 ax_left.get_xaxis().set_ticks((0, xposAfter))
                 firstTick=ax_left.get_xaxis().get_ticklabels()[0].get_text()
                 secondTick=ax_left.get_xaxis().get_ticklabels()[1].get_text()
@@ -661,7 +662,6 @@ def contrastplot(data, x, y, idx = None,
           contrastYmax = fig.axes[1].yaxis.get_ticklocs()[-1]
 
         normalizeContrastY(fig, 
-            con = contrastList, 
             contrast_ylim = contrastYlim, 
             show_all_yaxes = showAllYAxes)
 

@@ -44,7 +44,7 @@ def normalizeSwarmY(fig, floatcontrast):
         drawback_y(axx,linewidth=1.5)
             
 
-def normalizeContrastY(fig, con, contrast_ylim, show_all_yaxes):
+def normalizeContrastY(fig, contrast_ylim, show_all_yaxes):
     allYmax = list()
     allYmin = list()
     tickintervals = list()
