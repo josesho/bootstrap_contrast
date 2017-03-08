@@ -48,6 +48,8 @@ def contrastplot_test(
 
     lineWidth=2,
     legend=True,
+    legendFontSize=14,
+    legendFontProps={},
 
     paired=False,
     pal=None, 
@@ -139,6 +141,26 @@ def contrastplot_test(
     if statfunction == None:
         statfunction=np.mean
 
+    # Create list to collect all the contrast DataFrames generated.
+    contrastList=list()
+    contrastListNames=list()
+    # # Calculate the bootstraps according to idx.
+    # for ix, current_tuple in enumerate(tuple_in):
+    #     bscontrast=list()
+    #     for i in range (1, len(current_tuple)):
+    #     # Note that you start from one. No need to do auto-contrast!
+    #         tempbs=bootstrap_contrast(
+    #             data=data,
+    #             x=x,
+    #             y=y,
+    #             idx=[current_tuple[0], current_tuple[i]],
+    #             statfunction=statfunction,
+    #             smoothboot=smoothboot,
+    #             reps=reps)
+    #         bscontrast.append(tempbs)
+    #         contrastList.append(tempbs)
+    #         contrastListNames.append(current_tuple[i]+' vs. '+current_tuple[0])
+
     # Setting color palette for plotting.
     if pal is None:
         if 'hue' in kwargs:
@@ -188,10 +210,6 @@ def contrastplot_test(
     pad=0.1*swarmrange
     x2=np.array([swarm_ylim[0]-pad, swarm_ylim[1]+pad])
     swarm_ylim=x2
-    
-    # Create list to collect all the contrast DataFrames generated.
-    contrastList=list()
-    contrastListNames=list()
 
     # plot params
     if axis_title_size is None:
@@ -219,7 +237,7 @@ def contrastplot_test(
             figsize=(12,(12/np.sqrt(2)))
         else:
             figsize=(8,(8/np.sqrt(2)))
-        
+    
     # Initialise figure, taking into account desired figsize.
     fig=plt.figure(figsize=figsize)
 
@@ -281,6 +299,8 @@ def contrastplot_test(
         
         #### PLOT RAW DATA.
         if showRawData is True:
+            # Seaborn swarmplot doc says to set custom ylims first.
+            ax_raw.set_ylim(swarm_ylim)
             sw=sns.swarmplot(
                 data=plotdat, 
                 x=x, y=y, 
@@ -291,24 +311,7 @@ def contrastplot_test(
                 size=rawMarkerSize,
                 marker=rawMarkerType,
                 **kwargs)
-            sw.set_ylim(swarm_ylim)
 
-            # Get horizontal offset values.
-            maxXBefore=max(sw.collections[0].get_offsets().T[0])
-            minXAfter=min(sw.collections[1].get_offsets().T[0])
-            xposAfter=maxXBefore+floatSwarmSpacer
-            xAfterShift=minXAfter-xposAfter
-
-            if floatContrast:
-                offsetSwarmX(sw.collections[1], -xAfterShift)
-                ## Set the ticks locations for ax_raw.
-                ax_raw.xaxis.set_ticks((0, xposAfter))
-                firstTick=ax_raw.xaxis.get_ticklabels()[0].get_text()
-                secondTick=ax_raw.xaxis.get_ticklabels()[1].get_text()
-                ax_raw.set_xticklabels([firstTick,#+' n='+count[firstTick],
-                                         secondTick],#+' n='+count[secondTick]],
-                                       rotation=tickAngle,
-                                       horizontalalignment=tickAlignment)
         if summaryBar is True:
             bar_raw=sns.barplot(
                 x=summaries.index.tolist(),
@@ -316,6 +319,15 @@ def contrastplot_test(
                 facecolor=summaryBarColor,
                 ax=ax_raw,
                 alpha=summaryBarAlpha)
+        
+        if floatContrast:
+            # Get horizontal offset values.
+            maxXBefore=max(sw.collections[0].get_offsets().T[0])
+            minXAfter=min(sw.collections[1].get_offsets().T[0])
+            xposAfter=maxXBefore+floatSwarmSpacer
+            xAfterShift=minXAfter-xposAfter
+            # shift the swarmplots
+            offsetSwarmX(sw.collections[1], -xAfterShift)
 
             ## get swarm with largest span, set as max width of each barplot.
             for i, bar in enumerate(bar_raw.patches):
@@ -327,6 +339,15 @@ def contrastplot_test(
                 else:
                     bar.set_x(centre-xAfterShift-maxSwarmSpan/2.)
                 bar.set_width(maxSwarmSpan)
+
+            ## Set the ticks locations for ax_raw.
+            ax_raw.xaxis.set_ticks((0, xposAfter))
+            firstTick=ax_raw.xaxis.get_ticklabels()[0].get_text()
+            secondTick=ax_raw.xaxis.get_ticklabels()[1].get_text()
+            ax_raw.set_xticklabels([firstTick,#+' n='+count[firstTick],
+                                     secondTick],#+' n='+count[secondTick]],
+                                   rotation=tickAngle,
+                                   horizontalalignment=tickAlignment)
 
         if summaryLine is True:
             for i, m in enumerate(summaries):
@@ -483,29 +504,10 @@ def contrastplot_test(
             axx.legend().set_visible(False)
         else:
             if i==axesCount-2: # the last (rightmost) swarm axes.
-                axx.legend(loc='top right', bbox_to_anchor=(1.1,1.0))
-
-    # Normalize bottom/right Contrast axes to each other for Cummings hub-and-spoke plots.
-    if (axesCount>2 and 
-        contrastShareY is True and 
-        floatContrast is False):
-
-        # Set contrast ylim as max ticks of leftmost swarm axes.
-        if contrastYlim is None:
-            lower=list()
-            upper=list()
-            for c in range(0,len(contrastList.columns)):
-                lower.append( np.min(contrastList.ix['diffarray',c]) )
-                upper.append( np.max(contrastList.ix['diffarray',c]) )
-            lower=np.min(lower)
-            upper=np.max(upper)
-        else:
-            lower=contrastYlim[0]
-            upper=contrastYlim[1]
-
-        for j,i in enumerate(range(1, axesCount, 2)):
-            axx=fig.get_axes()[i].yaxis
-            axx.set_view_interval(lower,upper)
+                axx.legend(loc='top right',
+                    bbox_to_anchor=(1.1,1.0),
+                    fontsize=legendFontSize,
+                    **legendFontProps)
 
     ## Loop thru the CONTRAST axes and perform aesthetic touch-ups.
     ## Get the y-limits:
@@ -523,9 +525,8 @@ def contrastplot_test(
                 color=contrastZeroLineColor)
             # reset view interval.
             axx.set_xlim(xleft, xright)
-
-            # if contrastYlim is None:
-            #     axx.set_ylim(lower,upper)
+            # # Draw back x-axis lines connecting ticks.
+            # drawback_x(axx)
 
             if showAllYAxes is False:
                 if i in range(2, axesCount):
@@ -586,6 +587,28 @@ def contrastplot_test(
             sns.despine(ax=axx, trim=True, 
                 bottom=False, right=False,
                 left=True, top=True)
+
+    # Normalize bottom/right Contrast axes to each other for Cummings hub-and-spoke plots.
+    if (axesCount>2 and 
+        contrastShareY is True and 
+        floatContrast is False):
+
+        # Set contrast ylim as max ticks of leftmost swarm axes.
+        if contrastYlim is None:
+            lower=list()
+            upper=list()
+            for c in range(0,len(contrastList.columns)):
+                lower.append( np.min(contrastList.ix['bca_ci_low',c]) )
+                upper.append( np.max(contrastList.ix['bca_ci_high',c]) )
+            lower=np.min(lower)
+            upper=np.max(upper)
+        else:
+            lower=contrastYlim[0]
+            upper=contrastYlim[1]
+
+        normalizeContrastY(fig, 
+            contrast_ylim = contrastYlim, 
+            show_all_yaxes = showAllYAxes)
 
     # if (axesCount==2 and 
     #     floatContrast is False):
