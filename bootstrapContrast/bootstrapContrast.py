@@ -344,16 +344,17 @@ def contrastplot(
             # shift the swarmplots
             offsetSwarmX(sw.collections[1], -xAfterShift)
 
-            ## get swarm with largest span, set as max width of each barplot.
-            for i, bar in enumerate(bar_raw.patches):
-                x_width=bar.get_x()
-                width=bar.get_width()
-                centre=x_width + (width/2.)
-                if i == 0:
-                    bar.set_x(centre-maxSwarmSpan/2.)
-                else:
-                    bar.set_x(centre-xAfterShift-maxSwarmSpan/2.)
-                bar.set_width(maxSwarmSpan)
+            if summaryBar is True:
+                ## get swarm with largest span, set as max width of each barplot.
+                for i, bar in enumerate(bar_raw.patches):
+                    x_width=bar.get_x()
+                    width=bar.get_width()
+                    centre=x_width + (width/2.)
+                    if i == 0:
+                        bar.set_x(centre-maxSwarmSpan/2.)
+                    else:
+                        bar.set_x(centre-xAfterShift-maxSwarmSpan/2.)
+                    bar.set_width(maxSwarmSpan)
 
             ## Set the ticks locations for ax_raw.
             ax_raw.xaxis.set_ticks((0, xposAfter))
