@@ -181,11 +181,9 @@ def contrastplot(
         if 'hue' in kwargs:
             colorCol=kwargs['hue']
             colGrps=data[colorCol].unique()
-            nColors=len(colGrps)
         else:
-            colorCol=x
-            colGrps=data[x].unique()
-            nColors=len([element for tupl in tuple_in for element in tupl])
+            colGrps=data[x].unique().tolist()
+        nColors=len(colGrps)
         plotPal=dict( zip( colGrps, sns.color_palette(n_colors=nColors) ) )
     else:
         plotPal=pal
@@ -201,7 +199,7 @@ def contrastplot(
     if swarmYlim is None:
         # get range of _selected groups_.
         u = list()
-        for t in idx:
+        for t in tuple_in:
             for i in np.unique(t):
                 u.append(i)
         u = np.unique(u)
@@ -215,7 +213,7 @@ def contrastplot(
 
     barWidth=barWidth/1000 # Not sure why have to reduce the barwidth by this much! 
     if showRawData is True:
-        maxSwarmSpan=0.25
+        maxSwarmSpan=0.2
     else:
         maxSwarmSpan=barWidth
 
