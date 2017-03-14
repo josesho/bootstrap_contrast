@@ -42,8 +42,6 @@ def contrastplot(
     alpha=0.75, 
     axis_title_size=None,
 
-    barWidth=5,
-
     contrastShareY=True,
     contrastEffectSizeLineStyle='solid',
     contrastEffectSizeLineColor='black',
@@ -196,6 +194,9 @@ def contrastplot(
     if floatContrast:
         summaryLine=False
 
+    # Calculate summaries.
+    counts=data.groupby(x)[y].count()
+
     if swarmYlim is None:
         # get range of _selected groups_.
         u = list()
@@ -208,19 +209,14 @@ def contrastplot(
     else:
         swarm_ylim=np.array([swarmYlim[0],swarmYlim[1]])
 
+
     if contrastYlim is not None:
         contrastYlim=np.array([contrastYlim[0],contrastYlim[1]])
-
-    barWidth=barWidth/1000 # Not sure why have to reduce the barwidth by this much! 
-    if showRawData is True:
-        maxSwarmSpan=0.2
-    else:
-        maxSwarmSpan=barWidth
 
     # Expand the ylim in both directions.
     ## Find half of the range of swarm_ylim.
     swarmrange=swarm_ylim[1] -swarm_ylim[0]
-    pad=0.1*swarmrange
+    pad=0.05*swarmrange
     x2=np.array([swarm_ylim[0]-pad, swarm_ylim[1]+pad])
     swarm_ylim=x2
 
@@ -272,12 +268,10 @@ def contrastplot(
         plotdat.sort_values(by=[x])
         # Drop all nans. 
         plotdat=plotdat.dropna()
-
-        # Calculate summaries.
-        summaries=plotdat.groupby([x],sort=True)[y].apply(statfunction)
+        summaries=plotdat.groupby(x)[y].apply(statfunction)
 
         if floatContrast is True:
-            # Use fig.add_subplot instead of plt.Subplot
+            # Use fig.add_subplot instead of plt.Subplot.
             ax_raw=fig.add_subplot(gsMain[gsIdx],
                 frame_on=False)
             ax_contrast=ax_raw.twinx()
@@ -324,6 +318,15 @@ def contrastplot(
                 size=rawMarkerSize,
                 marker=rawMarkerType,
                 **kwargs)
+            if floatContrast:
+                # Get horizontal offset values.
+                maxXBefore=max(sw.collections[0].get_offsets().T[0])
+                minXAfter=min(sw.collections[1].get_offsets().T[0])
+                xposAfter=maxXBefore+floatSwarmSpacer
+                xAfterShift=minXAfter-xposAfter
+                # shift the swarmplots
+                offsetSwarmX(sw.collections[1], -xAfterShift)
+                ax_raw.set_xticks([0.,1-xAfterShift]) # make sure xticklocs match the swarmplot.
 
         if summaryBar is True:
             bar_raw=sns.barplot(
@@ -332,36 +335,27 @@ def contrastplot(
                 facecolor=summaryBarColor,
                 ax=ax_raw,
                 alpha=summaryBarAlpha)
-        
-        if floatContrast:
-            # Get horizontal offset values.
-            maxXBefore=max(sw.collections[0].get_offsets().T[0])
-            minXAfter=min(sw.collections[1].get_offsets().T[0])
-            xposAfter=maxXBefore+floatSwarmSpacer
-            xAfterShift=minXAfter-xposAfter
-            # shift the swarmplots
-            offsetSwarmX(sw.collections[1], -xAfterShift)
-
-            if summaryBar is True:
-                ## get swarm with largest span, set as max width of each barplot.
+            if floatContrast:
+                maxSwarmSpan=2/10.
+                xlocs=list()
                 for i, bar in enumerate(bar_raw.patches):
                     x_width=bar.get_x()
                     width=bar.get_width()
                     centre=x_width + (width/2.)
                     if i == 0:
                         bar.set_x(centre-maxSwarmSpan/2.)
+                        xlocs.append(centre)
                     else:
                         bar.set_x(centre-xAfterShift-maxSwarmSpan/2.)
+                        xlocs.append(centre-xAfterShift)
                     bar.set_width(maxSwarmSpan)
-
-            ## Set the ticks locations for ax_raw.
-            ax_raw.xaxis.set_ticks((0, xposAfter))
-            firstTick=ax_raw.xaxis.get_ticklabels()[0].get_text()
-            secondTick=ax_raw.xaxis.get_ticklabels()[1].get_text()
-            ax_raw.set_xticklabels([firstTick,#+' n='+count[firstTick],
-                                     secondTick],#+' n='+count[secondTick]],
-                                   rotation=tickAngle,
-                                   horizontalalignment=tickAlignment)
+                ax_raw.set_xticks(xlocs) # make sure xticklocs match the barplot.
+            else:
+                maxSwarmSpan=4/10.
+                xpos=ax_raw.xaxis.get_majorticklocs()
+                for i, bar in enumerate(bar_raw.patches):
+                    bar.set_x(xpos[i]-maxSwarmSpan/2.)
+                    bar.set_width(maxSwarmSpan)
 
         if summaryLine is True:
             for i, m in enumerate(summaries):
@@ -431,7 +425,6 @@ def contrastplot(
 
                 ax_contrast.set_ylim(rightmin, rightmax)
 
-                    
                 if gsIdx>0:
                     ax_contrast.set_ylabel('')
 
@@ -465,20 +458,35 @@ def contrastplot(
             ax_raw.set_ylabel('')
             ax_contrast.set_ylabel('')
 
+
     # Turn contrastList into a pandas DataFrame,
     contrastList=pd.DataFrame(contrastList).T
     contrastList.columns=contrastListNames
-    
-    ########
+
     axesCount=len(fig.get_axes())
+    ########
+    # Set ticks.
+    ## Set new tick labels.
+    for i in range(0, axesCount, 2):
+        # The tick labels belong to the SWARM axes
+        # for both floating and non-floating plots.
+        # This is because `sharex` was invoked.
+        axx=fig.axes[i]
+        newticklabs=list()
+        for xticklab in axx.xaxis.get_ticklabels():
+            t=xticklab.get_text()
+            if showGroupCount:
+                newticklabs.append(t+' n='+str(counts.ix[t]))
+            else:
+                newticklabs.append(t)
+            axx.set_xticklabels(
+                newticklabs,
+                rotation=tickAngle,
+                horizontalalignment=tickAlignment)
 
     ## Loop thru SWARM axes for aesthetic touchups.
     for i in range(0, axesCount, 2):
         axx=fig.axes[i]
-
-        if i!=axesCount-2 and 'hue' in kwargs:
-            # If this is not the final swarmplot, remove the hue legend.
-            axx.legend().set_visible(False)
 
         if floatContrast is False:
             axx.xaxis.set_visible(False)
@@ -486,9 +494,16 @@ def contrastplot(
         else:
             sns.despine(ax=axx, trim=True, bottom=True, left=True)
 
+        if i==0:
+            drawback_y(axx)
+
+        if i!=axesCount-2 and 'hue' in kwargs:
+            # If this is not the final swarmplot, remove the hue legend.
+            axx.legend().set_visible(False)
+
         if showAllYAxes is False:
             if i in range(2, axesCount):
-                axx.yaxis.set_visible(showAllYAxes)
+                axx.yaxis.set_visible(False)
             else:
                 # Draw back the lines for the relevant y-axes.
                 # Not entirely sure why I have to do this.
@@ -503,17 +518,7 @@ def contrastplot(
                 color='black', linewidth=0.75
                 )
             )
-
-        # I don't know why the swarm axes controls the contrast axes ticks....
-        if showGroupCount:
-            count=data.groupby(x).count()[y]
-            newticks=list()
-            for ix, t in enumerate(axx.xaxis.get_ticklabels()):
-                t_text=t.get_text()
-                nt=t_text+' n='+str(count[t_text])
-                newticks.append(nt)
-            axx.xaxis.set_ticklabels(newticks)
-
+        
         if legend is False:
             axx.legend().set_visible(False)
         else:
@@ -539,9 +544,6 @@ def contrastplot(
                 color=contrastZeroLineColor)
             # reset view interval.
             axx.set_xlim(xleft, xright)
-            # # Draw back x-axis lines connecting ticks.
-            # drawback_x(axx)
-
             if showAllYAxes is False:
                 if i in range(2, axesCount):
                     axx.yaxis.set_visible(False)
@@ -554,6 +556,10 @@ def contrastplot(
                 top=True, right=True, 
                 left=False, bottom=False, 
                 trim=True)
+
+            if j==0 and axesCount==2:
+                # Draw back x-axis lines connecting ticks.
+                drawback_x(axx)
 
             # Rotate tick labels.
             rotateTicks(axx,tickAngle,tickAlignment)
@@ -682,7 +688,9 @@ def pairedcontrast(data, x, y, idcol, reps = 3000,
     legendLoc = 2, legendFontSize = 12, legendMarkerScale = 1,
     axis_title_size = None,
     yticksize = None,
-    xticksize = None, 
+    xticksize = None,
+    tickAngle=45,
+    tickAlignment='right',
     **kwargs):
 
     # Preliminaries.

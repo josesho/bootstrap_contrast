@@ -138,27 +138,28 @@ def resetSwarmX(c, newxpos):
     c.set_offsets(newxy)
 
 def dictToDf(df, name):
-	# convenience function to convert orderedDict object to pandas DataFrame.
-	# args: df is an orderedDict, name is a string.
-	l = list()
-	l.append(df)
-	l_df = pd.DataFrame(l).T
-	l_df.columns = [name]
-	return l_df
+    '''convenience function to convert orderedDict object to pandas DataFrame.
+    args: df is an orderedDict, name is a string.'''
+    l = list()
+    l.append(df)
+    l_df = pd.DataFrame(l).T
+    l_df.columns = [name]
+    return l_df
 
 def getSwarmSpan(swarmplot, groupnum):
+    '''Returns the x-span of `swarmplot.collections[groupnum]`'''
     return swarmplot.collections[groupnum].get_offsets().T[0].ptp(axis = 0)
 
 def drawback_y(ax,color='black',linewidth=1):
-    # Draw back the lines for the relevant y-axes.
-    x, _ = ax.xaxis.get_view_interval()
-    ymin = ax.yaxis.get_majorticklocs()[0]
-    ymax = ax.yaxis.get_majorticklocs()[-1]
-    ax.add_artist(Line2D((x, x), (ymin, ymax), color=color, linewidth=linewidth))
+    '''Draw back the spine for the relevant y-axes.'''
+    x, _=ax.xaxis.get_view_interval()
+    yticks=ax.yaxis.get_majorticklocs()
+    ax.yaxis.set_view_interval(yticks[0],yticks[-1])
+    ax.add_artist(Line2D((x, x), (yticks[0], yticks[-1]), color=color, linewidth=linewidth))
 
 def drawback_x(ax,color='black',linewidth=1.5):
-    # Draw back the lines for the relevant x-axes.
-    y, _ = ax.yaxis.get_view_interval()
-    xmin = ax.xaxis.get_majorticklocs()[0]
-    xmax = ax.xaxis.get_majorticklocs()[-1]
-    ax.add_artist(Line2D((xmin, xmax), (y, y), color=color, linewidth=linewidth))
+    '''Draw back the spine for the relevant x-axes.'''
+    y, _=ax.yaxis.get_view_interval()
+    xticks=ax.xaxis.get_majorticklocs()
+    ax.xaxis.set_view_interval(xticks[0],xticks[-1])
+    ax.add_artist(Line2D((xticks[0], xticks[-1]), (y, y), color=color, linewidth=linewidth))
