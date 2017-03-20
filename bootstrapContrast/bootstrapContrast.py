@@ -37,8 +37,8 @@ class InstabilityWarning(UserWarning):
 
     
 def contrastplot(
-        data, x, y, idx=None, 
-    
+    data, x=None, y=None, idx=None, idcol=None,
+
     alpha=0.75, 
     axis_title_size=None,
 
@@ -57,14 +57,14 @@ def contrastplot(
 
     heightRatio=(1, 1),
 
-    idcol=None,
-
     lineWidth=2,
     legend=True,
     legendFontSize=14,
     legendFontProps={},
 
     paired=False,
+    pairedDeltaLineAlpha=0.3,
+    pairedDeltaLineWidth=1.2,
     pal=None, 
 
     rawMarkerSize=8,
@@ -115,76 +115,120 @@ def contrastplot(
         raise TypeError("The object passed to the command is not not a pandas DataFrame.\
          Please convert it to a pandas DataFrame.")
 
-    # Get and set levels of data[x]    
-    if idx is None:
-        widthratio=[1]
-        allgrps=np.sort(data[x].unique())
-        if paired:
-            # If `idx` is not specified, just take the FIRST TWO levels alphabetically.
-            tuple_in=tuple(allgrps[0:2],)
-        else:
-            # No idx is given, so all groups are compared to the first one in the DataFrame column.
-            tuple_in=(tuple(allgrps), )
-            if len(allgrps)>2:
-                floatContrast=False
+    # make sure that at least x, y, and idx are specified.
+    if x is None and y is None and idx is None:
+        raise ValueError('You need to specify `x` and `y`, or `idx`. Neither has been specifed.')
+    # check if x is specified.
+    # If not, assume this is a 'wide' dataset with each row corresponding to one 'individual'.
+    # this is mainly to facilitate paired plot production.
 
+    if x is None:
+        # if x is not specified, assume this is a 'wide' dataset.
+        datatype='wide'
+        # so ignore y.
+        y=None
     else:
-        if all(isinstance(element, str) for element in idx):
-            # if idx is supplied but not a multiplot (ie single list or tuple) 
-            tuple_in=(idx, )
+        # if x is specified, assume this is a 'long' dataset with each row corresponding to one datapoint.
+        datatype='long'
+        # make sure y is not none.
+        if y is None:
+            raise ValueError("`paired` is false, but no y-column given.")
+        # Calculate Ns.
+        counts=data.groupby(x)[y].count()
+
+    # Get and set levels of data[x]
+    if paired is True:
+        violinWidth=0.1
+        # Calculate Ns--which should be simply the number of rows in data.
+        counts=len(data)
+        # is idcol supplied?
+        if idcol is None and datatype=='long':
+            raise ValueError('`idcol` has not been supplied but a paired plot is desired; please specify the `idcol`.')
+        if idx is not None:
+            # check if multi-plot or not
+            if all(isinstance(element, str) for element in idx):
+                # check that every idx is a column name.
+                idx_not_in_cols=[n
+                for n in idx
+                if n not in data.columns]
+                if len(idx_not_in_cols)!=0:
+                    raise ValueError(str(idx_not_in_cols)+" cannot be found in the columns of `data`.")
+                data_wide_cols=[n for n in idx if n in data.columns]
+                # if idx is supplied but not a multiplot (ie single list or tuple)
+                if len(idx) != 2:
+                    raise ValueError(idx+" does not have length 2.")
+                else:
+                    tuple_in=(tuple(idx, ),)
+                widthratio=[1]
+            elif all(isinstance(element, tuple) for element in idx):
+                # if idx is supplied, and it is a list/tuple of tuples or lists, we have a multiplot!
+                idx_not_in_cols=[n
+                for tup in idx
+                for n in tup
+                if n not in data.columns]
+                if len(idx_not_in_cols)!=0:
+                    raise ValueError(str(idx_not_in_cols)+" cannot be found in the column "+x)
+                data_wide_cols=[n for tup in idx for n in tup if n in data.columns]
+                if ( any(len(element) != 2 for element in idx) ):
+                    # If any of the tuples does not contain exactly 2 elements.
+                    raise ValueError(element+" does not have length 2.")
+                # Make sure the widthratio of the seperate multiplot corresponds to how 
+                # many groups there are in each one.
+                tuple_in=idx
+                widthratio=[]
+                for i in tuple_in:
+                    widthratio.append(len(i))
+        elif idx is None:
+            raise ValueError('Please specify idx.')
+        showRawData=False # Just show lines, do not show data.
+        show95CI=False # wait till I figure out how to plot this for sns.barplot.
+        if datatype=='long':
+            if idx is None:
+                ## If `idx` is not specified, just take the FIRST TWO levels alphabetically.
+                tuple_in=tuple(np.sort(np.unique(data[x]))[0:2],)
+            # pivot the dataframe if it is long!
+            data_pivot=data.pivot_table(index = idcol, columns = x, values = y)
+
+    elif paired is False:
+        if idx is None:
             widthratio=[1]
-            if len(idx)>2:
+            tuple_in=( tuple(data[x].unique()) ,)
+            if len(tuple_in[0])>2:
                 floatContrast=False
-        elif all(isinstance(element, tuple) for element in idx):
-            # if idx is supplied, and it is a list/tuple of tuples or lists, we have a multiplot!
-            tuple_in=idx
-            if ( any(len(element)>2 for element in tuple_in) ):
-                # if any of the tuples in idx has more than 2 groups, we turn set floatContrast as False.
-                floatContrast=False
-            # Make sure the widthratio of the seperate multiplot corresponds to how 
-            # many groups there are in each one.
-            widthratio=[]
-            for i in tuple_in:
-                widthratio.append(len(i))
         else:
-            raise TypeError("The object passed to `idx` consists of a mixture of single strings and tuples. \
-                Please make sure that `idx` is either a tuple of column names, or a tuple of tuples for plotting.")
+            if all(isinstance(element, str) for element in idx):
+                # if idx is supplied but not a multiplot (ie single list or tuple)
+                # check all every idx specified can be found in data[x]
+                idx_not_in_x=[n for n in idx 
+                if n not in data[x].unique()]
+                if len(idx_not_in_x)!=0:
+                    raise ValueError(str(idx_not_in_x)+" cannot be found in the column "+x)
 
-    # initialise statfunction
-    if statfunction == None:
-        statfunction=np.mean
+                tuple_in=(idx, )
+                widthratio=[1]
+                if len(idx)>2:
+                    floatContrast=False
+            elif all(isinstance(element, tuple) for element in idx):
+                # if idx is supplied, and it is a list/tuple of tuples or lists, we have a multiplot!
+                idx_not_in_x=[n
+                for tup in idx
+                for n in tup
+                if n not in data[x].unique()]
+                if len(idx_not_in_x)!=0:
+                    raise ValueError(str(idx_not_in_x)+" cannot be found in the column "+x)
+                tuple_in=idx
 
-    # Create list to collect all the contrast DataFrames generated.
-    contrastList=list()
-    contrastListNames=list()
-    # # Calculate the bootstraps according to idx.
-    # for ix, current_tuple in enumerate(tuple_in):
-    #     bscontrast=list()
-    #     for i in range (1, len(current_tuple)):
-    #     # Note that you start from one. No need to do auto-contrast!
-    #         tempbs=bootstrap_contrast(
-    #             data=data,
-    #             x=x,
-    #             y=y,
-    #             idx=[current_tuple[0], current_tuple[i]],
-    #             statfunction=statfunction,
-    #             smoothboot=smoothboot,
-    #             reps=reps)
-    #         bscontrast.append(tempbs)
-    #         contrastList.append(tempbs)
-    #         contrastListNames.append(current_tuple[i]+' vs. '+current_tuple[0])
-
-    # Setting color palette for plotting.
-    if pal is None:
-        if 'hue' in kwargs:
-            colorCol=kwargs['hue']
-            colGrps=data[colorCol].unique()
-        else:
-            colGrps=data[x].unique().tolist()
-        nColors=len(colGrps)
-        plotPal=dict( zip( colGrps, sns.color_palette(n_colors=nColors) ) )
-    else:
-        plotPal=pal
+                if ( any(len(element)>2 for element in tuple_in) ):
+                    # if any of the tuples in idx has more than 2 groups, we turn set floatContrast as False.
+                    floatContrast=False
+                # Make sure the widthratio of the seperate multiplot corresponds to how 
+                # many groups there are in each one.
+                widthratio=[]
+                for i in tuple_in:
+                    widthratio.append(len(i))
+            else:
+                raise TypeError("The object passed to `idx` consists of a mixture of single strings and tuples. \
+                    Please make sure that `idx` is either a tuple of column names, or a tuple of tuples, for plotting.")
 
     # Ensure summaryLine and summaryBar are not displayed together.
     if summaryLine is True and summaryBar is True:
@@ -193,9 +237,32 @@ def contrastplot(
     # Turn off summary line if floatContrast is true
     if floatContrast:
         summaryLine=False
+    # initialise statfunction
+    if statfunction == None:
+        statfunction=np.mean
+    # Create list to collect all the contrast DataFrames generated.
+    contrastList=list()
+    contrastListNames=list()
 
-    # Calculate summaries.
-    counts=data.groupby(x)[y].count()
+    # Setting color palette for plotting.
+    if pal is None:
+        if 'hue' in kwargs:
+            colorCol=kwargs['hue']
+            if colorCol not in data.columns:
+                raise ValueError(colorCol+' is not a column name.')
+            colGrps=data[colorCol].unique().tolist()
+            plotPal=dict( zip( colGrps, sns.color_palette(n_colors=len(colGrps)) ) )
+        else:
+            if datatype=='long':
+                colGrps=data[x].unique().tolist()
+                plotPal=dict( zip( colGrps, sns.color_palette(n_colors=len(colGrps)) ) )
+            if datatype=='wide':
+                plotPal=np.repeat('k',len(data))
+    else:
+        if datatype=='long':
+            plotPal=pal
+        if datatype=='wide':
+            plotPal=list(map(lambda x:pal[x], data[hue]))
 
     if swarmYlim is None:
         # get range of _selected groups_.
@@ -204,29 +271,29 @@ def contrastplot(
             for i in np.unique(t):
                 u.append(i)
         u = np.unique(u)
-        tempdat=data[data[x].isin(u)]
-        swarm_ylim=np.array([np.min(tempdat[y]), np.max(tempdat[y])])
+        if datatype=='long':
+            tempdat=data[data[x].isin(u)]
+            swarm_ylim=np.array([np.min(tempdat[y]), np.max(tempdat[y])])
+        if datatype=='wide':
+            allMin=list()
+            allMax=list()
+            for col in u:
+                allMin.append(np.min(data[col]))
+                allMax.append(np.max(data[col]))
+            swarm_ylim=np.array( [np.min(allMin),np.max(allMax)] )
     else:
         swarm_ylim=np.array([swarmYlim[0],swarmYlim[1]])
-
 
     if contrastYlim is not None:
         contrastYlim=np.array([contrastYlim[0],contrastYlim[1]])
 
-    # Expand the ylim in both directions.
-    ## Find half of the range of swarm_ylim.
-    swarmrange=swarm_ylim[1] -swarm_ylim[0]
-    pad=0.05*swarmrange
-    x2=np.array([swarm_ylim[0]-pad, swarm_ylim[1]+pad])
-    swarm_ylim=x2
-
     # plot params
     if axis_title_size is None:
-        axis_title_size=25
+        axis_title_size=27
     if yticksize is None:
-        yticksize=18
+        yticksize=22
     if xticksize is None:
-        xticksize=18
+        xticksize=22
 
     # Set clean style
     sns.set(style='ticks')
@@ -259,16 +326,22 @@ def contrastplot(
 
     for gsIdx, current_tuple in enumerate(tuple_in):
         #### FOR EACH TUPLE IN IDX
-        plotdat=data[data[x].isin(current_tuple)]
-        plotdat[x]=plotdat[x].astype("category")
-        plotdat[x].cat.set_categories(
-            current_tuple,
-            ordered=True,
-            inplace=True)
-        plotdat.sort_values(by=[x])
-        # Drop all nans. 
-        plotdat=plotdat.dropna()
-        summaries=plotdat.groupby(x)[y].apply(statfunction)
+        if datatype=='long':
+            plotdat=data[data[x].isin(current_tuple)]
+            plotdat[x]=plotdat[x].astype("category")
+            plotdat[x].cat.set_categories(
+                current_tuple,
+                ordered=True,
+                inplace=True)
+            plotdat.sort_values(by=[x])
+            # Drop all nans. 
+            plotdat.dropna(inplace=True)
+            summaries=plotdat.groupby(x)[y].apply(statfunction)
+        if datatype=='wide':
+            plotdat=data[list(current_tuple)]
+            # Drop nans.
+            plotdat.dropna(inplace=True)
+            summaries=statfunction(plotdat)
 
         if floatContrast is True:
             # Use fig.add_subplot instead of plt.Subplot.
@@ -291,19 +364,20 @@ def contrastplot(
         # Calculate the boostrapped contrast
         bscontrast=list()
         for i in range (1, len(current_tuple)):
-        # Note that you start from one. No need to do auto-contrast!
-            tempbs=bootstrap_contrast(
-                data=data,
-                x=x,
-                y=y,
-                idx=[current_tuple[0], current_tuple[i]],
-                statfunction=statfunction,
-                smoothboot=smoothboot,
-                reps=reps)
-            bscontrast.append(tempbs)
-            contrastList.append(tempbs)
-            contrastListNames.append(current_tuple[i]+' vs. '+current_tuple[0])
-        
+            # Note that you start from one. No need to do auto-contrast!
+            if datatype=='long':
+                tempbs=bootstrap_contrast(
+                    data=plotdat,
+                    x=x,
+                    y=y,
+                    idx=[current_tuple[0], current_tuple[i]],
+                    statfunction=statfunction,
+                    smoothboot=smoothboot,
+                    reps=reps)
+                bscontrast.append(tempbs)
+                contrastList.append(tempbs)
+                contrastListNames.append(current_tuple[i]+' vs. '+current_tuple[0])
+
         #### PLOT RAW DATA.
         if showRawData is True:
             # Seaborn swarmplot doc says to set custom ylims first.
@@ -327,41 +401,76 @@ def contrastplot(
                 # shift the swarmplots
                 offsetSwarmX(sw.collections[1], -xAfterShift)
                 ax_raw.set_xticks([0.,1-xAfterShift]) # make sure xticklocs match the swarmplot.
+        elif paired is True:
+            # Produce paired plot.
+            ax_raw.set_ylim(swarm_ylim)
+            # to get color, need to loop thru each line and plot individually.
+            for ii in range(0,len(plotdat)):
+                ax_raw.plot( [0,0.25], [ plotdat.ix[ii,current_tuple[0]],
+                                        plotdat.ix[ii,current_tuple[1]] ],
+                            linestyle='solid',
+                            linewidth=pairedDeltaLineWidth,
+                            color=plotPal[ii],
+                            alpha=pairedDeltaLineAlpha,
+                           )
+                ax_raw.set_xlim(-0.25,0.5)
+                ax_raw.set_xticks([0,0.25])
+                ax_raw.set_xticklabels([current_tuple[0],current_tuple[1]])
 
         if summaryBar is True:
-            bar_raw=sns.barplot(
-                x=summaries.index.tolist(),
-                y=summaries.values,
-                facecolor=summaryBarColor,
-                ax=ax_raw,
-                alpha=summaryBarAlpha)
-            if floatContrast:
-                maxSwarmSpan=2/10.
-                xlocs=list()
-                for i, bar in enumerate(bar_raw.patches):
-                    x_width=bar.get_x()
-                    width=bar.get_width()
-                    centre=x_width + (width/2.)
-                    if i == 0:
-                        bar.set_x(centre-maxSwarmSpan/2.)
-                        xlocs.append(centre)
-                    else:
-                        bar.set_x(centre-xAfterShift-maxSwarmSpan/2.)
-                        xlocs.append(centre-xAfterShift)
-                    bar.set_width(maxSwarmSpan)
-                ax_raw.set_xticks(xlocs) # make sure xticklocs match the barplot.
+            if paired is False:
+                bar_raw=sns.barplot(
+                    x=summaries.index.tolist(),
+                    y=summaries.values,
+                    facecolor=summaryBarColor,
+                    ax=ax_raw,
+                    alpha=summaryBarAlpha)
+                if floatContrast is True:
+                    maxSwarmSpan=2/10.
+                    xlocs=list()
+                    for i, bar in enumerate(bar_raw.patches):
+                        x_width=bar.get_x()
+                        width=bar.get_width()
+                        centre=x_width + (width/2.)
+                        if i == 0:
+                            bar.set_x(centre-maxSwarmSpan/2.)
+                            xlocs.append(centre)
+                        else:
+                            bar.set_x(centre-xAfterShift-maxSwarmSpan/2.)
+                            xlocs.append(centre-xAfterShift)
+                        bar.set_width(maxSwarmSpan)
+                    ax_raw.set_xticks(xlocs) # make sure xticklocs match the barplot.
+                elif floatContrast is False:
+                    maxSwarmSpan=4/10.
+                    xpos=ax_raw.xaxis.get_majorticklocs()
+                    for i, bar in enumerate(bar_raw.patches):
+                        bar.set_x(xpos[i]-maxSwarmSpan/2.)
+                        bar.set_width(maxSwarmSpan)
             else:
-                maxSwarmSpan=4/10.
-                xpos=ax_raw.xaxis.get_majorticklocs()
-                for i, bar in enumerate(bar_raw.patches):
-                    bar.set_x(xpos[i]-maxSwarmSpan/2.)
-                    bar.set_width(maxSwarmSpan)
+                # if paired is true
+                ax_raw.bar([0,0.25], 
+                    [ statfunction(plotdat[current_tuple[0]]),
+                    statfunction(plotdat[current_tuple[1]]) ],
+                    color='g',
+                    alpha=0.5,
+                    width=0.05)
+                ## Draw zero reference line.
+                ax_raw.add_artist(Line2D(
+                    (ax_raw.xaxis.get_view_interval()[0],
+                     ax_raw.xaxis.get_view_interval()[1]),
+                    (0,0),
+                    color='k', linewidth=1.25)
+                                 )
 
         if summaryLine is True:
+            if paired is True:
+                xdelta=0
+            else:
+                xdelta=summaryLineWidth
             for i, m in enumerate(summaries):
                 ax_raw.plot(
-                    (i -summaryLineWidth, 
-                    i + summaryLineWidth), # x-coordinates
+                    (i-xdelta, 
+                    i+xdelta), # x-coordinates
                     (m, m),
                     color=summaryColour, 
                     linestyle=summaryLineStyle)
@@ -379,66 +488,123 @@ def contrastplot(
 
         #### PLOT CONTRAST DATA.
         if len(current_tuple)==2:
-            # Plot the CIs on the contrast axes.
-            plotbootstrap(sw.collections[1],
-                          bslist=tempbs,
-                          ax=ax_contrast, 
-                          violinWidth=violinWidth,
-                          violinOffset=violinOffset,
-                          markersize=summaryMarkerSize,
-                          marker=summaryMarkerType,
-                          offset=floatContrast,
-                          color=violinColor,
-                          linewidth=1)
+            if paired is False:
+                # Plot the CIs on the contrast axes.
+                plotbootstrap(sw.collections[1],
+                              bslist=tempbs,
+                              ax=ax_contrast, 
+                              violinWidth=violinWidth,
+                              violinOffset=violinOffset,
+                              markersize=summaryMarkerSize,
+                              marker=summaryMarkerType,
+                              offset=floatContrast,
+                              color=violinColor,
+                              linewidth=1)
+            else:
+                bootsDelta = bootstrap(
+                    plotdat[current_tuple[1]]-plotdat[current_tuple[0]],
+                    statfunction=statfunction,
+                    smoothboot=smoothboot,
+                    reps=reps)
+                contrastList.append(bootsDelta)
+                contrastListNames.append(current_tuple[1]+' vs. '+current_tuple[0])
+                summDelta = bootsDelta['summary']
+                lowDelta = bootsDelta['bca_ci_low']
+                highDelta = bootsDelta['bca_ci_high']
+
+                if floatContrast:
+                    xpos=0.375
+                else:
+                    xpos=0.25
+
+                # Plot the summary measure.
+                ax_contrast.plot(xpos, bootsDelta['summary'],
+                         marker=summaryMarkerType,
+                         markerfacecolor='k',
+                         markersize=summaryMarkerSize,
+                         alpha=0.75
+                        )
+
+                # Plot the CI.
+                ax_contrast.plot([xpos, xpos],
+                         [lowDelta, highDelta],
+                         color='k',
+                         alpha=0.75,
+                         linestyle='solid'
+                        )
+                
+                # ax_contrast.set_xlim(-0.25, 0.5) # do we need this line?
+
+                # Plot the violin-plot.
+                v = ax_contrast.violinplot(bootsDelta['stat_array'], [xpos], 
+                                           widths = violinWidth, 
+                                           showextrema = False, 
+                                           showmeans = False)
+                halfviolin(v, half = 'right', color = 'k')
+
             if floatContrast:
                 # Set reference lines
-                ## First get leftmost limit of left reference group
-                xtemp, _=np.array(sw.collections[0].get_offsets()).T
-                leftxlim=xtemp.min()
-                ## Then get leftmost limit of right test group
-                xtemp, _=np.array(sw.collections[1].get_offsets()).T
-                rightxlim=xtemp.min()
+                if paired is False:
+                    ## First get leftmost limit of left reference group
+                    xtemp, _=np.array(sw.collections[0].get_offsets()).T
+                    leftxlim=xtemp.min()
+                    ## Then get leftmost limit of right test group
+                    xtemp, _=np.array(sw.collections[1].get_offsets()).T
+                    rightxlim=xtemp.min()
+                    ref=tempbs['summary']
+                else:
+                    leftxlim=0
+                    rightxlim=0.25
+                    ref=bootsDelta['summary']
+                    ax_contrast.set_xlim(-0.25, 0.5) # does this work?
 
                 ## zero line
                 ax_contrast.hlines(0,                   # y-coordinates
                                 leftxlim, 3.5,       # x-coordinates, start and end.
                                 linestyle=contrastZeroLineStyle,
-                                linewidth=0.75,
+                                linewidth=1,
                                 color=contrastZeroLineColor)
 
                 ## effect size line
-                ax_contrast.hlines(tempbs['summary'], 
+                ax_contrast.hlines(ref, 
                                 rightxlim, 3.5,        # x-coordinates, start and end.
                                 linestyle=contrastEffectSizeLineStyle,
-                                linewidth=0.75,
+                                linewidth=1,
                                 color=contrastEffectSizeLineColor)
 
-                
-                ## If the effect size is positive, shift the right axis up.
-                if float(tempbs['summary'])>0:
-                    rightmin=ax_raw.get_ylim()[0] -float(tempbs['summary'])
-                    rightmax=ax_raw.get_ylim()[1] -float(tempbs['summary'])
-                ## If the effect size is negative, shift the right axis down.
-                elif float(tempbs['summary'])<0:
-                    rightmin=ax_raw.get_ylim()[0] + float(tempbs['summary'])
-                    rightmax=ax_raw.get_ylim()[1] + float(tempbs['summary'])
 
+                if paired is False:
+                    es=float(tempbs['summary'])
+                    refSum=tempbs['statistic_ref']
+                else:
+                    es=float(bootsDelta['summary'])
+                    refSum=statfunction(plotdat[current_tuple[0]])
+                ## If the effect size is positive, shift the right axis up.
+                if es>0:
+                    rightmin=ax_raw.get_ylim()[0]-es
+                    rightmax=ax_raw.get_ylim()[1]-es
+                ## If the effect size is negative, shift the right axis down.
+                elif es<0:
+                    rightmin=ax_raw.get_ylim()[0]+es
+                    rightmax=ax_raw.get_ylim()[1]+es
                 ax_contrast.set_ylim(rightmin, rightmax)
 
                 if gsIdx>0:
                     ax_contrast.set_ylabel('')
-
-                align_yaxis(ax_raw, tempbs['statistic_ref'], ax_contrast, 0.)
+                align_yaxis(ax_raw, refSum, ax_contrast, 0.)
 
             else:
                 # Set bottom axes ybounds
                 if contrastYlim is not None:
                     ax_contrast.set_ylim(contrastYlim)
-                
-                # Set xlims so everything is properly visible!
-                swarm_xbounds=ax_raw.get_xbound()
-                ax_contrast.set_xbound(swarm_xbounds[0] -(summaryLineWidth * 1.1), 
-                    swarm_xbounds[1] + (summaryLineWidth * 1.1))
+
+                if paired is False:
+                    # Set xlims so everything is properly visible!
+                    swarm_xbounds=ax_raw.get_xbound()
+                    ax_contrast.set_xbound(swarm_xbounds[0] -(summaryLineWidth * 1.1), 
+                        swarm_xbounds[1] + (summaryLineWidth * 1.1))
+                else:
+                    ax_contrast.set_xlim(-0.05,0.25+violinWidth)
 
         else:
             # Plot the CIs on the bottom axes.
@@ -458,16 +624,14 @@ def contrastplot(
             ax_raw.set_ylabel('')
             ax_contrast.set_ylabel('')
 
-
     # Turn contrastList into a pandas DataFrame,
     contrastList=pd.DataFrame(contrastList).T
     contrastList.columns=contrastListNames
 
     axesCount=len(fig.get_axes())
     ########
-    # Set ticks.
-    ## Set new tick labels.
     for i in range(0, axesCount, 2):
+        # Set new tick labels.
         # The tick labels belong to the SWARM axes
         # for both floating and non-floating plots.
         # This is because `sharex` was invoked.
@@ -475,8 +639,13 @@ def contrastplot(
         newticklabs=list()
         for xticklab in axx.xaxis.get_ticklabels():
             t=xticklab.get_text()
+            if paired:
+                N=str(counts)
+            else:
+                N=str(counts.ix[t])
+
             if showGroupCount:
-                newticklabs.append(t+' n='+str(counts.ix[t]))
+                newticklabs.append(t+' n='+N)
             else:
                 newticklabs.append(t)
             axx.set_xticklabels(
@@ -487,6 +656,23 @@ def contrastplot(
     ## Loop thru SWARM axes for aesthetic touchups.
     for i in range(0, axesCount, 2):
         axx=fig.axes[i]
+
+        # Tweaking the y-axis to show all the data without losing ticks and range.
+        ## Get all yticks.
+        axxYTicks=axx.yaxis.get_majorticklocs()
+        axx.set_ylim(axxYTicks[0],axxYTicks[-1])
+        # Get tick interval.
+        YTickInterval=axxYTicks[1]-axxYTicks[0]
+        ## Set the ylim to encompass all yticks,
+        ## adding a quarter of the tick interval
+        ## as spacing at both ends.
+        axx.set_ylim(
+            axxYTicks[0]-(YTickInterval/4),
+            axxYTicks[-1]+(YTickInterval/4)
+            )
+        ## Ensure the original automatically-determined yticks
+        ## are _not_ redrawn when we changed the ylim.
+        axx.set_yticks(axxYTicks)
 
         if floatContrast is False:
             axx.xaxis.set_visible(False)
@@ -508,6 +694,8 @@ def contrastplot(
                 # Draw back the lines for the relevant y-axes.
                 # Not entirely sure why I have to do this.
                 drawback_y(axx)
+        else:
+            drawback_y(axx)
 
         # Add zero reference line for swarmplots with bars.
         if summaryBar is True:
@@ -547,27 +735,29 @@ def contrastplot(
             if showAllYAxes is False:
                 if i in range(2, axesCount):
                     axx.yaxis.set_visible(False)
-                else:
-                    # Draw back the lines for the relevant y-axes.
-                    # Not entirely sure why I have to do this.
-                    drawback_y(axx)
+                # else:
+                #     # Draw back the lines for the relevant y-axes.
+                #     # Not entirely sure why I have to do this.
+                #     drawback_y(axx)
 
             sns.despine(ax=axx, 
                 top=True, right=True, 
                 left=False, bottom=False, 
                 trim=True)
-
             if j==0 and axesCount==2:
                 # Draw back x-axis lines connecting ticks.
                 drawback_x(axx)
-
             # Rotate tick labels.
             rotateTicks(axx,tickAngle,tickAlignment)
 
-        else:
-            # Re-draw the floating axis to the correct limits.
-            lower=np.min(contrastList.ix['diffarray',j])
-            upper=np.max(contrastList.ix['diffarray',j])
+        elif floatContrast is True:
+            if paired is True:
+                # Get the bootstrapped contrast range.
+                lower=np.min(contrastList.ix['stat_array',j])
+                upper=np.max(contrastList.ix['stat_array',j])
+            else:
+                lower=np.min(contrastList.ix['diffarray',j])
+                upper=np.max(contrastList.ix['diffarray',j])
             meandiff=contrastList.ix['summary', j]
 
             ## Make sure we have zero in the limits.
@@ -630,24 +820,6 @@ def contrastplot(
             contrast_ylim = contrastYlim, 
             show_all_yaxes = showAllYAxes)
 
-    # if (axesCount==2 and 
-    #     floatContrast is False):
-    #     drawback_x(fig.get_axes()[1])
-    #     drawback_y(fig.get_axes()[1])
-
-    # if swarmShareY is False:
-    #     for i in range(0, axesCount, 2):
-    #         drawback_y(fig.get_axes()[i])
-                       
-    # if contrastShareY is False:
-    #     for i in range(1, axesCount, 2):
-    #         if floatContrast is True:
-    #             sns.despine(ax=fig.get_axes()[i], 
-    #                        top=True, right=False, left=True, bottom=True, 
-    #                        trim=True)
-    #         else:
-    #             sns.despine(ax=fig.get_axes()[i], trim=True)
-
     # Zero gaps between plots on the same row, if floatContrast is False
     if (floatContrast is False and showAllYAxes is False):
         gsMain.update(wspace=0.)
@@ -657,541 +829,6 @@ def contrastplot(
         gsMain.tight_layout(fig)
     
     # And we're all done.
-    rcdefaults() # restore matplotlib defaults.
-    sns.set() # restore seaborn defaults.
-    return fig, contrastList
-
-def pairedcontrast(data, x, y, idcol, reps = 3000,
-    statfunction = None, idx = None, figsize = None,
-    beforeAfterSpacer = 0.01, 
-    violinWidth = 0.005, 
-    floatOffset = 0.05, 
-    showRawData = False,
-    showAllYAxes = False,
-    floatContrast = True,
-    smoothboot = False,
-    floatViolinOffset = None, 
-    showConnections = True,
-    summaryBar = False,
-    contrastYlim = None,
-    swarmYlim = None,
-    barWidth = 0.005,
-    rawMarkerSize = 8,
-    rawMarkerType = 'o',
-    summaryMarkerSize = 10,
-    summaryMarkerType = 'o',
-    summaryBarColor = 'grey',
-    meansSummaryLineStyle = 'solid', 
-    contrastZeroLineStyle = 'solid', contrastEffectSizeLineStyle = 'solid',
-    contrastZeroLineColor = 'black', contrastEffectSizeLineColor = 'black',
-    pal = None,
-    legendLoc = 2, legendFontSize = 12, legendMarkerScale = 1,
-    axis_title_size = None,
-    yticksize = None,
-    xticksize = None,
-    tickAngle=45,
-    tickAlignment='right',
-    **kwargs):
-
-    # Preliminaries.
-    data = data.dropna()
-
-    # plot params
-    if axis_title_size is None:
-        axis_title_size = 15
-    if yticksize is None:
-        yticksize = 12
-    if xticksize is None:
-        xticksize = 12
-
-    axisTitleParams = {'labelsize' : axis_title_size}
-    xtickParams = {'labelsize' : xticksize}
-    ytickParams = {'labelsize' : yticksize}
-
-    rc('axes', **axisTitleParams)
-    rc('xtick', **xtickParams)
-    rc('ytick', **ytickParams)
-
-    ## If `idx` is not specified, just take the FIRST TWO levels alphabetically.
-    if idx is None:
-        idx = tuple(np.unique(data[x])[0:2],)
-    else:
-        # check if multi-plot or not
-        if all(isinstance(element, str) for element in idx):
-            # if idx is supplied but not a multiplot (ie single list or tuple)
-            if len(idx) != 2:
-                print(idx, "does not have length 2.")
-                sys.exit(0)
-            else:
-                idx = (tuple(idx, ),)
-        elif all(isinstance(element, tuple) for element in idx):
-            # if idx is supplied, and it is a list/tuple of tuples or lists, we have a multiplot!
-            if ( any(len(element) != 2 for element in idx) ):
-                # If any of the tuples contain more than 2 elements.
-                print(element, "does not have length 2.")
-                sys.exit(0)
-    if floatViolinOffset is None:
-        floatViolinOffset = beforeAfterSpacer/2
-    if contrastYlim is not None:
-        contrastYlim = np.array([contrastYlim[0],contrastYlim[1]])
-    if swarmYlim is not None:
-        swarmYlim = np.array([swarmYlim[0],swarmYlim[1]])
-
-    ## Here we define the palette on all the levels of the 'x' column.
-    ## Thus, if the same pandas dataframe is re-used across different plots,
-    ## the color identity of each group will be maintained.
-    ## Set palette based on total number of categories in data['x'] or data['hue_column']
-    if 'hue' in kwargs:
-        u = kwargs['hue']
-    else:
-        u = x
-    if ('color' not in kwargs and 'hue' not in kwargs):
-        kwargs['color'] = 'k'
-
-    if pal is None:
-        pal = dict( zip( data[u].unique(), sns.color_palette(n_colors = len(data[u].unique())) ) 
-                      )
-    else:
-        pal = pal
-
-    # Initialise figure.
-    if figsize is None:
-        if len(idx) > 2:
-            figsize = (12,(12/np.sqrt(2)))
-        else:
-            figsize = (6,6)
-    fig = plt.figure(figsize = figsize)
-
-    # Initialise GridSpec based on `levs_tuple` shape.
-    gsMain = gridspec.GridSpec( 1, np.shape(idx)[0]) # 1 row; columns based on number of tuples in tuple.
-    # Set default statfunction
-    if statfunction is None:
-        statfunction = np.mean
-    # Create list to collect all the contrast DataFrames generated.
-    contrastList = list()
-    contrastListNames = list()
-
-    for gsIdx, xlevs in enumerate(idx):
-        ## Pivot tempdat to get before and after lines.
-        data_pivot = data.pivot_table(index = idcol, columns = x, values = y)
-
-        # Start plotting!!
-        if floatContrast is True:
-            ax_raw = fig.add_subplot(gsMain[gsIdx], frame_on = False)
-            ax_contrast = ax_raw.twinx()
-        else:
-            gsSubGridSpec = gridspec.GridSpecFromSubplotSpec(2, 1, subplot_spec = gsMain[gsIdx])
-            ax_raw = plt.Subplot(fig, gsSubGridSpec[0, 0], frame_on = False)
-            ax_contrast = plt.Subplot(fig, gsSubGridSpec[1, 0], sharex = ax_raw, frame_on = False)
-
-        ## Plot raw data as swarmplot or stripplot.
-        if showRawData is True:
-            swarm_raw = sns.swarmplot(data = data, 
-                                     x = x, y = y, 
-                                     order = xlevs,
-                                     ax = ax_raw,
-                                     palette = pal,
-                                     size = rawMarkerSize,
-                                     marker = rawMarkerType,
-                                     **kwargs)
-        else:
-            swarm_raw = sns.stripplot(data = data, 
-                                     x = x, y = y, 
-                                     order = xlevs,
-                                     ax = ax_raw,
-                                     palette = pal,
-                                     **kwargs)
-        swarm_raw.set_ylim(swarmYlim)
-           
-        ## Get some details about the raw data.
-        maxXBefore = max(swarm_raw.collections[0].get_offsets().T[0])
-        minXAfter = min(swarm_raw.collections[1].get_offsets().T[0])
-        if showRawData is True:
-            #beforeAfterSpacer = (getSwarmSpan(swarm_raw, 0) + getSwarmSpan(swarm_raw, 1))/2
-            beforeAfterSpacer = 1
-        xposAfter = maxXBefore + beforeAfterSpacer
-        xAfterShift = minXAfter - xposAfter
-
-        ## shift the after swarmpoints closer for aesthetic purposes.
-        offsetSwarmX(swarm_raw.collections[1], -xAfterShift)
-
-        ## pandas DataFrame of 'before' group
-        x1 = pd.DataFrame({str(xlevs[0] + '_x') : pd.Series(swarm_raw.collections[0].get_offsets().T[0]),
-                       xlevs[0] : pd.Series(swarm_raw.collections[0].get_offsets().T[1]),
-                       '_R_' : pd.Series(swarm_raw.collections[0].get_facecolors().T[0]),
-                       '_G_' : pd.Series(swarm_raw.collections[0].get_facecolors().T[1]),
-                       '_B_' : pd.Series(swarm_raw.collections[0].get_facecolors().T[2]),
-                      })
-        ## join the RGB columns into a tuple, then assign to a column.
-        x1['_hue_'] = x1[['_R_', '_G_', '_B_']].apply(tuple, axis=1) 
-        x1 = x1.sort_values(by = xlevs[0])
-        x1.index = data_pivot.sort_values(by = xlevs[0]).index
-
-        ## pandas DataFrame of 'after' group
-        ### create convenient signifiers for column names.
-        befX = str(xlevs[0] + '_x')
-        aftX = str(xlevs[1] + '_x')
-
-        x2 = pd.DataFrame( {aftX : pd.Series(swarm_raw.collections[1].get_offsets().T[0]),
-            xlevs[1] : pd.Series(swarm_raw.collections[1].get_offsets().T[1])} )
-        x2 = x2.sort_values(by = xlevs[1])
-        x2.index = data_pivot.sort_values(by = xlevs[1]).index
-
-        ## Join x1 and x2, on both their indexes.
-        plotPoints = x1.merge(x2, left_index = True, right_index = True, how='outer')
-
-        ## Add the hue column if hue argument was passed.
-        if 'hue' in kwargs:
-            h = kwargs['hue']
-            plotPoints[h] = data.pivot(index = idcol, columns = x, values = h)[xlevs[0]]
-            swarm_raw.legend(loc = legendLoc, 
-                fontsize = legendFontSize, 
-                markerscale = legendMarkerScale)
-
-        ## Plot the lines to join the 'before' points to their respective 'after' points.
-        if showConnections is True:
-            for i in plotPoints.index:
-                ax_raw.plot([ plotPoints.ix[i, befX],
-                    plotPoints.ix[i, aftX] ],
-                    [ plotPoints.ix[i, xlevs[0]], 
-                    plotPoints.ix[i, xlevs[1]] ],
-                    linestyle = 'solid',
-                    color = plotPoints.ix[i, '_hue_'],
-                    linewidth = 0.75,
-                    alpha = 0.75
-                    )
-
-        ## Hide the raw swarmplot data if so desired.
-        if showRawData is False:
-            swarm_raw.collections[0].set_visible(False)
-            swarm_raw.collections[1].set_visible(False)
-
-        if showRawData is True:
-            #maxSwarmSpan = max(np.array([getSwarmSpan(swarm_raw, 0), getSwarmSpan(swarm_raw, 1)]))/2
-            maxSwarmSpan = 0.5
-        else:
-            maxSwarmSpan = barWidth            
-
-        ## Plot Summary Bar.
-        if summaryBar is True:
-            # Calculate means
-            means = data.groupby([x], sort = True).mean()[y]
-            # # Calculate medians
-            # medians = data.groupby([x], sort = True).median()[y]
-
-            ## Draw summary bar.
-            bar_raw = sns.barplot(x = means.index, 
-                        y = means.values, 
-                        order = xlevs,
-                        ax = ax_raw,
-                        ci = 0,
-                        facecolor = summaryBarColor, 
-                        alpha = 0.25)
-            ## Draw zero reference line.
-            ax_raw.add_artist(Line2D(
-                (ax_raw.xaxis.get_view_interval()[0], 
-                    ax_raw.xaxis.get_view_interval()[1]), 
-                (0,0),
-                color='black', linewidth=0.75
-                )
-            )       
-
-            ## get swarm with largest span, set as max width of each barplot.
-            for i, bar in enumerate(bar_raw.patches):
-                x_width = bar.get_x()
-                width = bar.get_width()
-                centre = x_width + width/2.
-                if i == 0:
-                    bar.set_x(centre - maxSwarmSpan/2.)
-                else:
-                    bar.set_x(centre - xAfterShift - maxSwarmSpan/2.)
-                bar.set_width(maxSwarmSpan)
-
-        # Get y-limits of the treatment swarm points.
-        beforeRaw = pd.DataFrame( swarm_raw.collections[0].get_offsets() )
-        afterRaw = pd.DataFrame( swarm_raw.collections[1].get_offsets() )
-        before_leftx = min(beforeRaw[0])
-        after_leftx = min(afterRaw[0])
-        after_rightx = max(afterRaw[0])
-        after_stat_summary = statfunction(beforeRaw[1])
-
-        # Calculate the summary difference and CI.
-        plotPoints['delta_y'] = plotPoints[xlevs[1]] - plotPoints[xlevs[0]]
-        plotPoints['delta_x'] = [0] * np.shape(plotPoints)[0]
-
-        tempseries = plotPoints['delta_y'].tolist()
-        test = tempseries.count(tempseries[0]) != len(tempseries)
-
-        bootsDelta = bootstrap(plotPoints['delta_y'],
-            statfunction = statfunction, 
-            smoothboot = smoothboot,
-            reps = reps)
-        summDelta = bootsDelta['summary']
-        lowDelta = bootsDelta['bca_ci_low']
-        highDelta = bootsDelta['bca_ci_high']
-
-        # set new xpos for delta violin.
-        if floatContrast is True:
-            if showRawData is False:
-                xposPlusViolin = deltaSwarmX = after_rightx + floatViolinOffset
-            else:
-                xposPlusViolin = deltaSwarmX = after_rightx + maxSwarmSpan
-        else:
-            xposPlusViolin = xposAfter
-        if showRawData is True:
-            # If showRawData is True and floatContrast is True, 
-            # set violinwidth to the barwidth.
-            violinWidth = maxSwarmSpan
-
-        xmaxPlot = xposPlusViolin + violinWidth
-
-        # Plot the summary measure.
-        ax_contrast.plot(xposPlusViolin, summDelta,
-            marker = 'o',
-            markerfacecolor = 'k', 
-            markersize = summaryMarkerSize,
-            alpha = 0.75
-            )
-
-        # Plot the CI.
-        ax_contrast.plot([xposPlusViolin, xposPlusViolin],
-            [lowDelta, highDelta],
-            color = 'k', 
-            alpha = 0.75,
-            linestyle = 'solid'
-            )
-
-        # Plot the violin-plot.
-        v = ax_contrast.violinplot(bootsDelta['stat_array'], [xposPlusViolin], 
-                                 widths = violinWidth, 
-                                 showextrema = False, 
-                                 showmeans = False)
-        halfviolin(v, half = 'right', color = 'k')
-
-        # Remove left axes x-axis title.
-        ax_raw.set_xlabel("")
-        # Remove floating axes y-axis title.
-        ax_contrast.set_ylabel("")
-
-        # Set proper x-limits
-        ax_raw.set_xlim(before_leftx - beforeAfterSpacer/2, xmaxPlot)
-        ax_raw.get_xaxis().set_view_interval(before_leftx - beforeAfterSpacer/2, 
-            after_rightx + beforeAfterSpacer/2)
-        ax_contrast.set_xlim(ax_raw.get_xlim())
-
-        if floatContrast is True:
-            # Set the ticks locations for ax_raw.
-            ax_raw.get_xaxis().set_ticks((0, xposAfter))
-
-            # Make sure they have the same y-limits.
-            ax_contrast.set_ylim(ax_raw.get_ylim())
-            
-            # Drawing in the x-axis for ax_raw.
-            ## Set the tick labels!
-            ax_raw.set_xticklabels(xlevs, rotation = tickAngle, horizontalalignment = tickAlignment)
-            ## Get lowest y-value for ax_raw.
-            y = ax_raw.get_yaxis().get_view_interval()[0] 
-
-            # Align the left axes and the floating axes.
-            align_yaxis(ax_raw, statfunction(plotPoints[xlevs[0]]),
-                           ax_contrast, 0)
-
-            # Add label to floating axes. But on ax_raw!
-            ax_raw.text(x = deltaSwarmX,
-                          y = ax_raw.get_yaxis().get_view_interval()[0],
-                          horizontalalignment = 'left',
-                          s = 'Difference',
-                          fontsize = 15)        
-
-            # Set reference lines
-            ## zero line
-            ax_contrast.hlines(0,                                           # y-coordinate
-                            ax_contrast.xaxis.get_majorticklocs()[0],       # x-coordinates, start and end.
-                            ax_raw.xaxis.get_view_interval()[1],   
-                            linestyle = 'solid',
-                            linewidth = 0.75,
-                            color = 'black')
-
-            ## effect size line
-            ax_contrast.hlines(summDelta, 
-                            ax_contrast.xaxis.get_majorticklocs()[1],
-                            ax_raw.xaxis.get_view_interval()[1],
-                            linestyle = 'solid',
-                            linewidth = 0.75,
-                            color = 'black')
-
-            # Align the left axes and the floating axes.
-            align_yaxis(ax_raw, after_stat_summary, ax_contrast, 0.)
-        else:
-            # Set the ticks locations for ax_raw.
-            ax_raw.get_xaxis().set_ticks((0, xposAfter))
-            
-            fig.add_subplot(ax_raw)
-            fig.add_subplot(ax_contrast)
-        ax_contrast.set_ylim(contrastYlim)
-        # Calculate p-values.
-        # 1-sample t-test to see if the mean of the difference is different from 0.
-        ttestresult = ttest_1samp(plotPoints['delta_y'], popmean = 0)[1]
-        bootsDelta['ttest_pval'] = ttestresult
-        contrastList.append(bootsDelta)
-        contrastListNames.append( str(xlevs[1])+' v.s. '+str(xlevs[0]) )
-
-    # Turn contrastList into a pandas DataFrame,
-    contrastList = pd.DataFrame(contrastList).T
-    contrastList.columns = contrastListNames
-
-    # Now we iterate thru the contrast axes to normalize all the ylims.
-    for j,i in enumerate(range(1, len(fig.get_axes()), 2)):
-
-        ## Get max and min of the dataset.
-        lower = np.min(contrastList.ix['stat_array',j])
-        upper = np.max(contrastList.ix['stat_array',j])
-        meandiff = contrastList.ix['summary', j]
-
-        ## Make sure we have zero in the limits.
-        if lower > 0:
-            lower = 0.
-        if upper < 0:
-            upper = 0.
-
-        ## Get tick distance on raw axes.
-        ## This will be the tick distance for the contrast axes.
-        rawAxesTicks = fig.get_axes()[i-1].yaxis.get_majorticklocs()
-        rawAxesTickDist = rawAxesTicks[1] - rawAxesTicks[0]
-
-        ## First re-draw of axis with new tick interval
-        fig.get_axes()[i].yaxis.set_major_locator(MultipleLocator(rawAxesTickDist))
-        newticks1 = fig.get_axes()[i].get_yticks()
-
-        if floatContrast is False:
-            if (showAllYAxes is False and i in range( 2, len(fig.get_axes())) ):
-                fig.get_axes()[i].get_yaxis().set_visible(showAllYAxes)
-            # Set the contrast ylim if it is specified.
-            # if contrastYlim is not None:
-            #     fig.get_axes()[i].set_ylim(contrastYlim)
-            #     lower = contrastYlim[0]
-            #     upper = contrastYlim[1]
-            else:
-                ## Obtain major ticks that comfortably encompass lower and upper.
-                newticks2 = list()
-                for a,b in enumerate(newticks1):
-                    if (b >= lower and b <= upper):
-                        # if the tick lies within upper and lower, take it.
-                        newticks2.append(b)
-                # if the meandiff falls outside of the newticks2 set, add a tick in the right direction.
-                if np.max(newticks2) < meandiff:
-                    ind = np.where(newticks1 == np.max(newticks2))[0][0] # find out the max tick index in newticks1.
-                    newticks2.append( newticks1[ind+1] )
-                elif meandiff < np.min(newticks2):
-                    ind = np.where(newticks1 == np.min(newticks2))[0][0] # find out the min tick index in newticks1.
-                    newticks2.append( newticks1[ind-1] )
-                newticks2 = np.array(newticks2)
-                newticks2.sort()
-
-                # newticks = list()
-                # for a,b in enumerate(oldticks):
-                #     if (b >= lower and b <= upper):
-                #         newticks.append(b)
-                # newticks = np.array(newticks)
-                ## Re-draw the axis.
-                fig.get_axes()[i].yaxis.set_major_locator(FixedLocator(locs = newticks2))
-                #fig.get_axes()[i].yaxis.set_minor_locator(AutoMinorLocator(2))
-
-                ## Draw minor ticks appropriately.
-                #fig.get_axes()[i].yaxis.set_minor_locator(AutoMinorLocator(2))
-
-                ## Draw zero reference line.
-                fig.get_axes()[i].hlines(y = 0,
-                    xmin = fig.get_axes()[i].get_xaxis().get_view_interval()[0], 
-                    xmax = fig.get_axes()[i].get_xaxis().get_view_interval()[1],
-                    linestyle = contrastZeroLineStyle,
-                    linewidth = 0.75,
-                    color = contrastZeroLineColor)
-
-                sns.despine(ax = fig.get_axes()[i], trim = True, 
-                    bottom = False, right = True,
-                    left = False, top = True)
-
-                ## Draw back the lines for the relevant y-axes.
-                ymin = fig.get_axes()[i].get_yaxis().get_majorticklocs()[0]
-                ymax = fig.get_axes()[i].get_yaxis().get_majorticklocs()[-1]
-                x, _ = fig.get_axes()[i].get_xaxis().get_view_interval()
-                fig.get_axes()[i].add_artist(Line2D((x, x), (ymin, ymax), color='black', linewidth=1))    
-
-                ## Draw back the lines for the relevant x-axes.
-                xmin = fig.get_axes()[i].get_xaxis().get_majorticklocs()[0]
-                xmax = fig.get_axes()[i].get_xaxis().get_majorticklocs()[-1]
-                y, _ = fig.get_axes()[i].get_yaxis().get_view_interval()
-                fig.get_axes()[i].add_artist(Line2D((xmin, xmax), (y, y), color='black', linewidth=1.5)) 
-
-        else:
-            ## Get the original ticks on the floating y-axis.
-            newticks1 = fig.get_axes()[i].get_yticks()
-
-            ## Obtain major ticks that comfortably encompass lower and upper.
-            newticks2 = list()
-            for a,b in enumerate(newticks1):
-                if (b >= lower and b <= upper):
-                    # if the tick lies within upper and lower, take it.
-                    newticks2.append(b)
-            # if the meandiff falls outside of the newticks2 set, add a tick in the right direction.
-            if np.max(newticks2) < meandiff:
-                ind = np.where(newticks1 == np.max(newticks2))[0][0] # find out the max tick index in newticks1.
-                newticks2.append( newticks1[ind+1] )
-            elif meandiff < np.min(newticks2):
-                ind = np.where(newticks1 == np.min(newticks2))[0][0] # find out the min tick index in newticks1.
-                newticks2.append( newticks1[ind-1] )
-            newticks2 = np.array(newticks2)
-            newticks2.sort()
-
-            # newticks = list()
-            # for a,b in enumerate(oldticks):
-            #     if (b >= lower and b <= upper):
-            #         newticks.append(b)
-            # newticks = np.array(newticks)
-
-            ## Re-draw the axis.
-            fig.get_axes()[i].yaxis.set_major_locator(FixedLocator(locs = newticks2))
-            #fig.get_axes()[i].yaxis.set_minor_locator(AutoMinorLocator(2))
-            
-            ## Obtain minor ticks that fall within the major ticks.
-            # majorticks = fig.get_axes()[i].yaxis.get_majorticklocs()
-            # oldminorticks = fig.get_axes()[i].yaxis.get_minorticklocs()
-            # newminorticks = list()
-            # for a,b in enumerate(oldminorticks):
-            #     if (b >= majorticks[0] and b <= majorticks[-1]):
-            #         newminorticks.append(b)
-            # newminorticks = np.array(newminorticks)
-            # fig.get_axes()[i].yaxis.set_minor_locator(FixedLocator(locs = newminorticks))    
-
-            ## Despine and trim the axes.
-            sns.despine(ax = fig.get_axes()[i], trim = True, 
-                bottom = False, right = False,
-                left = True, top = True)
-
-    for i in range(0, len(fig.get_axes()), 2):
-        # Loop through the raw data swarmplots and despine them appropriately.
-        if floatContrast is True:
-            sns.despine(ax = fig.get_axes()[i], trim = True, right = True)
-
-        else:
-            sns.despine(ax = fig.get_axes()[i], trim = True, bottom = True, right = True)
-            fig.get_axes()[i].get_xaxis().set_visible(False)
-
-        # Draw back the lines for the relevant y-axes.
-        ymin = fig.get_axes()[i].get_yaxis().get_majorticklocs()[0]
-        ymax = fig.get_axes()[i].get_yaxis().get_majorticklocs()[-1]
-        x, _ = fig.get_axes()[i].get_xaxis().get_view_interval()
-        fig.get_axes()[i].add_artist(Line2D((x, x), (ymin, ymax), color='black', linewidth=1.5))    
-
-    # Zero gaps between plots on the same row, if floatContrast is False
-    if (floatContrast is False and showAllYAxes is False):
-        gsMain.update(wspace = 0)
-    else:    
-        # Tight Layout!
-        gsMain.tight_layout(fig)
-
-    # And we're done.
     rcdefaults() # restore matplotlib defaults.
     sns.set() # restore seaborn defaults.
     return fig, contrastList
