@@ -524,7 +524,6 @@ def contrastplot(
                          markersize=summaryMarkerSize,
                          alpha=0.75
                         )
-
                 # Plot the CI.
                 ax_contrast.plot([xpos, xpos],
                          [lowDelta, highDelta],
@@ -533,8 +532,6 @@ def contrastplot(
                          linestyle='solid'
                         )
                 
-                # ax_contrast.set_xlim(-0.25, 0.5) # do we need this line?
-
                 # Plot the violin-plot.
                 v = ax_contrast.violinplot(bootsDelta['stat_array'], [xpos], 
                                            widths = violinWidth, 
