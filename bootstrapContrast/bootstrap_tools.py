@@ -10,16 +10,45 @@ import warnings
 def bootstrap(data, 
               statfunction=None,
               smoothboot=False,
-              alpha=0.05, 
+              alpha_level=0.05, 
               reps=3000):
+    '''Given a numerical one-dimensional array, 
+    the summary statistic and a bootstrapped confidence interval will be returned.
+
+    Keyword arguments:
+        data: array, required.
+            The data in a one-dimensional array form.
+
+        statfunction: callable, default np.mean
+            The summary statistic called on data.
+
+        smoothboot: boolean, default False 
+            Taken from seaborn.algorithms.bootstrap.
+            If True, performs a smoothed bootstrap (draws samples from a kernel
+            destiny estimate).
+
+        alpha: float, default 0.05
+            Denotes the likelihood that the confidence interval produced _does not_
+            include the true summary statistic. When alpha=0.05, a 95% confidence
+            interval is produced.
+
+        reps: int, default 3000
+        Number of bootstrap iterations to perform.
+
+    Returns:
+        An OrderedDict reporting the summary statistics, percentile CIs,
+        bias-corrected and accelerated (BCa) CIs, and the settings used.
+    '''
     
     # Taken from scikits.bootstrap code
     # Initialise statfunction
-    if statfunction == None:
+    if statfunction==None:
         statfunction=np.mean
     
     # Compute two-sided alphas.
-    alphas=np.array([alpha/2, 1-alpha/2])
+    if alpha_level>1. or alpha_level <0.:
+        raise ValueError("alpha_level must be between 0 and 1.")
+    alphas=np.array([alpha_level/2., 1-alpha_level/2.])
     
     # Turns data into array, then tuple.
     data=np.array(data)
@@ -55,6 +84,7 @@ def bootstrap(data,
     result['summary']=ostat
     result['statistic']=str(statfunction)
     result['bootstrap_reps']=reps
+    result['ci']=(1-alpha_level)*100
     result['pct_ci_low']=statarray[pct_low_high[0]]
     result['pct_ci_high']=statarray[pct_low_high[1]]
     result['bca_ci_low']=statarray[bca_low_high[0]]
@@ -72,19 +102,19 @@ def bootstrap_contrast(data=None,
                    y=None,
                    statfunction=None,
                    smoothboot=False,
-                   alpha=0.05, 
+                   alpha_level=0.05, 
                    reps=3000):
     
     # Taken from scikits.bootstrap code
     # Initialise statfunction
-    if statfunction == None:
+    if statfunction==None:
         statfunction=np.mean
     # check if idx was parsed
-    if idx == None:
+    if idx==None:
         idx=[0,1]
         
     # Compute two-sided alphas.
-    alphas=np.array([alpha/2, 1-alpha/2])
+    alphas=np.array([alpha_level/2, 1-alpha_level/2])
     
     levels=data[x].unique()
 
@@ -98,9 +128,9 @@ def bootstrap_contrast(data=None,
     arraylist=list() # list to temporarily store the rawdata arrays.
     for i in idx:
         if i in levels_to_idx: # means the supplied id is an actual level
-            arraylist.append( np.array(data.ix[data[x] == levels[levels_to_idx[i]]][y]) ) # when I get levels
+            arraylist.append( np.array(data.ix[data[x]==levels[levels_to_idx[i]]][y]) ) # when I get levels
         elif i in idx_to_levels: # means the supplied id is the level index (does this make sense?)
-            arraylist.append( np.array(data.ix[data[x] == levels[i]][y]) ) # when I get level indexes
+            arraylist.append( np.array(data.ix[data[x]==levels[i]][y]) ) # when I get level indexes
             
     # Pull out the arrays. 
     # The first array in `arraylist` is the reference array. 
@@ -142,6 +172,7 @@ def bootstrap_contrast(data=None,
     result['summary']=ostat
     result['statistic']=str(statfunction)
     result['bootstrap_reps']=reps
+    result['ci']=(1-alpha_level)*100
     result['pct_ci_low']=diff_array[pct_low_high[0]]
     result['pct_ci_high']=diff_array[pct_low_high[1]]
     result['bca_ci_low']=diff_array[bca_low_high[0]]
@@ -252,7 +283,7 @@ Efron, An Introduction to the Bootstrap. Chapman & Hall 1993
     else:
         alphas=np.array([alpha/2,1-alpha/2])
 
-    if multi == None:
+    if multi==None:
       if isinstance(data, tuple):
         multi=True
       else:
@@ -260,14 +291,14 @@ Efron, An Introduction to the Bootstrap. Chapman & Hall 1993
 
     # Ensure that the data is actually an array. This isn't nice to pandas,
     # but pandas seems much much slower and the indexes become a problem.
-    if multi == False:
+    if multi==False:
       data=np.array(data)
       tdata=(data,)
     else:
       tdata=tuple( np.array(x) for x in data )
 
     # Deal with ABC *now*, as it doesn't need samples.
-    if method == 'abc':
+    if method=='abc':
         n=tdata[0].shape[0]*1.0
         nn=tdata[0].shape[0]
 
@@ -303,9 +334,9 @@ Efron, An Introduction to the Bootstrap. Chapman & Hall 1993
         for i in range(0,len(alphas)):
             abc[i]=statfunction(*tdata,weights=p0+za[i]*delta)
 
-        if output == 'lowhigh':
+        if output=='lowhigh':
             return abc
-        elif output == 'errorbar':
+        elif output=='errorbar':
             return abs(abc-statfunction(tdata))[np.newaxis].T
         else:
             raise ValueError("Output option {0} is not supported.".format(output))
@@ -318,11 +349,11 @@ Efron, An Introduction to the Bootstrap. Chapman & Hall 1993
     stat.sort(axis=0)
 
     # Percentile Interval Method
-    if method == 'pi':
+    if method=='pi':
         avals=alphas
 
     # Bias-Corrected Accelerated Method
-    elif method == 'bca':
+    elif method=='bca':
 
         # The value of the statistic function applied just to the actual data.
         ostat=statfunction(*tdata)
@@ -359,8 +390,8 @@ may be inaccurate (indexes: {}). Other warnings are likely related.".format(nani
 
     nvals=np.nan_to_num(nvals).astype('int')
 
-    if output == 'lowhigh':
-        if nvals.ndim == 1:
+    if output=='lowhigh':
+        if nvals.ndim==1:
             # All nvals are the same. Simple broadcasting
             return stat[nvals], stat
         else:
@@ -369,8 +400,8 @@ may be inaccurate (indexes: {}). Other warnings are likely related.".format(nani
             # point in other axes.
             return stat[(nvals, np.indices(nvals.shape)[1:].squeeze())], stat
 
-    elif output == 'errorbar':
-        if nvals.ndim == 1:
+    elif output=='errorbar':
+        if nvals.ndim==1:
           return abs(statfunction(data)-stat[nvals])[np.newaxis].T
         else:
           return abs(statfunction(data)-stat[(nvals, np.indices(nvals.shape)[1:])])[np.newaxis].T
@@ -411,7 +442,7 @@ def getstatarray(tdata, statfunction, reps, sort=True):
     return statarray
         
 def bca(data, alphas, statarray, statfunction, ostat, reps):
-    # Subroutine called to calculate the BCa statistics
+    '''Subroutine called to calculate the BCa statistics.'''
 
     # The bias correction value.
     z0=norm.ppf( ( 1.0*np.sum(statarray < ostat, axis=0)  ) / reps )

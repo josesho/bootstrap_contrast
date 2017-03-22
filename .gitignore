@@ -13,6 +13,8 @@ bootstrapContrast/.ipynb_checkpoints
 # any .CSVs or excel spreadsheets
 bootstrapContrast/*.csv
 bootstrapContrast/*.xlsx
+*.csv
+*.xlsx
 
 # any svg outut
 bootstrapContrast/*.svg

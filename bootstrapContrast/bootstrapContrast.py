@@ -1,9 +1,11 @@
+'''The bootstrapContrast module.'''
+
 from scipy.stats import ttest_ind, ttest_1samp, ttest_rel, mannwhitneyu, norm
 from collections import OrderedDict
 from numpy.random import randint
 import matplotlib.gridspec as gridspec
 from matplotlib.lines import Line2D
-from matplotlib.ticker import AutoMinorLocator, MultipleLocator, MaxNLocator, FixedLocator, AutoLocator, FormatStrFormatter
+from matplotlib.ticker import MultipleLocator, MaxNLocator, LinearLocator, FixedLocator
 from decimal import Decimal
 import matplotlib.pyplot as plt
 from matplotlib import rc, rcParams, rcdefaults
@@ -20,8 +22,8 @@ from .mpl_tools import rotateTicks, normalizeSwarmY, normalizeContrastY, offsetS
 from .mpl_tools import align_yaxis, halfviolin, drawback_y, drawback_x
 from .bootstrap_tools import ci, bootstrap, bootstrap_contrast, bootstrap_indexes, jackknife_indexes, getstatarray, bca
 from .plot_bootstrap_tools import plotbootstrap, plotbootstrap_hubspoke, swarmsummary
-# This is for sandboxing. Features and functions under testing go here.
-from .sandbox import contrastplot_test
+## This is for sandboxing. Features and functions under testing go here.
+# from .sandbox import contrastplot_test
 
 # Taken without modification from scikits.bootstrap package
 # Keep python 2/3 compatibility, without using six. At some point,
@@ -42,9 +44,11 @@ def contrastplot(
     alpha=0.75, 
     axis_title_size=None,
 
+    ci=95,
     contrastShareY=True,
     contrastEffectSizeLineStyle='solid',
     contrastEffectSizeLineColor='black',
+
     contrastYlim=None,
     contrastZeroLineStyle='solid', 
     contrastZeroLineColor='black', 
@@ -72,7 +76,7 @@ def contrastplot(
     reps=3000,
     
     showGroupCount=True,
-    show95CI=False, 
+    showCI=False, 
     showAllYAxes=False,
     showRawData=True,
     smoothboot=False, 
@@ -105,10 +109,72 @@ def contrastplot(
 
     **kwargs):
 
-    '''Takes a pandas dataframe and produces a contrast plot:
+    '''Takes a pandas DataFrame and produces a contrast plot:
     either a Cummings hub-and-spoke plot or a Gardner-Altman contrast plot.
-    -----------------------------------------------------------------------
-    Description of flags upcoming.'''
+    Paired and unpaired options available.
+
+    Keyword arguments:
+        data: pandas DataFrame
+            Description of the dataframe. Wide vs Long. How are NaNs handled.
+            
+        x=None
+        y=None
+        idx=None
+        idcol=None
+        alpha=0.75
+        axis_title_size=None
+        ci=95
+        contrastShareY=True
+        contrastEffectSizeLineStyle='solid'
+        contrastEffectSizeLineColor='black'
+        contrastYlim=None
+        contrastZeroLineStyle='solid'
+        contrastZeroLineColor='black'
+        effectSizeYLabel="Effect Size"
+        figsize=None
+        floatContrast=True
+        floatSwarmSpacer=0.2
+        heightRatio=(1,1)
+        lineWidth=2
+        legend=True
+        legendFontSize=14
+        legendFontProps={}
+        paired=False
+        pairedDeltaLineAlpha=0.3
+        pairedDeltaLineWidth=1.2
+        pal=None
+        rawMarkerSize=8
+        rawMarkerType='o'
+        reps=3000
+        showGroupCount=True
+        showCI=False
+        showAllYAxes=False
+        showRawData=True
+        smoothboot=False
+        statfunction=None
+        summaryBar=False
+        summaryBarColor='grey'
+        summaryBarAlpha=0.25
+        summaryColour='black'
+        summaryLine=True
+        summaryLineStyle='solid'
+        summaryLineWidth=0.25
+        summaryMarkerSize=10
+        summaryMarkerType='o'
+        swarmShareY=True
+        swarmYlim=None
+        tickAngle=45
+        tickAlignment='right'
+        violinOffset=0.375
+        violinWidth=0.2
+        violinColor='k'
+        xticksize=None
+        yticksize=None
+
+    Returns:
+        An matplotlib Figure.
+        Organization of figure Axes.
+    '''
 
     # Check that `data` is a pandas dataframe
     if 'DataFrame' not in str(type(data)):
@@ -181,7 +247,7 @@ def contrastplot(
         elif idx is None:
             raise ValueError('Please specify idx.')
         showRawData=False # Just show lines, do not show data.
-        show95CI=False # wait till I figure out how to plot this for sns.barplot.
+        showCI=False # wait till I figure out how to plot this for sns.barplot.
         if datatype=='long':
             if idx is None:
                 ## If `idx` is not specified, just take the FIRST TWO levels alphabetically.
@@ -314,6 +380,11 @@ def contrastplot(
         else:
             figsize=(8,(8/np.sqrt(2)))
     
+    # calculate CI.
+    if ci<0 or ci>100:
+        raise ValueError('ci should be between 0 and 100.')
+    alpha_level=(100-ci)/100
+
     # Initialise figure, taking into account desired figsize.
     fig=plt.figure(figsize=figsize)
 
@@ -373,15 +444,17 @@ def contrastplot(
                     idx=[current_tuple[0], current_tuple[i]],
                     statfunction=statfunction,
                     smoothboot=smoothboot,
+                    alpha_level=alpha_level,
                     reps=reps)
                 bscontrast.append(tempbs)
                 contrastList.append(tempbs)
                 contrastListNames.append(current_tuple[i]+' vs. '+current_tuple[0])
 
         #### PLOT RAW DATA.
+        ax_raw.set_ylim(swarm_ylim)
+        ax_raw.yaxis.set_major_locator(MaxNLocator(min_n_ticks=5, nbins=8))
         if showRawData is True:
             # Seaborn swarmplot doc says to set custom ylims first.
-            ax_raw.set_ylim(swarm_ylim)
             sw=sns.swarmplot(
                 data=plotdat, 
                 x=x, y=y, 
@@ -392,6 +465,7 @@ def contrastplot(
                 size=rawMarkerSize,
                 marker=rawMarkerType,
                 **kwargs)
+
             if floatContrast:
                 # Get horizontal offset values.
                 maxXBefore=max(sw.collections[0].get_offsets().T[0])
@@ -403,7 +477,6 @@ def contrastplot(
                 ax_raw.set_xticks([0.,1-xAfterShift]) # make sure xticklocs match the swarmplot.
         elif paired is True:
             # Produce paired plot.
-            ax_raw.set_ylim(swarm_ylim)
             # to get color, need to loop thru each line and plot individually.
             for ii in range(0,len(plotdat)):
                 ax_raw.plot( [0,0.25], [ plotdat.ix[ii,current_tuple[0]],
@@ -416,6 +489,24 @@ def contrastplot(
                 ax_raw.set_xlim(-0.25,0.5)
                 ax_raw.set_xticks([0,0.25])
                 ax_raw.set_xticklabels([current_tuple[0],current_tuple[1]])
+
+        if swarmYlim is None:
+            # if swarmYlim was not specified, tweak the y-axis 
+            # to show all the data without losing ticks and range.
+            ## Get all yticks.
+            axxYTicks=ax_raw.yaxis.get_majorticklocs()
+            ax_raw.set_ylim(axxYTicks[0],axxYTicks[-1])
+            # Get tick interval.
+            YTickInterval=axxYTicks[1]-axxYTicks[0]
+            ## Set the ylim to encompass all yticks,
+            ## adding a quarter of the tick interval
+            ## as spacing at both ends.
+            ax_raw.set_ylim(
+                axxYTicks[0]-(YTickInterval/4),
+                axxYTicks[-1]+(YTickInterval/4)
+                )
+            ax_raw.yaxis.set_major_locator(MaxNLocator(min_n_ticks=5, nbins=8))
+
 
         if summaryBar is True:
             if paired is False:
@@ -451,7 +542,7 @@ def contrastplot(
                 ax_raw.bar([0,0.25], 
                     [ statfunction(plotdat[current_tuple[0]]),
                     statfunction(plotdat[current_tuple[1]]) ],
-                    color='g',
+                    color=summaryBarColor,
                     alpha=0.5,
                     width=0.05)
                 ## Draw zero reference line.
@@ -475,7 +566,7 @@ def contrastplot(
                     color=summaryColour, 
                     linestyle=summaryLineStyle)
 
-        if show95CI is True:
+        if showCI is True:
                 sns.barplot(
                     data=plotdat, 
                     x=x, y=y, 
@@ -505,6 +596,7 @@ def contrastplot(
                     plotdat[current_tuple[1]]-plotdat[current_tuple[0]],
                     statfunction=statfunction,
                     smoothboot=smoothboot,
+                    alpha_level=alpha_level,
                     reps=reps)
                 contrastList.append(bootsDelta)
                 contrastListNames.append(current_tuple[1]+' vs. '+current_tuple[0])
@@ -625,8 +717,8 @@ def contrastplot(
     contrastList=pd.DataFrame(contrastList).T
     contrastList.columns=contrastListNames
 
+    # Get number of axes in figure for aesthetic tweaks.
     axesCount=len(fig.get_axes())
-    ########
     for i in range(0, axesCount, 2):
         # Set new tick labels.
         # The tick labels belong to the SWARM axes
@@ -653,23 +745,6 @@ def contrastplot(
     ## Loop thru SWARM axes for aesthetic touchups.
     for i in range(0, axesCount, 2):
         axx=fig.axes[i]
-
-        # Tweaking the y-axis to show all the data without losing ticks and range.
-        ## Get all yticks.
-        axxYTicks=axx.yaxis.get_majorticklocs()
-        axx.set_ylim(axxYTicks[0],axxYTicks[-1])
-        # Get tick interval.
-        YTickInterval=axxYTicks[1]-axxYTicks[0]
-        ## Set the ylim to encompass all yticks,
-        ## adding a quarter of the tick interval
-        ## as spacing at both ends.
-        axx.set_ylim(
-            axxYTicks[0]-(YTickInterval/4),
-            axxYTicks[-1]+(YTickInterval/4)
-            )
-        ## Ensure the original automatically-determined yticks
-        ## are _not_ redrawn when we changed the ylim.
-        axx.set_yticks(axxYTicks)
 
         if floatContrast is False:
             axx.xaxis.set_visible(False)
@@ -729,13 +804,14 @@ def contrastplot(
                 color=contrastZeroLineColor)
             # reset view interval.
             axx.set_xlim(xleft, xright)
+
             if showAllYAxes is False:
                 if i in range(2, axesCount):
                     axx.yaxis.set_visible(False)
-                # else:
-                #     # Draw back the lines for the relevant y-axes.
-                #     # Not entirely sure why I have to do this.
-                #     drawback_y(axx)
+                else:
+                    # Draw back the lines for the relevant y-axes.
+                    # Not entirely sure why I have to do this.
+                    drawback_y(axx)
 
             sns.despine(ax=axx, 
                 top=True, right=True, 
