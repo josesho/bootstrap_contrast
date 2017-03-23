@@ -88,7 +88,7 @@ def plotbootstrap_hubspoke(bslist, ax, violinWidth, violinOffset,
     for i in range(0, len(bslist)):
         bsi=bslist[i]
         # array=list(bsi.items())[7][1] # Pull out the bootstrapped array.
-        array=bslist['diffarray']
+        array=bsi['diffarray']
         ylims.append(array)
         
         # Then plot as violinplot.

@@ -349,6 +349,8 @@ def contrastplot(
             swarm_ylim=np.array( [np.min(allMin),np.max(allMax)] )
     else:
         swarm_ylim=np.array([swarmYlim[0],swarmYlim[1]])
+    if summaryBar is True:
+        swarm_ylim=np.array([0,swarm_ylim[1]])
 
     if contrastYlim is not None:
         contrastYlim=np.array([contrastYlim[0],contrastYlim[1]])
@@ -809,9 +811,10 @@ def contrastplot(
                 if i in range(2, axesCount):
                     axx.yaxis.set_visible(False)
                 else:
-                    # Draw back the lines for the relevant y-axes.
+                    # Draw back the lines for the relevant y-axes, only is axesCount is 2.
                     # Not entirely sure why I have to do this.
-                    drawback_y(axx)
+                    if axesCount==2:
+                        drawback_y(axx)
 
             sns.despine(ax=axx, 
                 top=True, right=True, 
