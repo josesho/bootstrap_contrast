@@ -115,13 +115,22 @@ def contrastplot(
 
     Keyword arguments:
         data: pandas DataFrame
-            Description of the dataframe. Wide vs Long. How are NaNs handled.
             
-        x=None
-        y=None
-        idx=None
-        idcol=None
-        alpha=0.75
+        x: string
+            column name containing categories to be plotted on the x-axis.
+
+        y: string
+            column name containing values to be plotted on the y-axis.
+
+        idx: tuple
+            flxible declaration of groupwise comparisons.
+
+        idcol: string
+            for paired plots.
+
+        alpha: float
+            alpha (transparency) of raw swarmed data points.
+            
         axis_title_size=None
         ci=95
         contrastShareY=True
@@ -347,10 +356,21 @@ def contrastplot(
                 allMin.append(np.min(data[col]))
                 allMax.append(np.max(data[col]))
             swarm_ylim=np.array( [np.min(allMin),np.max(allMax)] )
+        swarm_ylim=np.round(swarm_ylim)
     else:
         swarm_ylim=np.array([swarmYlim[0],swarmYlim[1]])
+
     if summaryBar is True:
-        swarm_ylim=np.array([0,swarm_ylim[1]])
+        lims=swarm_ylim
+        # check that 0 lies within the desired limits.
+        # if not, extend (upper or lower) limit to zero.
+        if 0 not in range( int(round(lims[0])),int(round(lims[1])) ): # turn swarm_ylim to integer range.
+            # check if all negative:.
+            if lims[0]<0. and lims[1]<0.:
+                swarm_ylim=np.array([np.min(lims),0.])
+            # check if all positive.
+            elif lims[0]>0. and lims[1]>0.:
+                swarm_ylim=np.array([0.,np.max(lims)])
 
     if contrastYlim is not None:
         contrastYlim=np.array([contrastYlim[0],contrastYlim[1]])
@@ -454,7 +474,8 @@ def contrastplot(
 
         #### PLOT RAW DATA.
         ax_raw.set_ylim(swarm_ylim)
-        ax_raw.yaxis.set_major_locator(MaxNLocator(min_n_ticks=5, nbins=8))
+        # ax_raw.yaxis.set_major_locator(MaxNLocator(n_bins='auto'))
+        # ax_raw.yaxis.set_major_locator(LinearLocator())
         if showRawData is True:
             # Seaborn swarmplot doc says to set custom ylims first.
             sw=sns.swarmplot(
@@ -474,9 +495,10 @@ def contrastplot(
                 minXAfter=min(sw.collections[1].get_offsets().T[0])
                 xposAfter=maxXBefore+floatSwarmSpacer
                 xAfterShift=minXAfter-xposAfter
-                # shift the swarmplots
+                # shift the (second) swarmplot
                 offsetSwarmX(sw.collections[1], -xAfterShift)
-                ax_raw.set_xticks([0.,1-xAfterShift]) # make sure xticklocs match the swarmplot.
+                # shift the tick.
+                ax_raw.set_xticks([0.,1-xAfterShift])
         elif paired is True:
             # Produce paired plot.
             # to get color, need to loop thru each line and plot individually.
@@ -492,23 +514,23 @@ def contrastplot(
                 ax_raw.set_xticks([0,0.25])
                 ax_raw.set_xticklabels([current_tuple[0],current_tuple[1]])
 
-        if swarmYlim is None:
-            # if swarmYlim was not specified, tweak the y-axis 
-            # to show all the data without losing ticks and range.
-            ## Get all yticks.
-            axxYTicks=ax_raw.yaxis.get_majorticklocs()
-            ax_raw.set_ylim(axxYTicks[0],axxYTicks[-1])
-            # Get tick interval.
-            YTickInterval=axxYTicks[1]-axxYTicks[0]
-            ## Set the ylim to encompass all yticks,
-            ## adding a quarter of the tick interval
-            ## as spacing at both ends.
-            ax_raw.set_ylim(
-                axxYTicks[0]-(YTickInterval/4),
-                axxYTicks[-1]+(YTickInterval/4)
-                )
-            ax_raw.yaxis.set_major_locator(MaxNLocator(min_n_ticks=5, nbins=8))
-
+        # if swarmYlim is None:
+        #     # if swarmYlim was not specified, tweak the y-axis 
+        #     # to show all the data without losing ticks and range.
+        #     ## Get all yticks.
+        #     axxYTicks=ax_raw.yaxis.get_majorticklocs()
+        #     ## Get ytick interval.
+        #     YTickInterval=axxYTicks[1]-axxYTicks[0]
+        #     ## Get current ylim
+        #     currentYlim=ax_raw.get_ylim()
+        #     ## Extend ylim by adding a fifth of the tick interval as spacing at both ends.
+        #     ax_raw.set_ylim(
+        #         currentYlim[0]-(YTickInterval/5),
+        #         currentYlim[1]+(YTickInterval/5)
+        #         )
+        #     ax_raw.yaxis.set_major_locator(MaxNLocator(nbins='auto'))
+        # ax_raw.yaxis.set_major_locator(MaxNLocator(nbins='auto'))
+        # ax_raw.yaxis.set_major_locator(LinearLocator())
 
         if summaryBar is True:
             if paired is False:
