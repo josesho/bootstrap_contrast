@@ -1,4 +1,5 @@
 '''The bootstrapContrast module.'''
+from __future__ import division
 
 from scipy.stats import ttest_ind, ttest_1samp, ttest_rel, mannwhitneyu, norm
 from collections import OrderedDict
@@ -15,6 +16,7 @@ import pandas as pd
 import numpy as np
 import warnings
 warnings.filterwarnings("ignore")
+
 
 # This imports the custom functions used.
 # These have been placed in separate .py files for reduced code clutter.
@@ -405,7 +407,7 @@ def contrastplot(
     # calculate CI.
     if ci<0 or ci>100:
         raise ValueError('ci should be between 0 and 100.')
-    alpha_level=(100-ci)/100
+    alpha_level=(100.-ci)/100.
 
     # Initialise figure, taking into account desired figsize.
     fig=plt.figure(figsize=figsize)
@@ -645,6 +647,7 @@ def contrastplot(
                          [lowDelta, highDelta],
                          color='k',
                          alpha=0.75,
+                         # linewidth=1,
                          linestyle='solid'
                         )
                 
