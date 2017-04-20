@@ -10,6 +10,9 @@ bootstrapContrast/__pycache__/
 bootstrapContrast/*.ipynb
 bootstrapContrast/.ipynb_checkpoints
 
+# .pyc files
+bootstrapContrast/*.pyc
+
 # any .CSVs or excel spreadsheets
 bootstrapContrast/*.csv
 bootstrapContrast/*.xlsx
