@@ -108,7 +108,7 @@ def bootstrap_contrast(data=None,
     # Taken from scikits.bootstrap code
     # Initialise statfunction
     if statfunction==None:
-        statfunction=np.mean
+        statfunction=np.nanmean
     # check if idx was parsed
     if idx==None:
         idx=[0,1]

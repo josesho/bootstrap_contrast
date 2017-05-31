@@ -429,15 +429,14 @@ def contrastplot(
                 ordered=True,
                 inplace=True)
             plotdat.sort_values(by=[x])
-            # Drop all nans. 
-            plotdat.dropna(inplace=True)
+            # # Drop all nans. 
+            # plotdat.dropna(inplace=True)
             summaries=plotdat.groupby(x)[y].apply(statfunction)
         if datatype=='wide':
             plotdat=data[list(current_tuple)]
-            # Drop nans.
-            plotdat.dropna(inplace=True)
             summaries=statfunction(plotdat)
-
+            plotdat=pd.melt(plotdat) ##### NOW I HAVE MELTED THE WIDE DATA.
+            
         if floatContrast is True:
             # Use fig.add_subplot instead of plt.Subplot.
             ax_raw=fig.add_subplot(gsMain[gsIdx],
@@ -460,19 +459,19 @@ def contrastplot(
         bscontrast=list()
         for i in range (1, len(current_tuple)):
             # Note that you start from one. No need to do auto-contrast!
-            if datatype=='long':
-                tempbs=bootstrap_contrast(
-                    data=plotdat,
-                    x=x,
-                    y=y,
-                    idx=[current_tuple[0], current_tuple[i]],
-                    statfunction=statfunction,
-                    smoothboot=smoothboot,
-                    alpha_level=alpha_level,
-                    reps=reps)
-                bscontrast.append(tempbs)
-                contrastList.append(tempbs)
-                contrastListNames.append(current_tuple[i]+' vs. '+current_tuple[0])
+            # if datatype=='long':aas
+            tempbs=bootstrap_contrast(
+                data=plotdat.dropna(),
+                x=x,
+                y=y,
+                idx=[current_tuple[0], current_tuple[i]],
+                statfunction=statfunction,
+                smoothboot=smoothboot,
+                alpha_level=alpha_level,
+                reps=reps)
+            bscontrast.append(tempbs)
+            contrastList.append(tempbs)
+            contrastListNames.append(current_tuple[i]+' vs. '+current_tuple[0])
 
         #### PLOT RAW DATA.
         ax_raw.set_ylim(swarm_ylim)

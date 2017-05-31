@@ -39,7 +39,7 @@ def plotbootstrap(coll, bslist, ax, violinWidth,
                       showextrema=False, showmeans=False)
     
     for b in v['bodies']:
-        m=np.mean(b.get_paths()[0].vertices[:, 0])
+        m=np.nanmean(b.get_paths()[0].vertices[:, 0])
         b.get_paths()[0].vertices[:, 0]=np.clip(b.get_paths()[0].vertices[:, 0], m, np.inf)
         b.set_color('k')
     
