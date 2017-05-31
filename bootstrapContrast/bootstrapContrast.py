@@ -460,8 +460,9 @@ def contrastplot(
         for i in range (1, len(current_tuple)):
             # Note that you start from one. No need to do auto-contrast!
             # if datatype=='long':aas
+            tempplotdat=plotdat[[x,y]] # only select the columns used for x and y plotting.
             tempbs=bootstrap_contrast(
-                data=plotdat.dropna(),
+                data=tempplotdat.dropna(), 
                 x=x,
                 y=y,
                 idx=[current_tuple[0], current_tuple[i]],
