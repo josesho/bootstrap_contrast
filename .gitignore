@@ -1,38 +1,39 @@
 # egg info
-bootstrapContrast.egg-info/
+bootstrap_contrast.egg-info/
 
 # pycache folder
-bootstrapContrast/__pycache__/
+bootstrap_contrast/__pycache__/
 
 # .ipynb files used during testing
 *.ipynb
 .ipynb_checkpoints
-bootstrapContrast/*.ipynb
-bootstrapContrast/.ipynb_checkpoints
+bootstrap_contrast/*.ipynb
+bootstrap_contrast/.ipynb_checkpoints
 
 # .pyc files
-bootstrapContrast/*.pyc
+bootstrap_contrast/*.pyc
+bootstrap_contrast/old__/*.pyc
 
 # any .CSVs or excel spreadsheets
-bootstrapContrast/*.csv
-bootstrapContrast/*.xlsx
+bootstrap_contrast/*.csv
+bootstrap_contrast/*.xlsx
 *.csv
 *.xlsx
 
 # any svg outut
-bootstrapContrast/*.svg
+bootstrap_contrast/*.svg
 *.svg
 
 # any png output
-bootstrapContrast/*.png
+bootstrap_contrast/*.png
 *.png
 
 # any pdf output
-bootstrapContrast/*.pdf
+bootstrap_contrast/*.pdf
 *.pdf
 
 # all .DS_store files.
-bootstrapContrast/*.DS_Store 
+bootstrap_contrast/*.DS_Store 
 *.DS_Store
 
 # Any temporary python file

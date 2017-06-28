@@ -32,11 +32,11 @@ def normalizeSwarmY(fig, floatcontrast):
         fig.get_axes()[i].yaxis.set_major_formatter(majorFormatter)
 
         if (floatcontrast is False):
-            sb.despine(ax = axx, top = True, right = True, 
+            sns.despine(ax = axx, top = True, right = True, 
                        left = False, bottom = True, 
                        trim = True)
         else:
-            sb.despine(ax = axx, top = True, right = True, 
+            sns.despine(ax = axx, top = True, right = True, 
                    left = False, bottom = False, 
                    trim = True)
 
@@ -44,7 +44,7 @@ def normalizeSwarmY(fig, floatcontrast):
         drawback_y(axx,linewidth=1.5)
             
 
-def normalizeContrastY(fig, contrast_ylim, show_all_yaxes):
+def normalizeContrastY(fig, contrast_ylim=None, show_all_yaxes=False):
     allYmax = list()
     allYmin = list()
     tickintervals = list()
@@ -80,7 +80,7 @@ def normalizeContrastY(fig, contrast_ylim, show_all_yaxes):
         majorticklocs_y = axx.yaxis.get_majorticklocs()
         axx.yaxis.set_view_interval(majorticklocs_y[0], majorticklocs_y[-1])
 
-        sb.despine(ax = axx, top = True, right = True, 
+        sns.despine(ax = axx, top = True, right = True, 
             left = False, bottom = True, 
             trim = True)
 

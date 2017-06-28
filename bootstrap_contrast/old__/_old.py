@@ -22,10 +22,12 @@ warnings.filterwarnings("ignore")
 # These have been placed in separate .py files for reduced code clutter.
 from .mpl_tools import rotateTicks, normalizeSwarmY, normalizeContrastY, offsetSwarmX, resetSwarmX, getSwarmSpan
 from .mpl_tools import align_yaxis, halfviolin, drawback_y, drawback_x
-from .bootstrap_tools import ci, bootstrap, bootstrap_contrast, bootstrap_indexes, jackknife_indexes, getstatarray, bca
+from .bootstrap_tools import bootstrap, jackknife_indexes, bca
 from .plot_bootstrap_tools import plotbootstrap, plotbootstrap_hubspoke, swarmsummary
 ## This is for sandboxing. Features and functions under testing go here.
 # from .sandbox import contrastplot_test
+from .prototype import cp_proto
+from .plot_tools_ import halfviolin,align_yaxis,rotate_ticks
 
 # Taken without modification from scikits.bootstrap package
 # Keep python 2/3 compatibility, without using six. At some point,
@@ -54,6 +56,7 @@ def contrastplot(
     contrastYlim=None,
     contrastZeroLineStyle='solid', 
     contrastZeroLineColor='black', 
+    connectPairs=True,
 
     effectSizeYLabel="Effect Size", 
 
@@ -195,15 +198,16 @@ def contrastplot(
     # make sure that at least x, y, and idx are specified.
     if x is None and y is None and idx is None:
         raise ValueError('You need to specify `x` and `y`, or `idx`. Neither has been specifed.')
-    # check if x is specified.
-    # If not, assume this is a 'wide' dataset with each row corresponding to one 'individual'.
-    # this is mainly to facilitate paired plot production.
 
     if x is None:
-        # if x is not specified, assume this is a 'wide' dataset.
+        # if x is not specified, assume this is a 'wide' dataset, with each idx being the name of a column.
         datatype='wide'
-        # so ignore y.
-        y=None
+        # Check that the idx are legit columns.
+        all_idx=np.unique([element for tupl in idx for element in tupl])
+        # # melt the data.
+        # data=pd.melt(data,value_vars=all_idx)
+        # x='variable'
+        # y='value'
     else:
         # if x is specified, assume this is a 'long' dataset with each row corresponding to one datapoint.
         datatype='long'
@@ -216,8 +220,8 @@ def contrastplot(
     # Get and set levels of data[x]
     if paired is True:
         violinWidth=0.1
-        # Calculate Ns--which should be simply the number of rows in data.
-        counts=len(data)
+        # # Calculate Ns--which should be simply the number of rows in data.
+        # counts=len(data)
         # is idcol supplied?
         if idcol is None and datatype=='long':
             raise ValueError('`idcol` has not been supplied but a paired plot is desired; please specify the `idcol`.')
@@ -227,10 +231,10 @@ def contrastplot(
                 # check that every idx is a column name.
                 idx_not_in_cols=[n
                 for n in idx
-                if n not in data.columns]
+                if n not in data[x].unique()]
                 if len(idx_not_in_cols)!=0:
                     raise ValueError(str(idx_not_in_cols)+" cannot be found in the columns of `data`.")
-                data_wide_cols=[n for n in idx if n in data.columns]
+                # data_wide_cols=[n for n in idx if n in data.columns]
                 # if idx is supplied but not a multiplot (ie single list or tuple)
                 if len(idx) != 2:
                     raise ValueError(idx+" does not have length 2.")
@@ -242,10 +246,10 @@ def contrastplot(
                 idx_not_in_cols=[n
                 for tup in idx
                 for n in tup
-                if n not in data.columns]
+                if n not in data[x].unique()]
                 if len(idx_not_in_cols)!=0:
                     raise ValueError(str(idx_not_in_cols)+" cannot be found in the column "+x)
-                data_wide_cols=[n for tup in idx for n in tup if n in data.columns]
+                # data_wide_cols=[n for tup in idx for n in tup if n in data.columns]
                 if ( any(len(element) != 2 for element in idx) ):
                     # If any of the tuples does not contain exactly 2 elements.
                     raise ValueError(element+" does not have length 2.")
@@ -280,7 +284,6 @@ def contrastplot(
                 if n not in data[x].unique()]
                 if len(idx_not_in_x)!=0:
                     raise ValueError(str(idx_not_in_x)+" cannot be found in the column "+x)
-
                 tuple_in=(idx, )
                 widthratio=[1]
                 if len(idx)>2:
@@ -327,11 +330,11 @@ def contrastplot(
             colorCol=kwargs['hue']
             if colorCol not in data.columns:
                 raise ValueError(colorCol+' is not a column name.')
-            colGrps=data[colorCol].unique().tolist()
+            colGrps=data[colorCol].unique()#.tolist()
             plotPal=dict( zip( colGrps, sns.color_palette(n_colors=len(colGrps)) ) )
         else:
             if datatype=='long':
-                colGrps=data[x].unique().tolist()
+                colGrps=data[x].unique()#.tolist()
                 plotPal=dict( zip( colGrps, sns.color_palette(n_colors=len(colGrps)) ) )
             if datatype=='wide':
                 plotPal=np.repeat('k',len(data))
@@ -343,11 +346,12 @@ def contrastplot(
 
     if swarmYlim is None:
         # get range of _selected groups_.
-        u = list()
-        for t in tuple_in:
-            for i in np.unique(t):
-                u.append(i)
-        u = np.unique(u)
+        # u = list()
+        # for t in tuple_in:
+        #     for i in np.unique(t):
+        #         u.append(i)
+        # u = np.unique(u)
+        u=np.unique([element for tupl in tuple_in for element in tupl])
         if datatype=='long':
             tempdat=data[data[x].isin(u)]
             swarm_ylim=np.array([np.min(tempdat[y]), np.max(tempdat[y])])
@@ -457,28 +461,29 @@ def contrastplot(
                 frame_on=False)
         # Calculate the boostrapped contrast
         bscontrast=list()
-        for i in range (1, len(current_tuple)):
-            # Note that you start from one. No need to do auto-contrast!
-            # if datatype=='long':aas
+        if paired is False:
             tempplotdat=plotdat[[x,y]] # only select the columns used for x and y plotting.
-            tempbs=bootstrap_contrast(
-                data=tempplotdat.dropna(), 
-                x=x,
-                y=y,
-                idx=[current_tuple[0], current_tuple[i]],
-                statfunction=statfunction,
-                smoothboot=smoothboot,
-                alpha_level=alpha_level,
-                reps=reps)
-            bscontrast.append(tempbs)
-            contrastList.append(tempbs)
-            contrastListNames.append(current_tuple[i]+' vs. '+current_tuple[0])
+            for i in range (1, len(current_tuple)):
+                # Note that you start from one. No need to do auto-contrast!
+                # if datatype=='long':aas
+                    tempbs=bootstrap_contrast(
+                        data=tempplotdat.dropna(), 
+                        x=x,
+                        y=y,
+                        idx=[current_tuple[0], current_tuple[i]],
+                        statfunction=statfunction,
+                        smoothboot=smoothboot,
+                        alpha_level=alpha_level,
+                        reps=reps)
+                    bscontrast.append(tempbs)
+                    contrastList.append(tempbs)
+                    contrastListNames.append(current_tuple[i]+' vs. '+current_tuple[0])
 
         #### PLOT RAW DATA.
         ax_raw.set_ylim(swarm_ylim)
         # ax_raw.yaxis.set_major_locator(MaxNLocator(n_bins='auto'))
         # ax_raw.yaxis.set_major_locator(LinearLocator())
-        if showRawData is True:
+        if paired is False and showRawData is True:
             # Seaborn swarmplot doc says to set custom ylims first.
             sw=sns.swarmplot(
                 data=plotdat, 
@@ -501,17 +506,35 @@ def contrastplot(
                 offsetSwarmX(sw.collections[1], -xAfterShift)
                 # shift the tick.
                 ax_raw.set_xticks([0.,1-xAfterShift])
+
         elif paired is True:
-            # Produce paired plot.
-            # to get color, need to loop thru each line and plot individually.
-            for ii in range(0,len(plotdat)):
-                ax_raw.plot( [0,0.25], [ plotdat.ix[ii,current_tuple[0]],
-                                        plotdat.ix[ii,current_tuple[1]] ],
-                            linestyle='solid',
-                            linewidth=pairedDeltaLineWidth,
-                            color=plotPal[ii],
-                            alpha=pairedDeltaLineAlpha,
-                           )
+            if showRawData is True:
+                sw=sns.swarmplot(data=plotdat, 
+                    x=x, y=y, 
+                    order=current_tuple, 
+                    ax=ax_raw, 
+                    alpha=alpha, 
+                    palette=plotPal,
+                    size=rawMarkerSize,
+                    marker=rawMarkerType,
+                **kwargs)
+            if connectPairs is True:
+                # Produce paired plot with lines.
+                before=plotdat[plotdat[x]==current_tuple[0]][y].tolist()
+                after=plotdat[plotdat[x]==current_tuple[1]][y].tolist()
+                linedf=pd.DataFrame(
+                    {'before':before,
+                    'after':after}
+                    )
+                # to get color, need to loop thru each line and plot individually.
+                for ii in range(0,len(linedf)):
+                    ax_raw.plot( [0,0.25], [ linedf.loc[ii,'before'],
+                                            linedf.loc[ii,'after'] ],
+                                linestyle='solid',
+                                linewidth=pairedDeltaLineWidth,
+                                color=plotPal[current_tuple[0]],
+                                alpha=pairedDeltaLineAlpha,
+                               )
                 ax_raw.set_xlim(-0.25,0.5)
                 ax_raw.set_xticks([0,0.25])
                 ax_raw.set_xticklabels([current_tuple[0],current_tuple[1]])

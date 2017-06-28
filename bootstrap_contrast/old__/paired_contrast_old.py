@@ -1,34 +1,57 @@
+from __future__ import division
+
+from scipy.stats import ttest_ind, ttest_1samp, ttest_rel, mannwhitneyu, norm
+from collections import OrderedDict
+from numpy.random import randint
+import matplotlib.gridspec as gridspec
+from matplotlib.lines import Line2D
+from matplotlib.ticker import MultipleLocator, MaxNLocator, LinearLocator, FixedLocator
+from decimal import Decimal
+import matplotlib.pyplot as plt
+from matplotlib import rc, rcParams, rcdefaults
+import sys
+import seaborn.apionly as sns
+import pandas as pd
+import numpy as np
+import warnings
+
+# These have been placed in separate .py files for reduced code clutter.
+from .mpl_tools import rotateTicks, normalizeSwarmY, normalizeContrastY, offsetSwarmX, resetSwarmX, getSwarmSpan
+from .mpl_tools import align_yaxis, halfviolin, drawback_y, drawback_x
+from .bootstrap_tools import ci, bootstrap, bootstrap_contrast, bootstrap_indexes, jackknife_indexes, getstatarray, bca
+from .plot_bootstrap_tools import plotbootstrap, plotbootstrap_hubspoke, swarmsummary
+
 def pairedcontrast(data, x, y, idcol, reps = 3000,
-    statfunction = None, idx = None, figsize = None,
-    beforeAfterSpacer = 0.01, 
-    violinWidth = 0.005, 
-    floatOffset = 0.05, 
-    showRawData = False,
-    showAllYAxes = False,
-    floatContrast = True,
-    smoothboot = False,
-    floatViolinOffset = None, 
-    showConnections = True,
-    summaryBar = False,
-    contrastYlim = None,
-    swarmYlim = None,
-    barWidth = 0.005,
-    rawMarkerSize = 8,
-    rawMarkerType = 'o',
-    summaryMarkerSize = 10,
-    summaryMarkerType = 'o',
-    summaryBarColor = 'grey',
-    meansSummaryLineStyle = 'solid', 
-    contrastZeroLineStyle = 'solid', contrastEffectSizeLineStyle = 'solid',
-    contrastZeroLineColor = 'black', contrastEffectSizeLineColor = 'black',
-    pal = None,
-    legendLoc = 2, legendFontSize = 12, legendMarkerScale = 1,
-    axis_title_size = None,
-    yticksize = None,
-    xticksize = None,
-    tickAngle=45,
-    tickAlignment='right',
-    **kwargs):
+statfunction = None, idx = None, figsize = None,
+beforeAfterSpacer = 0.01, 
+violinWidth = 0.005, 
+floatOffset = 0.05, 
+showRawData = False,
+showAllYAxes = False,
+floatContrast = True,
+smoothboot = False,
+floatViolinOffset = None, 
+showConnections = True,
+summaryBar = False,
+contrastYlim = None,
+swarmYlim = None,
+barWidth = 0.005,
+rawMarkerSize = 8,
+rawMarkerType = 'o',
+summaryMarkerSize = 10,
+summaryMarkerType = 'o',
+summaryBarColor = 'grey',
+meansSummaryLineStyle = 'solid', 
+contrastZeroLineStyle = 'solid', contrastEffectSizeLineStyle = 'solid',
+contrastZeroLineColor = 'black', contrastEffectSizeLineColor = 'black',
+pal = None,
+legendLoc = 2, legendFontSize = 12, legendMarkerScale = 1,
+axis_title_size = None,
+yticksize = None,
+xticksize = None,
+tickAngle=45,
+tickAlignment='right',
+**kwargs):
 
     # Preliminaries.
     data = data.dropna()
