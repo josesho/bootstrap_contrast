@@ -115,7 +115,7 @@ class bootstrap:
         reps=5000):
 
         # Turn to pandas series.
-        x1=pd.Series(x1)
+        x1=pd.Series(x1).dropna()
         diff=False
 
         # Initialise statfunction
@@ -132,7 +132,7 @@ class bootstrap:
             if x2 is None:
                 raise ValueError('Please specify x2.')
             else:
-                x2=pd.Series(x2)
+                x2=pd.Series(x2).dropna()
                 if len(x1)!=len(x2):
                     raise ValueError('x1 and x2 are not the same length.')
         
