@@ -228,12 +228,13 @@ class bootstrap:
         self.pvalue_wilcoxon=wilcoxonresult
         self.pvalue_mannWhitney=mannwhitneyresult
 
-        self.results={'stat_summary':self.summary,
+        results={'stat_summary':self.summary,
                 'is_difference':diff,
                 'is_paired':paired,
                 'bca_ci_low':self.bca_ci_low, 
                 'bca_ci_high':self.bca_ci_high,
                 'ci':self.ci}
+        self.results=results
 
 def jackknife_indexes(data):
     # Taken without modification from scikits.bootstrap package

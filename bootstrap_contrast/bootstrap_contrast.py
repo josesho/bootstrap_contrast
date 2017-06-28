@@ -131,7 +131,7 @@ def contrastplot(data, idx,
     ### IDENTIFY PLOT TYPE.
     if all([isinstance(i, str) for i in idx]):
         # plottype='hubspoke'
-        allgrps=[t for t in idx] # flatten out idx.
+        allgrps=np.unique([t for t in idx]) # flatten out idx.
         idx=(idx,)
         ncols=1
         widthratio=[1]
@@ -140,7 +140,7 @@ def contrastplot(data, idx,
             float_contrast=False
     elif all([isinstance(i, tuple) for i in idx]):
         # plottype='multiplot'
-        allgrps=[tt for t in idx for tt in t]
+        allgrps=np.unique([tt for t in idx for tt in t])
         ncols=len(idx)
         widthratio=[]
         for i in idx:
@@ -280,7 +280,6 @@ def contrastplot(data, idx,
         if len(colGrps)>len(custom_palette):
             raise ValueError('The number of colors supplied to `custom_palette` is less than the total number of desired color groups.')
         plotPal=dict( zip(colGrps, custom_palette) )
-    plotPal['__default_black__']=(0., 0., 0.) # black
     
     ### LIST TO STORE BOOTSTRAPPED RESULTS.
     bootlist=list()
@@ -325,6 +324,7 @@ def contrastplot(data, idx,
             if color_col is not None:
                 colors=plotdat[plotdat[x]==current_tuple[0]][color_col]
             else:
+                plotPal['__default_black__']=(0., 0., 0.) # black
                 colors=np.repeat('__default_black__',len(before))
             linedf=pd.DataFrame(
                     {str(current_tuple[0]):before,
