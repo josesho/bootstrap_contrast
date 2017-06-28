@@ -1,7 +1,7 @@
 from setuptools import setup, find_packages
 
 setup(name='bootstrap_contrast',
-      version='0.312',
+      version='0.313',
       description='Calculation and Visualization of Confidence Intervals and Effect Sizes for Python.',
       packages = find_packages(),
       install_requires = ['numpy','scipy','pandas','seaborn','matplotlib'],
