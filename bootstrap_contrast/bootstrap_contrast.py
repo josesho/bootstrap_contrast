@@ -313,7 +313,7 @@ def contrastplot(data, idx,
         if paired:
             # first, sanity checks. Do we have 2 elements (no more, no less) here?
             if len(current_tuple)!=2:
-                raise ValueError('Paired plotting is True, but '+print(current_tuple)+'does not have 2 elements.')
+                raise ValueError('Paired plotting is True, but '+str(current_tuple)+'does not have 2 elements.')
             # Are the groups equal in length??
             before=plotdat[ plotdat[x]==current_tuple[0] ][y].dropna().tolist()
             after=plotdat[ plotdat[x]==current_tuple[1] ][y].dropna().tolist()
@@ -350,7 +350,7 @@ def contrastplot(data, idx,
             ax_raw.set_ylabel(y)
             ax_raw.set_xticks([0,1])
             ax_raw.set_xticklabels( [current_tuple[0],current_tuple[1]] )
-                
+            
         elif (paired is True and show_pairs is False) or (paired is False):
             sns.swarmplot(data=plotdat, 
                           x=x, y=y, 
