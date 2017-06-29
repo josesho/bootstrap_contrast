@@ -161,9 +161,9 @@ def contrastplot(data, idx,
         # Assume we have a long dataset.
         datatype='long'
         # check both x and y are column names in data.
-        if not data_in.columns.contains(x):
+        if x not in data_in.columns:
             raise IndexError(x+' is not a column in `data`. Please check.')
-        if not data_in.columns.contains(y):
+        if y not in data_in.columns:
             raise IndexError(y+'is not a column in `data`. Please check.')
         # check y is numeric.
         if not np.issubdtype(data_in[y].dtype, np.number):
@@ -174,7 +174,7 @@ def contrastplot(data, idx,
         # extract only the columns we need.
         ## first check we have all columns in the dataset.
         for g in allgrps:
-            if not data_in.columns.contains(g):
+            if g not in data_in.columns:
                 raise IndexError(g+' is not a column in `data`. Please check.')
         ## Melt it so it is easier to use.
         x='group'
