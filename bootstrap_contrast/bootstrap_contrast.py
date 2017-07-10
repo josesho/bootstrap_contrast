@@ -8,7 +8,7 @@ from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 import seaborn.apionly as sns
 
-import scikits.bootstrap as skb
+# import scikits.bootstrap as skb
 
 import pandas as pd
 import numpy as np
