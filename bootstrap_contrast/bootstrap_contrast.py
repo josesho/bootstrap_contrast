@@ -38,7 +38,7 @@ def contrastplot(data, idx,
              
              fig_size=None,
              
-             font_scale=1.4,
+             font_scale=1.25,
              
              stat_func=np.mean,
              ci=95,n_boot=5000,
@@ -507,9 +507,9 @@ def contrastplot(data, idx,
                 ax_contrast.set_ylabel('')
             else:
                 if paired:
-                    ax_contrast.set_ylabel('paired contrast '+y)
+                    ax_contrast.set_ylabel('paired delta\n'+y)
                 else:
-                    ax_contrast.set_ylabel('contrast '+y)
+                    ax_contrast.set_ylabel('delta\n'+y)
                 
         ### ONLY SHOW COLOR LEGEND FOR RIGHTMOST AXES.
         if color_col is not None:
