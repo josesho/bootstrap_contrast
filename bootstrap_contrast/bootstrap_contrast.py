@@ -236,8 +236,7 @@ def contrastplot(data, idx,
         
     if (legend_kwargs is None) or ('markerscale' not in legend_kwargs.keys()):
         if legend_kwargs is None:
-            legend_kwargs={}
-        legend_kwargs['markerscale']=1.25
+            legend_kwargs=dict(loc='upper left',bbox_to_anchor=(0.95,1.),markerscale=1.1)
         
     if (palette_kwargs is None) or ('n_colors' not in palette_kwargs.keys()):
         if palette_kwargs is None:
@@ -288,6 +287,9 @@ def contrastplot(data, idx,
         if len(colGrps)>len(custom_palette):
             raise ValueError('The number of colors supplied to `custom_palette` is less than the total number of desired color groups.')
         plotPal=dict( zip(colGrps, custom_palette) )
+    # Create lists to store legend handles and labels for proper legend generation.
+    legend_handles=[]
+    legend_labels=[]
     
     ### LIST TO STORE BOOTSTRAPPED RESULTS.
     bootlist=list()
@@ -349,10 +351,9 @@ def contrastplot(data, idx,
                              linedf.loc[ii,current_tuple[1]] ], # y1, y2
                             linestyle='solid',
                             color=plotPal[ linedf.loc[ii,'colors'] ],
-                            linewidth=0.5,
-#                             label=linedf.loc[ii,'colors']
+                            linewidth=0.75,
+                            label=linedf.loc[ii,'colors']
 #                             linewidth=pairedDeltaLineWidth,
-#                             color=plotPal[current_tuple[0]],
 #                             alpha=pairedDeltaLineAlpha,
                            )
             ax_raw.set_ylabel(y)
@@ -390,6 +391,35 @@ def contrastplot(data, idx,
             sns.despine(ax=ax_raw,bottom=True,left=not_first_ax,trim=True)
             if not_first_ax:
                 ax_raw.yaxis.set_visible(False)
+
+        # Save the handles and labels for the legend.
+        handles,labels=ax_raw.get_legend_handles_labels()
+        for l in labels:
+            legend_labels.append(l)
+        for h in handles:
+            legend_handles.append(h)
+        ax_raw.legend().set_visible(False)
+        # Make sure we can easily pull out the right-most raw swarm axes.
+        if j+1==ncols:
+            last_swarm=ax_raw
+
+        # OLD CODE.
+        # ### ONLY SHOW COLOR LEGEND FOR RIGHTMOST AXES.
+        # if color_col is not None:
+        #     if j+1==ncols:
+        #         if (paired is True) and (show_pairs is True):
+        #             handles_list=[]
+        #             for key, value in plotPal.items():
+        #                 l=mlines.Line2D([], [], color=value, 
+        #                                 label=key)
+        #                 handles_list.append(l)
+        #             ax_raw.legend(handles=handles_list,
+        #                           loc='upper left', bbox_to_anchor=(1., 0.99),**legend_kwargs)
+        #         else:
+        #             ax_raw.legend(loc='upper left', bbox_to_anchor=(1., 0.99),**legend_kwargs)
+        #     else:
+        #         if show_pairs is False:
+        #             ax_raw.legend().set_visible(False)
         
         ### PLOT CONTRAST DATA.
         # Calculate bootstrapped stats.
@@ -510,26 +540,10 @@ def contrastplot(data, idx,
                     ax_contrast.set_ylabel('paired delta\n'+y)
                 else:
                     ax_contrast.set_ylabel('delta\n'+y)
-                
-        ### ONLY SHOW COLOR LEGEND FOR RIGHTMOST AXES.
-        if color_col is not None:
-            if j+1==ncols:
-                if (paired is True) and (show_pairs is True):
-                    handles_list=[]
-                    for key, value in plotPal.items():
-                        l=mlines.Line2D([], [], color=value, 
-                                        label=key)
-                        handles_list.append(l)
-                    ax_raw.legend(handles=handles_list,
-                                  loc='upper left', bbox_to_anchor=(1., 0.99),**legend_kwargs)
-                else:
-                    ax_raw.legend(loc='upper left', bbox_to_anchor=(1., 0.99),**legend_kwargs)
-            else:
-                if show_pairs is False:
-                    ax_raw.legend().set_visible(False)
+
         ### ROTATE X-TICKS OF ax_contrast
         rotate_ticks(ax_contrast,angle=45,alignment='right')
-        
+
     ### NORMALIZE Y LIMS AND DESPINE NON-FLOATING CONTRAST AXES.
     if float_contrast is False:
         ## Sort and convert to numpy arrays.
@@ -557,6 +571,13 @@ def contrastplot(data, idx,
             else:
                 # Despine.
                 sns.despine(ax = axx, trim = True)
+
+    ### Add Figure Legend.
+    legend_labels_unique=np.unique(legend_labels)
+    unique_idx=np.unique(legend_labels,return_index=True)[1]
+    legend_handles_unique=(pd.Series(legend_handles).loc[unique_idx]).tolist()
+    last_swarm.legend(legend_handles_unique,legend_labels_unique,
+                    **legend_kwargs)
 
     ### PREPARE OUTPUT
     # Turn `bootlist` into a pandas DataFrame
