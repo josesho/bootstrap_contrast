@@ -22,8 +22,9 @@ import pandas as pd
 import numpy as np
 import scipy as sp
 
-from .plot_tools import halfviolin, align_yaxis, rotate_ticks
+from .plot_tools import halfviolin, align_yaxis, rotate_ticks, plot_means
 from .bootstrap_tools import bootstrap, jackknife_indexes, bca
+from .misc_tools import merge_two_dicts
 
 def contrastplot(data, idx,
              x=None, y=None, 
@@ -32,6 +33,7 @@ def contrastplot(data, idx,
              float_contrast=True,
              paired=False, 
              show_pairs=True,
+             show_means=True,
              
              swarm_ylim=None,
              contrast_ylim=None,
@@ -85,6 +87,9 @@ def contrastplot(data, idx,
             If the data is paired, whether or not to show the raw data as a swarmplot, or as 
             paired plot, with a line joining each pair of observations.
 
+        show_means: boolean, default True
+            If True, a horizontal mean line will be plotted for each group.
+
         swarm_ylim: tuple, default None
             The desired y-limits of the raw data swarmplot as a (lower, higher) tuple.
 
@@ -112,8 +117,10 @@ def contrastplot(data, idx,
         custom_palette: dict, default None
 
         swarmplot_kwargs: dict, default None
+            Pass any keyword arguments accepted by the seaborn `swarmplot` command here, as a dict.
 
         violinplot_kwargs: dict, default None
+            Pass any keyword arguments accepted by the matplotlib `pyplot.violinplot` command here, as a dict.
 
         reflines_kwargs: dict, default None
 
@@ -122,6 +129,7 @@ def contrastplot(data, idx,
         palette_kwargs: dict, default None
 
         aesthetic_kwargs: dict, default None
+            Pass any keyword arguments accepted by the seaborn `set` command here, as a dict.
 
      Returns:
         A matplotlib Figure.
@@ -215,36 +223,53 @@ def contrastplot(data, idx,
         swarm_ylim=( data_in[y].min()-pad, 
                     data_in[y].max()+pad )
     
-    ### PARSE kwargs.
-    if (swarmplot_kwargs is None) or ('size' not in swarmplot_kwargs.keys()):
-        if swarmplot_kwargs==None:
-            swarmplot_kwargs={}
-        swarmplot_kwargs['size']=5
-    
-    if (violinplot_kwargs is None) or ('widths' not in violinplot_kwargs.keys()):
-        if violinplot_kwargs is None:
-            violinplot_kwargs={'widths':0.5,
-                               'vert':True,
-                               'showextrema':False,
-                               'showmedians':False}
-        violinplot_kwargs['widths']=0.5
+    ### Set default kwargs first, then merge with user-dictated ones.
+    ## Swarmplot.
+    default_swarmplot_kwargs={'size':5}
+    if swarmplot_kwargs is None:
+        swarmplot_kwargs=default_swarmplot_kwargs
+    else:
+        swarmplot_kwargs=merge_two_dicts(swarmplot_kwargs,default_swarmplot_kwargs)
 
-    if reflines_kwargs is None:
-        reflines_kwargs={'linestyle':'solid',
+    ## Violinplot.
+    default_violinplot_kwargs={'widths':0.5,
+                                'vert':True,
+                                'showextrema':False,
+                                'showmedians':False}
+    if violinplot_kwargs is None:
+        violinplot_kwargs=default_violinplot_kwargs
+    else:
+        violinplot_kwargs=merge_two_dicts(violinplot_kwargs,default_violinplot_kwargs)
+
+    ## Reference lines.
+    default_reflines_kwargs={'linestyle':'solid',
                          'linewidth':0.75,
                          'color':'k'}
-        
-    if (legend_kwargs is None) or ('markerscale' not in legend_kwargs.keys()):
-        if legend_kwargs is None:
-            legend_kwargs=dict(loc='upper left',bbox_to_anchor=(0.95,1.),markerscale=1.1)
-        
-    if (palette_kwargs is None) or ('n_colors' not in palette_kwargs.keys()):
-        if palette_kwargs is None:
-            palette_kwargs={}
-        palette_kwargs['n_colors']=len(allgrps)
+    if reflines_kwargs is None:
+        reflines_kwargs=default_reflines_kwargs
+    else:
+        reflines_kwargs=merge_two_dicts(reflines_kwargs,default_reflines_kwargs)
 
+    ## Legend.
+    default_legend_kwargs={'loc':'upper left','bbox_to_anchor':(0.95,1.),'markerscale':1.1}
+    if legend_kwargs is None:
+        legend_kwargs=default_legend_kwargs
+    else:
+        legend_kwargs=merge_two_dicts(legend_kwargs,default_legend_kwargs)
+
+    ## Palette.
+    default_palette_kwargs={'n_colors':len(allgrps)}
+    if palette_kwargs is None:
+        palette_kwargs=default_palette_kwargs
+    else:
+        palette_kwargs=merge_two_dicts(palette_kwargs,default_palette_kwargs)
+
+    ## Aesthetic kwargs for sns.set().
+    default_aesthetic_kwargs={'context':'poster','style':'ticks','font_scale':font_scale}
     if aesthetic_kwargs is None:
-        aesthetic_kwargs={'context':'poster','style':'ticks','font_scale':font_scale}
+        aesthetic_kwargs=default_aesthetic_kwargs
+    else:
+        aesthetic_kwargs=merge_two_dicts(aesthetic_kwargs,default_aesthetic_kwargs)
         
     # if paired is False, set show_pairs as False.
     if paired is False:
@@ -361,6 +386,7 @@ def contrastplot(data, idx,
             ax_raw.set_xticklabels( [current_tuple[0],current_tuple[1]] )
             
         elif (paired is True and show_pairs is False) or (paired is False):
+            # Swarmplot for raw data points.
             sns.swarmplot(data=plotdat, 
                           x=x, y=y, 
                           order=current_tuple, 
@@ -368,6 +394,10 @@ def contrastplot(data, idx,
                           hue=color_col,
                           palette=plotPal,
                           **swarmplot_kwargs)
+            # If desired, draw mean lines for each group.
+            plot_means(data=plotdat,
+                        x=x, y=y,
+                        ax=ax_raw)
         ax_raw.set_xlabel('')
         
         # Set new tick labels. The tick labels belong to the SWARM axes
