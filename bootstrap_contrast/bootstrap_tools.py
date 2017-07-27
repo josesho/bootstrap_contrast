@@ -23,7 +23,8 @@ class bootstrap:
         x1, x2: array-like
             The data in a one-dimensional array form. Only x1 is required. 
             If x2 is given, the bootstrapped summary difference between 
-            the two groups (x2-x1) is computed.
+            the two groups (x2-x1) is computed. 
+            NaNs are automatically discarded.
             
         paired: boolean, default False
             Whether or not x1 and x2 are paired samples. 
