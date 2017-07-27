@@ -2,6 +2,7 @@
 
 # Load Libraries
 import matplotlib as mpl
+mpl.use('SVG')
 import matplotlib.pyplot as plt
 
 import seaborn as sns
@@ -33,4 +34,4 @@ f,b=bs.contrastplot(df,
     color_col='Gender',
 )
 
-f.savefig('testfig.png',format='png')
+f.savefig('testfig.svg',format='svg')
