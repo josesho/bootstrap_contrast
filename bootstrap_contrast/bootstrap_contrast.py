@@ -432,25 +432,7 @@ def contrastplot(data, idx,
         # Make sure we can easily pull out the right-most raw swarm axes.
         if j+1==ncols:
             last_swarm=ax_raw
-
-        # OLD CODE.
-        # ### ONLY SHOW COLOR LEGEND FOR RIGHTMOST AXES.
-        # if color_col is not None:
-        #     if j+1==ncols:
-        #         if (paired is True) and (show_pairs is True):
-        #             handles_list=[]
-        #             for key, value in plotPal.items():
-        #                 l=mlines.Line2D([], [], color=value, 
-        #                                 label=key)
-        #                 handles_list.append(l)
-        #             ax_raw.legend(handles=handles_list,
-        #                           loc='upper left', bbox_to_anchor=(1., 0.99),**legend_kwargs)
-        #         else:
-        #             ax_raw.legend(loc='upper left', bbox_to_anchor=(1., 0.99),**legend_kwargs)
-        #     else:
-        #         if show_pairs is False:
-        #             ax_raw.legend().set_visible(False)
-        
+            
         ### PLOT CONTRAST DATA.
         # Calculate bootstrapped stats.
         # Plot the CIs on the bottom axes.
