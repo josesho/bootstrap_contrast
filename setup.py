@@ -44,7 +44,7 @@ def check_dependencies():
 if __name__=="__main__":
     setup(name='bootstrap_contrast',
         author='Joses Ho',
-        email='joseshowh@gmail.com'
+        email='joseshowh@gmail.com',
         version='0.319',
         description='Calculation and Visualization of Confidence Intervals and Effect Sizes for Python.',
         packages=find_packages(),
