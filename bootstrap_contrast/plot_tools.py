@@ -1,5 +1,9 @@
 import matplotlib.pyplot as plt
+import seaborn as sns
 import numpy as np
+
+from .misc_tools import merge_two_dicts
+
 
 def halfviolin(v, half = 'right', color = 'k'):
     for b in v['bodies']:
@@ -30,3 +34,52 @@ def rotate_ticks(axes, angle=45, alignment='right'):
     for tick in axes.get_xticklabels():
         tick.set_rotation(angle)
         tick.set_horizontalalignment(alignment)
+
+def plot_means(data,x,y,ax=None,xwidth=0.5,linestyle_kw=None):
+    """Takes a pandas DataFrame and plots the `y` means of each group in `x` as horizontal lines.
+
+    Keyword arguments:
+        data: pandas DataFrame.
+            This DataFrame should be in 'wide' format.
+
+        x,y: string.
+            x and y columns to be plotted.
+            
+        xwidth: float, default 0.5
+            The horizontal spread of the line. The default is 0.5, which means
+            the mean line will stretch 0.5 (in data coordinates) on both sides
+            of the xtick.
+            
+        linestyle_kw: dict, default None
+            Dictionary with kwargs passed to the `meanprops` argument of `plt.boxplot`.
+    """
+
+    # Set default linestyle parameters.
+    default_linestyle_kw=dict(
+            linewidth=1.5,
+            color='k',
+            linestyle='-')
+    # If user has specified kwargs for linestyle, merge with default params.
+    if linestyle_kw is None:
+        meanlinestyle_kw=default_linestyle_kw
+    else:
+        meanlinestyle_kw=merge_two_dicts(default_linestyle_kw,linestyle_kw)
+
+    # Set axes for plotting.
+    if ax is None:
+        ax=plt.gca()
+
+    # Use sns.boxplot to create the mean lines.
+    sns.boxplot(data=data,
+                x=x,y=y,
+                ax=ax,
+                showmeans=True,
+                meanline=True,
+                showbox=False,
+                showcaps=False,
+                showfliers=False,
+                whis=0,
+                width=xwidth,
+                meanprops=meanlinestyle_kw,
+                medianprops=dict(linewidth=0)
+               )
