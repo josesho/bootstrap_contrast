@@ -1,5 +1,6 @@
 # bootstrap-contrast
 [![Build Status](https://travis-ci.org/josesho/bootstrap_contrast.svg?branch=master)](https://travis-ci.org/josesho/bootstrap_contrast)
+
 Python module to produced bootstrapped confidence intervals and effect sizes. Requires matplotlib, seaborn, numpy, scipy, and pandas (version at least 0.20.3).
 
 To obtain these package dependencies easily, it is highly recommended to download the Anaconda distribution of Python from [https://www.continuum.io/downloads](https://www.continuum.io/downloads). 
