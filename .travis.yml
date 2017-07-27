@@ -1,0 +1,20 @@
+language: python
+python:
+  - "2.7"
+  - "3.2"
+  - "3.3"
+  - "3.4"
+  - "3.5"
+  - "3.6"
+# command to install dependencies
+install:
+  - conda update conda --yes
+  - conda create -n testenv --yes pip python=$PYTHON
+  - conda update conda --yes
+  - source activate testenv
+  - conda install --yes --file testing/deps_${DEPS}.txt
+  - pip install pep8==1.5  # Later versions get stricter...
+  - pip install https://github.com/dcramer/pyflakes/tarball/master
+  - pip install .
+# command to run tests
+script: pytest
