@@ -275,6 +275,10 @@ def contrastplot(data, idx,
     if paired is False:
         show_pairs=False
 
+    # Small check to ensure that means are not shown if `float_contrast` is True.
+    if float_contrast is True:
+        show_means=False
+
     ### INITIALISE FIGURE.
     # Set clean style.
     sns.set(**aesthetic_kwargs)
@@ -395,9 +399,10 @@ def contrastplot(data, idx,
                           palette=plotPal,
                           **swarmplot_kwargs)
             # If desired, draw mean lines for each group.
-            plot_means(data=plotdat,
-                        x=x, y=y,
-                        ax=ax_raw)
+            if show_means:
+                plot_means(data=plotdat,
+                            x=x, y=y,
+                            ax=ax_raw)
         ax_raw.set_xlabel('')
         
         # Set new tick labels. The tick labels belong to the SWARM axes
@@ -432,7 +437,7 @@ def contrastplot(data, idx,
         # Make sure we can easily pull out the right-most raw swarm axes.
         if j+1==ncols:
             last_swarm=ax_raw
-            
+
         ### PLOT CONTRAST DATA.
         # Calculate bootstrapped stats.
         # Plot the CIs on the bottom axes.
