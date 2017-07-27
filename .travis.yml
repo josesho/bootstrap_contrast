@@ -2,29 +2,12 @@ language: python
 
 
 env:
-  - PYTHON=2.7 DEPS=latest BACKEND=agg DOCTESTS=true
-  - PYTHON=2.7 DEPS=pinned BACKEND=agg DOCTESTS=false
-  - PYTHON=2.7 DEPS=latest BACKEND=qtagg DOCTESTS=true
-  - PYTHON=3.4 DEPS=latest BACKEND=agg DOCTESTS=true
-  - PYTHON=3.5 DEPS=latest BACKEND=agg DOCTESTS=true
-  - PYTHON=3.6 DEPS=latest BACKEND=agg DOCTESTS=true
-  - PYTHON=3.6 DEPS=latest BACKEND=qtagg DOCTESTS=true
-  - PYTHON=3.6 DEPS=minimal BACKEND=agg DOCTESTS=false
-
-
-before_install:
-  - sudo apt-get update -yq
-  - sudo sh -c "echo ttf-mscorefonts-installer msttcorefonts/accepted-mscorefonts-eula select true | debconf-set-selections"
-  - sudo apt-get install msttcorefonts -qq
-
-  # http://conda.pydata.org/docs/travis.html#the-travis-yml-file
-  - wget https://repo.continuum.io/miniconda/Miniconda-latest-Linux-x86_64.sh -O miniconda.sh
-  - bash miniconda.sh -b -p $HOME/miniconda
-  - export PATH="$HOME/miniconda/bin:$PATH"
-  - hash -r
-  - conda config --set always_yes yes --set changeps1 no
-  - conda update -q conda
-  - conda info -a
+  - PYTHON=2.7 BACKEND=agg
+  - PYTHON=2.7 BACKEND=qtagg
+  - PYTHON=3.4 BACKEND=agg
+  - PYTHON=3.5 BACKEND=agg
+  - PYTHON=3.6 BACKEND=qtagg
+  - PYTHON=3.6 BACKEND=agg
 
 
 install:
@@ -32,26 +15,7 @@ install:
   - conda create -n testenv --yes pip python=$PYTHON
   - conda update conda --yes
   - source activate testenv
-  - conda install --yes --file testing/deps_${DEPS}.txt
-  - pip install pep8==1.5  # Later versions get stricter...
-  - pip install https://github.com/dcramer/pyflakes/tarball/master
-  - pip install .
+  - conda install --yes numpy scipy matplotlib pandas seaborn
 
 
-before_script:
-  - cp testing/matplotlibrc_${BACKEND} matplotlibrc
-  - if [ $BACKEND == "qtagg" ]; then
-    export DISPLAY=:99.0;
-    sh -e /etc/init.d/xvfb start;
-    sleep 3;
-    fi
-
-
-script:
-  - if [ ${PYTHON:0:1} == "2" ]; then
-    make lint;
-    fi
-  - if [ $DOCTESTS == 'true' ];
-    then nosetests --with-doctest;
-    else nosetests;
-    fi
+script: python test_run.py
