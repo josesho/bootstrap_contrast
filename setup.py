@@ -44,13 +44,11 @@ def check_dependencies():
 if __name__=="__main__":
     setup(name='bootstrap_contrast',
         author='Joses Ho',
-        email='joseshowh@gmail.com',
+        author_email='joseshowh@gmail.com',
         version='0.319',
         description='Calculation and Visualization of Confidence Intervals and Effect Sizes for Python.',
         packages=find_packages(),
         install_requires=to_install,
         url='http://github.com/josesho/bootstrap_contrast',
-        author='Joses Ho',
-        author_email='joseshowh@gmail.com',
         license='GNU GPLv3',
         zip_safe=False)
