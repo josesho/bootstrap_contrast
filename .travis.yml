@@ -3,9 +3,9 @@ language: python
 
 env:
   - PYTHON=2.7
+  - PYTHON=3.6
   - PYTHON=3.4
   - PYTHON=3.5
-  - PYTHON=3.6
 
 
 before_install:
@@ -22,7 +22,7 @@ install:
   - conda create -n testenv --yes pip python=$PYTHON
   - conda update conda --yes
   - source activate testenv
-  - conda install --yes numpy scipy matplotlib pandas=0.20.3 seaborn
+  - conda install --yes numpy scipy matplotlib pandas=0.20.1 seaborn
 
 
 script: python test_run.py
