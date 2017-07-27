@@ -30,8 +30,10 @@ def check_dependencies():
         to_install.append('matplotlib')
     try:
         import pandas
+        if int(pandas.__version__.split('.')[1])<20:
+            to_install.append('pandas>=0.20.1')
     except ImportError:
-        to_install.append('pandas')
+        to_install.append('pandas>=0.20.1')
     try:
         import seaborn
     except ImportError:
