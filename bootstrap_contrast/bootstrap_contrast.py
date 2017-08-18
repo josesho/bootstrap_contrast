@@ -16,8 +16,6 @@ sns_version_minor=int(sns_version[1])
 if sns_version_major==0 or sns_version_minor<8:
     import seaborn.apionly as sns
 
-# import scikits.bootstrap as skb
-
 import pandas as pd
 import numpy as np
 import scipy as sp
@@ -225,11 +223,11 @@ def contrastplot(data, idx,
     
     ### Set default kwargs first, then merge with user-dictated ones.
     ## Swarmplot.
-    default_swarmplot_kwargs={'size':5}
+    default_swarmplot_kwargs={'size':6}
     if swarmplot_kwargs is None:
         swarmplot_kwargs=default_swarmplot_kwargs
     else:
-        swarmplot_kwargs=merge_two_dicts(swarmplot_kwargs,default_swarmplot_kwargs)
+        swarmplot_kwargs=merge_two_dicts(default_swarmplot_kwargs,swarmplot_kwargs)
 
     ## Violinplot.
     default_violinplot_kwargs={'widths':0.5,
@@ -239,7 +237,7 @@ def contrastplot(data, idx,
     if violinplot_kwargs is None:
         violinplot_kwargs=default_violinplot_kwargs
     else:
-        violinplot_kwargs=merge_two_dicts(violinplot_kwargs,default_violinplot_kwargs)
+        violinplot_kwargs=merge_two_dicts(default_violinplot_kwargs,violinplot_kwargs)
 
     ## Reference lines.
     default_reflines_kwargs={'linestyle':'solid',
@@ -248,28 +246,28 @@ def contrastplot(data, idx,
     if reflines_kwargs is None:
         reflines_kwargs=default_reflines_kwargs
     else:
-        reflines_kwargs=merge_two_dicts(reflines_kwargs,default_reflines_kwargs)
+        reflines_kwargs=merge_two_dicts(default_reflines_kwargs,reflines_kwargs)
 
     ## Legend.
     default_legend_kwargs={'loc':'upper left','bbox_to_anchor':(0.95,1.),'markerscale':1.1}
     if legend_kwargs is None:
         legend_kwargs=default_legend_kwargs
     else:
-        legend_kwargs=merge_two_dicts(legend_kwargs,default_legend_kwargs)
+        legend_kwargs=merge_two_dicts(default_legend_kwargs,legend_kwargs)
 
     ## Palette.
     default_palette_kwargs={'n_colors':len(allgrps)}
     if palette_kwargs is None:
         palette_kwargs=default_palette_kwargs
     else:
-        palette_kwargs=merge_two_dicts(palette_kwargs,default_palette_kwargs)
+        palette_kwargs=merge_two_dicts(default_palette_kwargs,palette_kwargs)
 
     ## Aesthetic kwargs for sns.set().
     default_aesthetic_kwargs={'context':'poster','style':'ticks','font_scale':font_scale}
     if aesthetic_kwargs is None:
         aesthetic_kwargs=default_aesthetic_kwargs
     else:
-        aesthetic_kwargs=merge_two_dicts(aesthetic_kwargs,default_aesthetic_kwargs)
+        aesthetic_kwargs=merge_two_dicts(default_aesthetic_kwargs,aesthetic_kwargs)
         
     # if paired is False, set show_pairs as False.
     if paired is False:
