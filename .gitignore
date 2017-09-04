@@ -26,3 +26,6 @@ bootstrap_contrast/*.DS_Store
 
 # pdf folder
 pdf/*
+
+# font cache.
+fontList.py3k.cache
