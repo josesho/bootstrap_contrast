@@ -14,27 +14,15 @@ bootstrap_contrast/.ipynb_checkpoints
 bootstrap_contrast/*.pyc
 bootstrap_contrast/old__/*.pyc
 
-# any .CSVs or excel spreadsheets
-bootstrap_contrast/*.csv
-bootstrap_contrast/*.xlsx
-*.csv
-*.xlsx
-
-# any svg outut
-bootstrap_contrast/*.svg
-*.svg
-
-# any png output
-bootstrap_contrast/*.png
-*.png
-
-# any pdf output
-bootstrap_contrast/*.pdf
-*.pdf
+# img directory
+img/*
 
 # all .DS_store files.
-bootstrap_contrast/*.DS_Store 
+bootstrap_contrast/*.DS_Store
 *.DS_Store
 
 # Any temporary python file
 *._py
+
+# pdf folder
+pdf/*
