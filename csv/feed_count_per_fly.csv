@@ -1,0 +1,121 @@
+FlyID,Temperature,FeedCount,Genotype,Expt_Group,plot_group
+1,22,40,W1118;MB312B-Gal4,Sibling Control,Sibling Control 22
+2,22,14,W1118;MB312B-Gal4,Sibling Control,Sibling Control 22
+3,22,25,W1118;MB312B-Gal4,Sibling Control,Sibling Control 22
+4,22,26,W1118;MB312B-Gal4,Sibling Control,Sibling Control 22
+5,22,51,W1118;MB312B-Gal4,Sibling Control,Sibling Control 22
+6,22,63,W1118;MB312B-Gal4,Sibling Control,Sibling Control 22
+7,22,13,W1118;MB312B-Gal4,Sibling Control,Sibling Control 22
+8,22,0,W1118;MB312B-Gal4,Sibling Control,Sibling Control 22
+9,22,29,W1118;MB312B-Gal4,Sibling Control,Sibling Control 22
+10,22,42,W1118;MB312B-Gal4,Sibling Control,Sibling Control 22
+11,22,14,MB312B-Gal4>UAS-TrpA1,Offspring,Offspring 22
+12,22,15,MB312B-Gal4>UAS-TrpA1,Offspring,Offspring 22
+13,22,36,MB312B-Gal4>UAS-TrpA1,Offspring,Offspring 22
+14,22,43,MB312B-Gal4>UAS-TrpA1,Offspring,Offspring 22
+15,22,13,MB312B-Gal4>UAS-TrpA1,Offspring,Offspring 22
+16,22,15,MB312B-Gal4>UAS-TrpA1,Offspring,Offspring 22
+17,22,6,MB312B-Gal4>UAS-TrpA1,Offspring,Offspring 22
+18,22,5,MB312B-Gal4>UAS-TrpA1,Offspring,Offspring 22
+19,22,57,MB312B-Gal4>UAS-TrpA1,Offspring,Offspring 22
+20,22,23,MB312B-Gal4>UAS-TrpA1,Offspring,Offspring 22
+21,22,63,W1118;UAS-TrpA1,Sibling Control,Sibling Control 22
+22,22,54,W1118;UAS-TrpA1,Sibling Control,Sibling Control 22
+23,22,52,W1118;UAS-TrpA1,Sibling Control,Sibling Control 22
+24,22,11,W1118;UAS-TrpA1,Sibling Control,Sibling Control 22
+25,22,9,W1118;UAS-TrpA1,Sibling Control,Sibling Control 22
+26,22,26,W1118;UAS-TrpA1,Sibling Control,Sibling Control 22
+27,22,0,W1118;UAS-TrpA1,Sibling Control,Sibling Control 22
+28,22,8,W1118;UAS-TrpA1,Sibling Control,Sibling Control 22
+29,22,0,W1118;UAS-TrpA1,Sibling Control,Sibling Control 22
+30,22,0,W1118;UAS-TrpA1,Sibling Control,Sibling Control 22
+31,29,11,W1118;MB312B-Gal4,Sibling Control,Sibling Control 29
+32,29,24,W1118;MB312B-Gal4,Sibling Control,Sibling Control 29
+33,29,43,W1118;MB312B-Gal4,Sibling Control,Sibling Control 29
+34,29,6,W1118;MB312B-Gal4,Sibling Control,Sibling Control 29
+35,29,0,W1118;MB312B-Gal4,Sibling Control,Sibling Control 29
+36,29,22,W1118;MB312B-Gal4,Sibling Control,Sibling Control 29
+37,29,0,W1118;MB312B-Gal4,Sibling Control,Sibling Control 29
+38,29,3,W1118;MB312B-Gal4,Sibling Control,Sibling Control 29
+39,29,35,W1118;MB312B-Gal4,Sibling Control,Sibling Control 29
+40,29,29,W1118;MB312B-Gal4,Sibling Control,Sibling Control 29
+41,29,28,MB312B-Gal4>UAS-TrpA1,Offspring,Offspring 29
+42,29,15,MB312B-Gal4>UAS-TrpA1,Offspring,Offspring 29
+43,29,37,MB312B-Gal4>UAS-TrpA1,Offspring,Offspring 29
+44,29,1,MB312B-Gal4>UAS-TrpA1,Offspring,Offspring 29
+45,29,24,MB312B-Gal4>UAS-TrpA1,Offspring,Offspring 29
+46,29,27,MB312B-Gal4>UAS-TrpA1,Offspring,Offspring 29
+47,29,14,MB312B-Gal4>UAS-TrpA1,Offspring,Offspring 29
+48,29,14,MB312B-Gal4>UAS-TrpA1,Offspring,Offspring 29
+49,29,13,MB312B-Gal4>UAS-TrpA1,Offspring,Offspring 29
+50,29,44,MB312B-Gal4>UAS-TrpA1,Offspring,Offspring 29
+51,29,104,W1118;UAS-TrpA1,Sibling Control,Sibling Control 29
+52,29,21,W1118;UAS-TrpA1,Sibling Control,Sibling Control 29
+53,29,41,W1118;UAS-TrpA1,Sibling Control,Sibling Control 29
+54,29,16,W1118;UAS-TrpA1,Sibling Control,Sibling Control 29
+55,29,15,W1118;UAS-TrpA1,Sibling Control,Sibling Control 29
+56,29,9,W1118;UAS-TrpA1,Sibling Control,Sibling Control 29
+57,29,7,W1118;UAS-TrpA1,Sibling Control,Sibling Control 29
+58,29,13,W1118;UAS-TrpA1,Sibling Control,Sibling Control 29
+59,29,13,W1118;UAS-TrpA1,Sibling Control,Sibling Control 29
+60,29,49,W1118;UAS-TrpA1,Sibling Control,Sibling Control 29
+61,22,1,W1118;MB312B-Gal4,Sibling Control,Sibling Control 22
+62,22,10,W1118;MB312B-Gal4,Sibling Control,Sibling Control 22
+63,22,66,W1118;MB312B-Gal4,Sibling Control,Sibling Control 22
+64,22,69,W1118;MB312B-Gal4,Sibling Control,Sibling Control 22
+65,22,114,W1118;MB312B-Gal4,Sibling Control,Sibling Control 22
+66,22,27,W1118;MB312B-Gal4,Sibling Control,Sibling Control 22
+67,22,17,W1118;MB312B-Gal4,Sibling Control,Sibling Control 22
+68,22,68,W1118;MB312B-Gal4,Sibling Control,Sibling Control 22
+69,22,12,W1118;MB312B-Gal4,Sibling Control,Sibling Control 22
+70,22,4,W1118;MB312B-Gal4,Sibling Control,Sibling Control 22
+71,22,90,MB312B-Gal4>UAS-TrpA1,Offspring,Offspring 22
+72,22,40,MB312B-Gal4>UAS-TrpA1,Offspring,Offspring 22
+73,22,44,MB312B-Gal4>UAS-TrpA1,Offspring,Offspring 22
+74,22,106,MB312B-Gal4>UAS-TrpA1,Offspring,Offspring 22
+75,22,85,MB312B-Gal4>UAS-TrpA1,Offspring,Offspring 22
+76,22,30,MB312B-Gal4>UAS-TrpA1,Offspring,Offspring 22
+77,22,7,MB312B-Gal4>UAS-TrpA1,Offspring,Offspring 22
+78,22,23,MB312B-Gal4>UAS-TrpA1,Offspring,Offspring 22
+79,22,9,MB312B-Gal4>UAS-TrpA1,Offspring,Offspring 22
+80,22,48,MB312B-Gal4>UAS-TrpA1,Offspring,Offspring 22
+81,22,26,W1118;UAS-TrpA1,Sibling Control,Sibling Control 22
+82,22,57,W1118;UAS-TrpA1,Sibling Control,Sibling Control 22
+83,22,32,W1118;UAS-TrpA1,Sibling Control,Sibling Control 22
+84,22,22,W1118;UAS-TrpA1,Sibling Control,Sibling Control 22
+85,22,79,W1118;UAS-TrpA1,Sibling Control,Sibling Control 22
+86,22,30,W1118;UAS-TrpA1,Sibling Control,Sibling Control 22
+87,22,3,W1118;UAS-TrpA1,Sibling Control,Sibling Control 22
+88,22,94,W1118;UAS-TrpA1,Sibling Control,Sibling Control 22
+89,22,62,W1118;UAS-TrpA1,Sibling Control,Sibling Control 22
+90,22,0,W1118;UAS-TrpA1,Sibling Control,Sibling Control 22
+91,29,13,W1118;MB312B-Gal4,Sibling Control,Sibling Control 29
+92,29,60,W1118;MB312B-Gal4,Sibling Control,Sibling Control 29
+93,29,70,W1118;MB312B-Gal4,Sibling Control,Sibling Control 29
+94,29,18,W1118;MB312B-Gal4,Sibling Control,Sibling Control 29
+95,29,131,W1118;MB312B-Gal4,Sibling Control,Sibling Control 29
+96,29,42,W1118;MB312B-Gal4,Sibling Control,Sibling Control 29
+97,29,19,W1118;MB312B-Gal4,Sibling Control,Sibling Control 29
+98,29,11,W1118;MB312B-Gal4,Sibling Control,Sibling Control 29
+99,29,0,W1118;MB312B-Gal4,Sibling Control,Sibling Control 29
+100,29,19,W1118;MB312B-Gal4,Sibling Control,Sibling Control 29
+101,29,2,MB312B-Gal4>UAS-TrpA1,Offspring,Offspring 29
+102,29,22,MB312B-Gal4>UAS-TrpA1,Offspring,Offspring 29
+103,29,1,MB312B-Gal4>UAS-TrpA1,Offspring,Offspring 29
+104,29,9,MB312B-Gal4>UAS-TrpA1,Offspring,Offspring 29
+105,29,43,MB312B-Gal4>UAS-TrpA1,Offspring,Offspring 29
+106,29,31,MB312B-Gal4>UAS-TrpA1,Offspring,Offspring 29
+107,29,47,MB312B-Gal4>UAS-TrpA1,Offspring,Offspring 29
+108,29,17,MB312B-Gal4>UAS-TrpA1,Offspring,Offspring 29
+109,29,28,MB312B-Gal4>UAS-TrpA1,Offspring,Offspring 29
+110,29,22,MB312B-Gal4>UAS-TrpA1,Offspring,Offspring 29
+111,29,232,W1118;UAS-TrpA1,Sibling Control,Sibling Control 29
+112,29,60,W1118;UAS-TrpA1,Sibling Control,Sibling Control 29
+113,29,25,W1118;UAS-TrpA1,Sibling Control,Sibling Control 29
+114,29,47,W1118;UAS-TrpA1,Sibling Control,Sibling Control 29
+115,29,26,W1118;UAS-TrpA1,Sibling Control,Sibling Control 29
+116,29,48,W1118;UAS-TrpA1,Sibling Control,Sibling Control 29
+117,29,29,W1118;UAS-TrpA1,Sibling Control,Sibling Control 29
+118,29,12,W1118;UAS-TrpA1,Sibling Control,Sibling Control 29
+119,29,11,W1118;UAS-TrpA1,Sibling Control,Sibling Control 29
+120,29,14,W1118;UAS-TrpA1,Sibling Control,Sibling Control 29
