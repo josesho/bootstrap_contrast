@@ -47,10 +47,10 @@ if __name__=="__main__":
     setup(name='bootstrap_contrast',
         author='Joses Ho',
         author_email='joseshowh@gmail.com',
-        version='0.320',
+        version='0.320.1',
         description='Calculation and Visualization of Confidence Intervals and Effect Sizes for Python.',
         packages=find_packages(),
         install_requires=installs,
         url='http://github.com/josesho/bootstrap_contrast',
-        license='GNU GPLv3',
-        zip_safe=False)
+        license='GNU GPLv3'
+        )
