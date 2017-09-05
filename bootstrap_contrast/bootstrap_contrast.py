@@ -27,6 +27,8 @@ from .misc_tools import merge_two_dicts
 def contrastplot(data, idx,
              x=None, y=None,
              color_col=None,
+             swarm_label=None,
+             contrast_label=None,
 
              float_contrast=True,
              paired=False,
@@ -73,6 +75,9 @@ def contrastplot(data, idx,
         color_col: list, default None
             List of colors (either named matplotlib colors or RGB tuples) to be used to color the
             different categories.
+
+        swarm_label, contrast_label: strings, default None
+            Set labels for the y-axis of the swarmplot and the contrast plot, respectively.
 
         float_contrast: boolean, default True
             Whether or not to display the halfviolin bootstrapped difference distribution
@@ -192,7 +197,10 @@ def contrastplot(data, idx,
                 raise IndexError(g+' is not a column in `data`. Please check.')
         ## Melt it so it is easier to use.
         x='group'
-        y='value'
+        if swarm_label is None:
+            y='value'
+        else:
+            y=str(swarm_label)
         if color_col is None:
             idv=['index']
         else:
@@ -552,10 +560,13 @@ def contrastplot(data, idx,
                 ax_raw.set_ylabel('')
                 ax_contrast.set_ylabel('')
             else:
-                if paired:
-                    ax_contrast.set_ylabel('paired delta\n'+y)
+                if contrast_label is None:
+                    if paired:
+                        ax_contrast.set_ylabel('paired delta\n'+y)
+                    else:
+                        ax_contrast.set_ylabel('delta\n'+y)
                 else:
-                    ax_contrast.set_ylabel('delta\n'+y)
+                    ax_contrast.set_ylabel(str(contrast_label))
 
         ### ROTATE X-TICKS OF ax_contrast
         rotate_ticks(ax_contrast,angle=45,alignment='right')
