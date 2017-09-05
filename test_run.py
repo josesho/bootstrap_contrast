@@ -5,9 +5,11 @@ import matplotlib as mpl
 mpl.use('SVG')
 import matplotlib.pyplot as plt
 
+# %matplotlib inline
+
 import seaborn as sns
 sns.set(style='ticks',context='talk')
-import bootstrap_contrast as bs 
+import bootstrap_contrast as bs
 
 import pandas as pd
 import numpy as np
@@ -30,8 +32,10 @@ df['Group5']=(df['Group5']*1.1)-1
 df['Gender']=np.concatenate([np.repeat('Male',20),np.repeat('Female',20)])
 
 f,b=bs.contrastplot(df,
-                    idx=(('Control','Group1',),('Control','Group3'),('Control','Group5')),
-    color_col='Gender',
-)
-
+                    idx=(('Control','Group1',),
+                         ('Control','Group3'),
+                         ('Control','Group5')),
+                    float_contrast=False,
+                    swarm_label='My Raw Data',
+                    contrast_label='The contrast')
 f.savefig('testfig.svg',format='svg')
