@@ -52,5 +52,5 @@ if __name__=="__main__":
         packages=find_packages(),
         install_requires=installs,
         url='http://github.com/josesho/bootstrap_contrast',
-        license='GNU GPLv3'
+        license='MIT'
         )
