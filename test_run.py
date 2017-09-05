@@ -38,4 +38,5 @@ f,b=bs.contrastplot(df,
                     float_contrast=False,
                     swarm_label='My Raw Data',
                     contrast_label='The contrast')
+                    
 f.savefig('testfig.svg',format='svg')
