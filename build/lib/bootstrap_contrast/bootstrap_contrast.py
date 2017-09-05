@@ -25,28 +25,30 @@ from .bootstrap_tools import bootstrap, jackknife_indexes, bca
 from .misc_tools import merge_two_dicts
 
 def contrastplot(data, idx,
-             x=None, y=None, 
+             x=None, y=None,
              color_col=None,
-             
+             swarm_label=None,
+             contrast_label=None,
+
              float_contrast=True,
-             paired=False, 
+             paired=False,
              show_pairs=True,
              show_means=True,
-             
+
              swarm_ylim=None,
              contrast_ylim=None,
-             
+
              fig_size=None,
-             
+
              font_scale=1.25,
-             
+
              stat_func=np.mean,
              ci=95,n_boot=5000,
-             
+
              show_group_count=True,
 
              custom_palette=None,
-             
+
              swarmplot_kwargs=None,
              violinplot_kwargs=None,
              reflines_kwargs=None,
@@ -55,7 +57,7 @@ def contrastplot(data, idx,
              aesthetic_kwargs=None,
 
             ):
-    
+
     '''Takes a pandas DataFrame and produces a contrast plot:
     either a Cummings hub-and-spoke plot or a Gardner-Altman contrast plot.
     Paired and unpaired options available.
@@ -74,15 +76,18 @@ def contrastplot(data, idx,
             List of colors (either named matplotlib colors or RGB tuples) to be used to color the
             different categories.
 
+        swarm_label, contrast_label: strings, default None
+            Set labels for the y-axis of the swarmplot and the contrast plot, respectively.
+
         float_contrast: boolean, default True
-            Whether or not to display the halfviolin bootstrapped difference distribution 
+            Whether or not to display the halfviolin bootstrapped difference distribution
             alongside the raw data.
 
         paired: boolean, default False
             Whether or not the data is paired. To elaborate.
 
         show_pairs: boolean, default True
-            If the data is paired, whether or not to show the raw data as a swarmplot, or as 
+            If the data is paired, whether or not to show the raw data as a swarmplot, or as
             paired plot, with a line joining each pair of observations.
 
         show_means: boolean, default True
@@ -110,7 +115,7 @@ def contrastplot(data, idx,
             Number of bootstrap iterations to perform during calculation of confidence intervals.
 
         show_group_count: boolean, default True
-            Whether or not the group count (e.g. 'N=10') will be appended to the xtick labels. 
+            Whether or not the group count (e.g. 'N=10') will be appended to the xtick labels.
 
         custom_palette: dict, default None
 
@@ -137,7 +142,7 @@ def contrastplot(data, idx,
         Description of column headings.
 
     '''
-    
+
     ### MAKE COPY OF DATA.
     data_in=data.copy()
     data_in.reset_index(inplace=True)
@@ -192,7 +197,10 @@ def contrastplot(data, idx,
                 raise IndexError(g+' is not a column in `data`. Please check.')
         ## Melt it so it is easier to use.
         x='group'
-        y='value'
+        if swarm_label is None:
+            y='value'
+        else:
+            y=str(swarm_label)
         if color_col is None:
             idv=['index']
         else:
@@ -200,7 +208,7 @@ def contrastplot(data, idx,
         data_in=pd.melt(data_in.reset_index(),
                         id_vars=idv,
                         value_vars=allgrps,
-                        value_name=x, 
+                        value_name=x,
                         var_name=y)
         idv.append(x)
         idv.append(y)
@@ -209,7 +217,7 @@ def contrastplot(data, idx,
         raise ValueError('You have only specified `y`. Please also specify `x`')
     elif y is None and x is not None:
         raise ValueError('You have only specified `x`. Please also specify `y`')
-    
+
     # CALCULATE CI.
     if ci<0 or ci>100:
         raise ValueError('`ci` should be between 0 and 100.')
@@ -218,9 +226,9 @@ def contrastplot(data, idx,
     # CALCULATE RAW SWARM YLIMS.
     if swarm_ylim is None:
         pad=np.abs(data_in[y].diff().min())/2 # To ensure points at the limits are clearly seen.
-        swarm_ylim=( data_in[y].min()-pad, 
+        swarm_ylim=( data_in[y].min()-pad,
                     data_in[y].max()+pad )
-    
+
     ### Set default kwargs first, then merge with user-dictated ones.
     ## Swarmplot.
     default_swarmplot_kwargs={'size':6}
@@ -268,7 +276,7 @@ def contrastplot(data, idx,
         aesthetic_kwargs=default_aesthetic_kwargs
     else:
         aesthetic_kwargs=merge_two_dicts(default_aesthetic_kwargs,aesthetic_kwargs)
-        
+
     # if paired is False, set show_pairs as False.
     if paired is False:
         show_pairs=False
@@ -300,7 +308,7 @@ def contrastplot(data, idx,
         contrast_ax_ylim_low=list()
         contrast_ax_ylim_high=list()
         contrast_ax_ylim_tickintervals=list()
-        
+
     ### CREATE COLOR PALETTE TO NORMALIZE PALETTE ACROSS AXES.
     if color_col is None:
         col_grp=x
@@ -317,10 +325,10 @@ def contrastplot(data, idx,
     # Create lists to store legend handles and labels for proper legend generation.
     legend_handles=[]
     legend_labels=[]
-    
+
     ### LIST TO STORE BOOTSTRAPPED RESULTS.
     bootlist=list()
-    
+
     ### FOR EACH TUPLE IN IDX, CREATE PLOT.
     for j, current_tuple in enumerate(idx):
         plotdat=data_in[data_in[x].isin(current_tuple)]
@@ -338,13 +346,13 @@ def contrastplot(data, idx,
             ax_raw=axx
         else:
             ax_raw=axx[j]
-        
+
         if float_contrast:
             ax_contrast=ax_raw.twinx()
         else:
             divider=make_axes_locatable(ax_raw)
             ax_contrast=divider.append_axes("bottom", size="100%", pad=0.5, sharex=ax_raw)
-        
+
         ### PLOT RAW DATA.
         ax_raw.set_ylim(swarm_ylim)
         if paired:
@@ -356,7 +364,7 @@ def contrastplot(data, idx,
             after=plotdat[ plotdat[x]==current_tuple[1] ][y].dropna().tolist()
             if len(before)!=len(after):
                 raise ValueError('The sizes of '+current_tuple[0]+' and '+current_tuple[1]+' do not match.')
-                
+
         if paired and show_pairs:
             if color_col is not None:
                 colors=plotdat[plotdat[x]==current_tuple[0]][color_col]
@@ -386,12 +394,12 @@ def contrastplot(data, idx,
             ax_raw.set_ylabel(y)
             ax_raw.set_xticks([0,1])
             ax_raw.set_xticklabels( [current_tuple[0],current_tuple[1]] )
-            
+
         elif (paired is True and show_pairs is False) or (paired is False):
             # Swarmplot for raw data points.
-            sns.swarmplot(data=plotdat, 
-                          x=x, y=y, 
-                          order=current_tuple, 
+            sns.swarmplot(data=plotdat,
+                          x=x, y=y,
+                          order=current_tuple,
                           ax=ax_raw,
                           hue=color_col,
                           palette=plotPal,
@@ -402,7 +410,7 @@ def contrastplot(data, idx,
                             x=x, y=y,
                             ax=ax_raw)
         ax_raw.set_xlabel('')
-        
+
         # Set new tick labels. The tick labels belong to the SWARM axes
         # for both floating and non-floating plots. This is because `sharex` was invoked.
         newticklabs=list()
@@ -414,8 +422,8 @@ def contrastplot(data, idx,
             else:
                 newticklabs.append(t)
             ax_raw.set_xticklabels(newticklabs,rotation=45,horizontalalignment='right')
-        
-        # Despine appropriately.    
+
+        # Despine appropriately.
         if float_contrast:
             sns.despine(ax=ax_raw,trim=True)
         else:
@@ -431,7 +439,8 @@ def contrastplot(data, idx,
             legend_labels.append(l)
         for h in handles:
             legend_handles.append(h)
-        ax_raw.legend().set_visible(False)
+        if color_col is not None:
+            ax_raw.legend().set_visible(False)
         # Make sure we can easily pull out the right-most raw swarm axes.
         if j+1==ncols:
             last_swarm=ax_raw
@@ -477,7 +486,7 @@ def contrastplot(data, idx,
                 contrast_ax_ylim_high.append( ax_contrast.get_ylim()[1] )
                 ticklocs=ax_contrast.yaxis.get_majorticklocs()
                 contrast_ax_ylim_tickintervals.append( ticklocs[1]-ticklocs[0] )
-            
+
         ### NORMALISE Y LIMS AND DESPINE FLOATING CONTRAST AXES.
         if float_contrast:
             ## Align 0 of ax_contrast to reference group mean of ax_raw.
@@ -492,19 +501,19 @@ def contrastplot(data, idx,
                 rightmin=ax_raw.get_ylim()[0]+boots.summary
                 rightmax=ax_raw.get_ylim()[1]+boots.summary
             ax_contrast.set_ylim(rightmin, rightmax)
-            align_yaxis(ax_raw, np.mean(plotdat[plotdat[x]==grp][y].dropna()), 
+            align_yaxis(ax_raw, np.mean(plotdat[plotdat[x]==grp][y].dropna()),
                            ax_contrast, boots.summary)
             # Draw zero line.
             xlimlow, xlimhigh=ax_contrast.get_xlim()
             ax_contrast.hlines(0,   # y-coordinates
                                0, xlimhigh,  # x-coordinates, start and end.
                                **reflines_kwargs)
-            
+
             # Draw effect size line.
-            ax_contrast.hlines(boots.summary, 
+            ax_contrast.hlines(boots.summary,
                                1, xlimhigh,  # x-coordinates, start and end.
                                **reflines_kwargs)
-            
+
             ## Shrink or stretch axis to encompass 0 and min/max contrast.
             # Get the lower and upper limits.
             lower=boots.stat_array.min()
@@ -537,12 +546,12 @@ def contrastplot(data, idx,
             newticks2.sort()
             # Re-draw axis to shrink it to desired limits.
             ax_contrast.yaxis.set_major_locator(tk.FixedLocator(locs=newticks2))
-            ## Despine the axes. 
-            sns.despine(ax=ax_contrast, trim=True, 
+            ## Despine the axes.
+            sns.despine(ax=ax_contrast, trim=True,
                         left=True, bottom=True, # remove the left and bottom spines...
                         right=False) # ...but not the right spine.
 
-        ### SET Y AXIS LABELS .   
+        ### SET Y AXIS LABELS .
         if float_contrast:
             if j>0:
                 ax_raw.set_ylabel('')
@@ -551,10 +560,13 @@ def contrastplot(data, idx,
                 ax_raw.set_ylabel('')
                 ax_contrast.set_ylabel('')
             else:
-                if paired:
-                    ax_contrast.set_ylabel('paired delta\n'+y)
+                if contrast_label is None:
+                    if paired:
+                        ax_contrast.set_ylabel('paired delta\n'+y)
+                    else:
+                        ax_contrast.set_ylabel('delta\n'+y)
                 else:
-                    ax_contrast.set_ylabel('delta\n'+y)
+                    ax_contrast.set_ylabel(str(contrast_label))
 
         ### ROTATE X-TICKS OF ax_contrast
         rotate_ticks(ax_contrast,angle=45,alignment='right')
@@ -571,7 +583,7 @@ def contrastplot(data, idx,
         else:
             normYlim=contrast_ylim
         ## Loop thru the contrast axes again to re-draw all the y-axes.
-        for i in range(ncols, ncols*2, 1): 
+        for i in range(ncols, ncols*2, 1):
             # The last half of the axes in `fig` are the contrast axes.
             axx=fig.get_axes()[i]
             # Set the axes to the max ylim
@@ -599,8 +611,8 @@ def contrastplot(data, idx,
     bootlist_df=pd.DataFrame(bootlist)
     # Order the columns properly.
     bootlist_df=bootlist_df[['reference_group', 'experimental_group','stat_summary',
-    'bca_ci_low', 'bca_ci_high', 'ci', 
-    'is_difference', 'is_paired', 
+    'bca_ci_low', 'bca_ci_high', 'ci',
+    'is_difference', 'is_paired',
     'pvalue_1samp_ttest', 'pvalue_2samp_ind_ttest', 'pvalue_2samp_paired_ttest',
     'pvalue_mannWhitney', 'pvalue_wilcoxon',]]
     # Reset seaborn aesthetic parameters.
