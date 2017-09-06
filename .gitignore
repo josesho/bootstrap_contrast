@@ -14,6 +14,9 @@ bootstrap_contrast/.ipynb_checkpoints
 bootstrap_contrast/*.pyc
 bootstrap_contrast/old__/*.pyc
 
+# debug .py files
+debug*
+
 # img directory
 img/*
 
