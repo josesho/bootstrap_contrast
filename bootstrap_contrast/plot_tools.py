@@ -21,7 +21,7 @@ def halfviolin(v, half = 'right', color = 'k'):
 
 def align_yaxis(ax1, v1, ax2, v2):
     """adjust ax2 ylimit so that v2 in ax2 is aligned to v1 in ax1"""
-    # Taken from 
+    # Taken from
     # http://stackoverflow.com/questions/7630778/matplotlib-align-origin-of-right-axis-with-specific-left-axis-value
     _, y1 = ax1.transData.transform((0, v1))
     _, y2 = ax2.transData.transform((0, v2))
@@ -35,7 +35,7 @@ def rotate_ticks(axes, angle=45, alignment='right'):
         tick.set_rotation(angle)
         tick.set_horizontalalignment(alignment)
 
-def plot_means(data,x,y,ax=None,xwidth=0.5,linestyle_kw=None):
+def plot_means(data,x,y,ax=None,xwidth=0.5,zorder=1,linestyle_kw=None):
     """Takes a pandas DataFrame and plots the `y` means of each group in `x` as horizontal lines.
 
     Keyword arguments:
@@ -44,12 +44,16 @@ def plot_means(data,x,y,ax=None,xwidth=0.5,linestyle_kw=None):
 
         x,y: string.
             x and y columns to be plotted.
-            
+
         xwidth: float, default 0.5
             The horizontal spread of the line. The default is 0.5, which means
             the mean line will stretch 0.5 (in data coordinates) on both sides
             of the xtick.
-            
+
+        zorder: int, default 1
+            This is the plot order of the means on the axes.
+            See http://matplotlib.org/examples/pylab_examples/zorder_demo.html
+
         linestyle_kw: dict, default None
             Dictionary with kwargs passed to the `meanprops` argument of `plt.boxplot`.
     """
@@ -80,6 +84,7 @@ def plot_means(data,x,y,ax=None,xwidth=0.5,linestyle_kw=None):
                 showfliers=False,
                 whis=0,
                 width=xwidth,
+                zorder=int(zorder),
                 meanprops=meanlinestyle_kw,
                 medianprops=dict(linewidth=0)
                )
