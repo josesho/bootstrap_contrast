@@ -90,9 +90,9 @@ def contrastplot(data, idx,
             If the data is paired, whether or not to show the raw data as a swarmplot, or as
             paired plot, with a line joining each pair of observations.
 
-        show_means: {'lines', 'bars', None}, default ‘lines’
+        show_means: {'lines', 'bars', 'None'}, default 'lines'
             Displays the means for each group. If 'lines', then the means are shown as lines.
-            If 'bars', the means are drawn as bars. If None, the means are not shown.
+            If 'bars', the means are drawn as bars. If 'None', the means are not shown.
 
         means_width: float, default 0.5
             The total width of the mean bars (if show_means is 'bars') or the total width of the
