@@ -401,6 +401,13 @@ def contrastplot(data, idx,
             if show_means=='bars':
                 bars=sns.barplot(data=plotdat,x=x,y=y,
                                 color='black',alpha=0.4,ci=0,ax=ax_raw,zorder=1)
+                # Loop over the bars, and adjust the width (and position, to keep the bar centred)
+                for bar in bars.patches:
+                    bar_x=bar.get_x()
+                    width=bar.get_width()
+                    centre=bar_x+width/2.
+                    bar.set_x(centre-means_width/2.)
+                    bar.set_width(means_width)
 
             elif show_means=='lines':
                 plot_means(data=plotdat,
@@ -493,15 +500,6 @@ def contrastplot(data, idx,
                 contrast_ax_ylim_high.append( ax_contrast.get_ylim()[1] )
                 ticklocs=ax_contrast.yaxis.get_majorticklocs()
                 contrast_ax_ylim_tickintervals.append( ticklocs[1]-ticklocs[0] )
-
-        # Loop over the bars, and adjust the width (and position, to keep the bar centred)
-        if show_means=='bars':
-            for bar in bars.patches:
-                x=bar.get_x()
-                width=bar.get_width()
-                centre=x+width/2.
-                bar.set_x(centre-means_width/2.)
-                bar.set_width(means_width)
 
         ### NORMALISE Y LIMS AND DESPINE FLOATING CONTRAST AXES.
         if float_contrast:
