@@ -155,8 +155,7 @@ def contrastplot(data, idx,
 
     ### IDENTIFY PLOT TYPE.
     if all([isinstance(i, str) for i in idx]):
-        # plottype='hubspoke'
-        if len(idx)>2:
+        if len(idx)>2: # plottype='hubspoke'
             paired=False
             float_contrast=False
         allgrps=np.unique([t for t in idx]) # flatten out idx.
@@ -181,7 +180,6 @@ def contrastplot(data, idx,
 
     if x is not None and y is not None:
         # Assume we have a long dataset.
-        datatype='long'
         # check both x and y are column names in data.
         if x not in data_in.columns:
             raise IndexError('{0} is not a column in `data`. Please check.'.format(x))
@@ -192,7 +190,6 @@ def contrastplot(data, idx,
             raise ValueError('{0} is a column in `data`, but it is not numeric. Please check.'.format(y))
     elif x is None and y is None:
         # Assume we have a wide dataset.
-        datatype='wide'
         # extract only the columns we need.
         ## first check we have all columns in the dataset.
         for g in allgrps:
@@ -211,8 +208,8 @@ def contrastplot(data, idx,
         data_in=pd.melt(data_in.reset_index(),
                         id_vars=idv,
                         value_vars=allgrps,
-                        value_name=x,
-                        var_name=y)
+                        value_name=y,
+                        var_name=x)
         idv.append(x)
         idv.append(y)
         data_in.columns=[idv]
@@ -334,7 +331,7 @@ def contrastplot(data, idx,
 
     ### FOR EACH TUPLE IN IDX, CREATE PLOT.
     for j, current_tuple in enumerate(idx):
-        plotdat=data_in[data_in[x].isin(current_tuple)]
+        plotdat=data_in[data_in[x].isin(current_tuple)].copy()
         plotdat.loc[:,x]=plotdat[x].astype("category")
         plotdat[x].cat.set_categories(
             current_tuple,
