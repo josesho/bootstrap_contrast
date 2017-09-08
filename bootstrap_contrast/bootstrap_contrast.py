@@ -34,7 +34,7 @@ def contrastplot(data, idx,
              paired=False,
              show_pairs=True,
              show_means='lines',
-             means_width=0.5,
+             means_width=1,
 
              swarm_ylim=None,
              contrast_ylim=None,
@@ -94,7 +94,7 @@ def contrastplot(data, idx,
             Displays the means for each group. If 'lines', then the means are shown as lines.
             If 'bars', the means are drawn as bars. If 'None', the means are not shown.
 
-        means_width: float, default 0.5
+        means_width: float, default 1
             The total width of the mean bars (if show_means is 'bars') or the total width of the
             mean summary lines (if show_means is 'lines'). Therefore, the mean summary glyph will
             extend a distance of means_width/2 in both directions from the tick.
@@ -390,7 +390,7 @@ def contrastplot(data, idx,
                 ax_raw.set_xticks([0,1])
                 ax_raw.set_xticklabels( [current_tuple[0],current_tuple[1]] )
 
-        elif (paired and show_pairs is False) or (paired is False):
+        elif (paired is True and show_pairs is False) or (paired is False):
             # If desired, draw mean lines for each group.
             if show_means=='bars':
                 bars=sns.barplot(data=plotdat,x=x,y=y,
