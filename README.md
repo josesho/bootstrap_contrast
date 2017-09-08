@@ -1,5 +1,4 @@
-# bootstrap-contrast
-[![Build Status](https://travis-ci.org/josesho/bootstrap_contrast.svg?branch=master)](https://travis-ci.org/josesho/bootstrap_contrast)
+# bootstrap-contrast [![Build Status](https://travis-ci.org/josesho/bootstrap_contrast.svg?branch=master)](https://travis-ci.org/josesho/bootstrap_contrast)
 
 ## About
 
