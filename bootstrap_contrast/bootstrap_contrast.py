@@ -623,6 +623,8 @@ def contrastplot(data, idx,
     'is_difference', 'is_paired',
     'pvalue_1samp_ttest', 'pvalue_2samp_ind_ttest', 'pvalue_2samp_paired_ttest',
     'pvalue_mannWhitney', 'pvalue_wilcoxon',]]
+    # Remove unused columns.
+    bootlist_df=bootlist_df.replace(to_replace='NIL',value=np.nan).dropna(axis=1)
     # Reset seaborn aesthetic parameters.
     sns.set()
     # Return the figure and the results DataFrame.
