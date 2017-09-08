@@ -4,7 +4,7 @@
 import matplotlib as mpl
 mpl.use('SVG')
 import matplotlib.pyplot as plt
-%matplotlib inline
+# %matplotlib inline
 
 import seaborn as sns
 sns.set(style='ticks',context='talk')
