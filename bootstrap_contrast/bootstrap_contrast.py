@@ -167,32 +167,29 @@ def contrastplot(data, idx,
         # plottype='multiplot'
         allgrps=np.unique([tt for t in idx for tt in t])
         ncols=len(idx)
-        widthratio=[]
-        for i in idx:
-            if len(i)>1:
-                widthratio.append(len(i))
-                if len(i)>2:
-                    paired=False
-                    float_contrast=False
-            else:
-                raise ValueError('One of the tuples in `idx` only has one category. Please check.')
+        widthratio=[len(x) for x in idx]
+        if [True for i in widthratio if i>2]:
+            paired=False
+            float_contrast=False
+    else: # mix of string and tuple?
+        raise ValueError('There seems to be a problem with the idx you entered-- {0}. Please check that the tuples do not consist of single values.'.format(idx))
 
     ### SANITY CHECKS
     # check color_col is a column name.
     if (color_col is not None) and (color_col not in data_in.columns):
-        raise IndexError('The specified `color_col` '+color_col+' is not a column in `data`. Please check.')
+        raise IndexError('The specified `color_col` {0} is not a column in `data`. Please check.'.format(color_col))
 
     if x is not None and y is not None:
         # Assume we have a long dataset.
         datatype='long'
         # check both x and y are column names in data.
         if x not in data_in.columns:
-            raise IndexError(x+' is not a column in `data`. Please check.')
+            raise IndexError('{0} is not a column in `data`. Please check.'.format(x))
         if y not in data_in.columns:
-            raise IndexError(y+'is not a column in `data`. Please check.')
+            raise IndexError('{0} is not a column in `data`. Please check.'.format(y))
         # check y is numeric.
         if not np.issubdtype(data_in[y].dtype, np.number):
-            raise ValueError(y+'is a column in `data`, but it is not numeric. Please check.')
+            raise ValueError('{0} is a column in `data`, but it is not numeric. Please check.'.format(y))
     elif x is None and y is None:
         # Assume we have a wide dataset.
         datatype='wide'
@@ -200,7 +197,7 @@ def contrastplot(data, idx,
         ## first check we have all columns in the dataset.
         for g in allgrps:
             if g not in data_in.columns:
-                raise IndexError(g+' is not a column in `data`. Please check.')
+                raise IndexError('{0} is not a column in `data`. Please check.'.format(g))
         ## Melt it so it is easier to use.
         x='group'
         if swarm_label is None:
