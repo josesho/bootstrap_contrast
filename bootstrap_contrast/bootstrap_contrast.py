@@ -156,13 +156,13 @@ def contrastplot(data, idx,
     ### IDENTIFY PLOT TYPE.
     if all([isinstance(i, str) for i in idx]):
         # plottype='hubspoke'
+        if len(idx)>2:
+            paired=False
+            float_contrast=False
         allgrps=np.unique([t for t in idx]) # flatten out idx.
         idx=(idx,)
         ncols=1
         widthratio=[1]
-        if len(idx)>2:
-            paired=False
-            float_contrast=False
     elif all([isinstance(i, tuple) for i in idx]):
         # plottype='multiplot'
         allgrps=np.unique([tt for t in idx for tt in t])
