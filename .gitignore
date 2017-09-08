@@ -32,3 +32,7 @@ pdf/*
 
 # font cache.
 fontList.py3k.cache
+
+# Build and dist folders
+build/
+dist/
