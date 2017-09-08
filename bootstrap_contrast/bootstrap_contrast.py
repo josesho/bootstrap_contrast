@@ -277,9 +277,10 @@ def contrastplot(data, idx,
     else:
         aesthetic_kwargs=merge_two_dicts(default_aesthetic_kwargs,aesthetic_kwargs)
 
-    # if paired is False, set show_pairs as False.
-    if paired is False:
+    if paired is False: # if paired is False, set show_pairs as False.
         show_pairs=False
+    else:
+        show_means='None'
 
     # Small check to ensure that line summaries for means will not be shown if `float_contrast` is True.
     if float_contrast is True and show_means=='lines':
@@ -355,7 +356,7 @@ def contrastplot(data, idx,
 
         ### PLOT RAW DATA.
         ax_raw.set_ylim(swarm_ylim)
-        if paired:
+        if (paired is True and show_pairs is True):
             # first, sanity checks. Do we have 2 elements (no more, no less) here?
             if len(current_tuple)!=2:
                 raise ValueError('Paired plotting is True, but '+str(current_tuple)+'does not have 2 elements.')
@@ -365,32 +366,32 @@ def contrastplot(data, idx,
             if len(before)!=len(after):
                 raise ValueError('The sizes of '+current_tuple[0]+' and '+current_tuple[1]+' do not match.')
 
-            if show_pairs:
-                if color_col is not None:
-                    colors=plotdat[plotdat[x]==current_tuple[0]][color_col]
-                else:
-                    plotPal['__default_black__']=(0., 0., 0.) # black
-                    colors=np.repeat('__default_black__',len(before))
-                linedf=pd.DataFrame(
-                        {str(current_tuple[0]):before,
-                        str(current_tuple[1]):after,
-                        'colors':colors}
-                        )
+            if color_col is not None:
+                colors=plotdat[plotdat[x]==current_tuple[0]][color_col]
+            else:
+                plotPal['__default_black__']=(0., 0., 0.) # black
+                colors=np.repeat('__default_black__',len(before))
+            linedf=pd.DataFrame(
+                    {str(current_tuple[0]):before,
+                    str(current_tuple[1]):after,
+                    'colors':colors}
+                    )
 
-                for ii in linedf.index:
-                    ax_raw.plot( [0,1],  # x1, x2
-                                [ linedf.loc[ii,current_tuple[0]],
-                                 linedf.loc[ii,current_tuple[1]] ], # y1, y2
-                                linestyle='solid',
-                                color=plotPal[ linedf.loc[ii,'colors'] ],
-                                linewidth=0.75,
-                                label=linedf.loc[ii,'colors']
-                               )
-                ax_raw.set_ylabel(y)
-                ax_raw.set_xticks([0,1])
-                ax_raw.set_xticklabels( [current_tuple[0],current_tuple[1]] )
-
+            for ii in linedf.index:
+                ax_raw.plot( [0,1],  # x1, x2
+                            [ linedf.loc[ii,current_tuple[0]],
+                             linedf.loc[ii,current_tuple[1]] ], # y1, y2
+                            linestyle='solid',
+                            color=plotPal[ linedf.loc[ii,'colors'] ],
+                            linewidth=0.75,
+                            label=linedf.loc[ii,'colors']
+                           )
+            ax_raw.set_ylabel(y)
+            ax_raw.set_xticks([0,1])
+            ax_raw.set_xticklabels( [current_tuple[0],current_tuple[1]] )
+            
         elif (paired is True and show_pairs is False) or (paired is False):
+            print('debug')
             # If desired, draw mean lines for each group.
             if show_means=='bars':
                 bars=sns.barplot(data=plotdat,x=x,y=y,
