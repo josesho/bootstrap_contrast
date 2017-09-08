@@ -389,9 +389,8 @@ def contrastplot(data, idx,
             ax_raw.set_ylabel(y)
             ax_raw.set_xticks([0,1])
             ax_raw.set_xticklabels( [current_tuple[0],current_tuple[1]] )
-            
+
         elif (paired is True and show_pairs is False) or (paired is False):
-            print('debug')
             # If desired, draw mean lines for each group.
             if show_means=='bars':
                 bars=sns.barplot(data=plotdat,x=x,y=y,
