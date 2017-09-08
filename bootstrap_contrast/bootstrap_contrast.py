@@ -166,7 +166,7 @@ def contrastplot(data, idx,
         # plottype='multiplot'
         allgrps=np.unique([tt for t in idx for tt in t])
         ncols=len(idx)
-        widthratio=[len(x) for x in idx]
+        widthratio=[len(ii) for ii in idx]
         if [True for i in widthratio if i>2]:
             paired=False
             float_contrast=False
@@ -178,7 +178,11 @@ def contrastplot(data, idx,
     if (color_col is not None) and (color_col not in data_in.columns):
         raise IndexError('The specified `color_col` {0} is not a column in `data`. Please check.'.format(color_col))
 
-    if x is not None and y is not None:
+    if x is None and y is not None:
+        raise ValueError('You have only specified `y`. Please also specify `x`.')
+    elif y is None and x is not None:
+        raise ValueError('You have only specified `x`. Please also specify `y`.')
+    elif x is not None and y is not None:
         # Assume we have a long dataset.
         # check both x and y are column names in data.
         if x not in data_in.columns:
@@ -213,10 +217,6 @@ def contrastplot(data, idx,
         idv.append(x)
         idv.append(y)
         data_in.columns=[idv]
-    elif x is None and y is not None:
-        raise ValueError('You have only specified `y`. Please also specify `x`')
-    elif y is None and x is not None:
-        raise ValueError('You have only specified `x`. Please also specify `y`')
 
     # CALCULATE CI.
     if ci<0 or ci>100:
