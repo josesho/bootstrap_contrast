@@ -27,8 +27,6 @@ from .misc_tools import merge_two_dicts
 def contrastplot(data, idx,
              x=None, y=None,
              color_col=None,
-             swarm_label=None,
-             contrast_label=None,
 
              float_contrast=True,
              paired=False,
@@ -36,6 +34,8 @@ def contrastplot(data, idx,
              show_means='lines',
              means_width=1,
 
+             swarm_label=None,
+             contrast_label=None,
              swarm_ylim=None,
              contrast_ylim=None,
 
