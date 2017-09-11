@@ -1,5 +1,7 @@
 # bootstrap-contrast [![Build Status](https://travis-ci.org/josesho/bootstrap_contrast.svg?branch=master)](https://travis-ci.org/josesho/bootstrap_contrast)
 
+![](https://raw.githubusercontent.com/josesho/bootstrap_contrast/master/tutorial_img/output_27_1.png)
+
 ## About
 
 Python module to produced bootstrapped confidence intervals and effect sizes.
@@ -22,3 +24,7 @@ or
 conda config --add channels conda-forge
 conda install bootstrap_contrast
 ```
+
+## Usage
+
+Please refer to the [tutorial](https://github.com/josesho/bootstrap_contrast/blob/master/bootstrap-contrast_v0.324.2_Tutorial.md).
