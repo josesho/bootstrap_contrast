@@ -27,14 +27,15 @@ from .misc_tools import merge_two_dicts
 def contrastplot(data, idx,
              x=None, y=None,
              color_col=None,
-             swarm_label=None,
-             contrast_label=None,
 
              float_contrast=True,
              paired=False,
              show_pairs=True,
-             show_means=True,
+             show_means='lines',
+             means_width=1,
 
+             swarm_label=None,
+             contrast_label=None,
              swarm_ylim=None,
              contrast_ylim=None,
 
@@ -73,8 +74,7 @@ def contrastplot(data, idx,
         x, y: strings, default None
 
         color_col: list, default None
-            List of colors (either named matplotlib colors or RGB tuples) to be used to color the
-            different categories.
+            Column to be used for colors.
 
         swarm_label, contrast_label: strings, default None
             Set labels for the y-axis of the swarmplot and the contrast plot, respectively.
@@ -90,8 +90,14 @@ def contrastplot(data, idx,
             If the data is paired, whether or not to show the raw data as a swarmplot, or as
             paired plot, with a line joining each pair of observations.
 
-        show_means: boolean, default True
-            If True, a horizontal mean line will be plotted for each group.
+        show_means: {'lines', 'bars', 'None'}, default 'lines'
+            Displays the means for each group. If 'lines', then the means are shown as lines.
+            If 'bars', the means are drawn as bars. If 'None', the means are not shown.
+
+        means_width: float, default 1
+            The total width of the mean bars (if show_means is 'bars') or the total width of the
+            mean summary lines (if show_means is 'lines'). Therefore, the mean summary glyph will
+            extend a distance of means_width/2 in both directions from the tick.
 
         swarm_ylim: tuple, default None
             The desired y-limits of the raw data swarmplot as a (lower, higher) tuple.
@@ -149,52 +155,50 @@ def contrastplot(data, idx,
 
     ### IDENTIFY PLOT TYPE.
     if all([isinstance(i, str) for i in idx]):
-        # plottype='hubspoke'
+        if len(idx)>2: # plottype='hubspoke'
+            paired=False
+            float_contrast=False
         allgrps=np.unique([t for t in idx]) # flatten out idx.
         idx=(idx,)
         ncols=1
         widthratio=[1]
-        if len(idx)>2:
-            paired=False
-            float_contrast=False
     elif all([isinstance(i, tuple) for i in idx]):
         # plottype='multiplot'
         allgrps=np.unique([tt for t in idx for tt in t])
         ncols=len(idx)
-        widthratio=[]
-        for i in idx:
-            if len(i)>1:
-                widthratio.append(len(i))
-                if len(i)>2:
-                    paired=False
-                    float_contrast=False
-            else:
-                raise ValueError('One of the tuples in `idx` only has one category. Please check.')
+        widthratio=[len(ii) for ii in idx]
+        if [True for i in widthratio if i>2]:
+            paired=False
+            float_contrast=False
+    else: # mix of string and tuple?
+        raise ValueError('There seems to be a problem with the idx you entered-- {0}. Please check that the tuples do not consist of single values.'.format(idx))
 
     ### SANITY CHECKS
     # check color_col is a column name.
     if (color_col is not None) and (color_col not in data_in.columns):
-        raise IndexError('The specified `color_col` '+color_col+' is not a column in `data`. Please check.')
+        raise IndexError('The specified `color_col` {0} is not a column in `data`. Please check.'.format(color_col))
 
-    if x is not None and y is not None:
+    if x is None and y is not None:
+        raise ValueError('You have only specified `y`. Please also specify `x`.')
+    elif y is None and x is not None:
+        raise ValueError('You have only specified `x`. Please also specify `y`.')
+    elif x is not None and y is not None:
         # Assume we have a long dataset.
-        datatype='long'
         # check both x and y are column names in data.
         if x not in data_in.columns:
-            raise IndexError(x+' is not a column in `data`. Please check.')
+            raise IndexError('{0} is not a column in `data`. Please check.'.format(x))
         if y not in data_in.columns:
-            raise IndexError(y+'is not a column in `data`. Please check.')
+            raise IndexError('{0} is not a column in `data`. Please check.'.format(y))
         # check y is numeric.
         if not np.issubdtype(data_in[y].dtype, np.number):
-            raise ValueError(y+'is a column in `data`, but it is not numeric. Please check.')
+            raise ValueError('{0} is a column in `data`, but it is not numeric. Please check.'.format(y))
     elif x is None and y is None:
         # Assume we have a wide dataset.
-        datatype='wide'
         # extract only the columns we need.
         ## first check we have all columns in the dataset.
         for g in allgrps:
             if g not in data_in.columns:
-                raise IndexError(g+' is not a column in `data`. Please check.')
+                raise IndexError('{0} is not a column in `data`. Please check.'.format(g))
         ## Melt it so it is easier to use.
         x='group'
         if swarm_label is None:
@@ -208,15 +212,11 @@ def contrastplot(data, idx,
         data_in=pd.melt(data_in.reset_index(),
                         id_vars=idv,
                         value_vars=allgrps,
-                        value_name=x,
-                        var_name=y)
+                        value_name=y,
+                        var_name=x)
         idv.append(x)
         idv.append(y)
         data_in.columns=[idv]
-    elif x is None and y is not None:
-        raise ValueError('You have only specified `y`. Please also specify `x`')
-    elif y is None and x is not None:
-        raise ValueError('You have only specified `x`. Please also specify `y`')
 
     # CALCULATE CI.
     if ci<0 or ci>100:
@@ -277,13 +277,14 @@ def contrastplot(data, idx,
     else:
         aesthetic_kwargs=merge_two_dicts(default_aesthetic_kwargs,aesthetic_kwargs)
 
-    # if paired is False, set show_pairs as False.
-    if paired is False:
+    if paired is False: # if paired is False, set show_pairs as False.
         show_pairs=False
+    else:
+        show_means='None'
 
-    # Small check to ensure that means are not shown if `float_contrast` is True.
-    if float_contrast is True:
-        show_means=False
+    # Small check to ensure that line summaries for means will not be shown if `float_contrast` is True.
+    if float_contrast is True and show_means=='lines':
+        show_means='None'
 
     ### INITIALISE FIGURE.
     # Set clean style.
@@ -331,7 +332,7 @@ def contrastplot(data, idx,
 
     ### FOR EACH TUPLE IN IDX, CREATE PLOT.
     for j, current_tuple in enumerate(idx):
-        plotdat=data_in[data_in[x].isin(current_tuple)]
+        plotdat=data_in[data_in[x].isin(current_tuple)].copy()
         plotdat.loc[:,x]=plotdat[x].astype("category")
         plotdat[x].cat.set_categories(
             current_tuple,
@@ -355,7 +356,7 @@ def contrastplot(data, idx,
 
         ### PLOT RAW DATA.
         ax_raw.set_ylim(swarm_ylim)
-        if paired:
+        if (paired is True and show_pairs is True):
             # first, sanity checks. Do we have 2 elements (no more, no less) here?
             if len(current_tuple)!=2:
                 raise ValueError('Paired plotting is True, but '+str(current_tuple)+'does not have 2 elements.')
@@ -365,7 +366,6 @@ def contrastplot(data, idx,
             if len(before)!=len(after):
                 raise ValueError('The sizes of '+current_tuple[0]+' and '+current_tuple[1]+' do not match.')
 
-        if paired and show_pairs:
             if color_col is not None:
                 colors=plotdat[plotdat[x]==current_tuple[0]][color_col]
             else:
@@ -376,10 +376,7 @@ def contrastplot(data, idx,
                     str(current_tuple[1]):after,
                     'colors':colors}
                     )
-            # Set xticklabels for plot.
-            # to get color, need to loop thru each line and plot individually.
-#             for c in linedf.colors.unique():
-#                 temp_linedf=linedf[linedf.colors==c]
+
             for ii in linedf.index:
                 ax_raw.plot( [0,1],  # x1, x2
                             [ linedf.loc[ii,current_tuple[0]],
@@ -388,27 +385,39 @@ def contrastplot(data, idx,
                             color=plotPal[ linedf.loc[ii,'colors'] ],
                             linewidth=0.75,
                             label=linedf.loc[ii,'colors']
-#                             linewidth=pairedDeltaLineWidth,
-#                             alpha=pairedDeltaLineAlpha,
                            )
             ax_raw.set_ylabel(y)
             ax_raw.set_xticks([0,1])
             ax_raw.set_xticklabels( [current_tuple[0],current_tuple[1]] )
 
         elif (paired is True and show_pairs is False) or (paired is False):
+            # If desired, draw mean lines for each group.
+            if show_means=='bars':
+                bars=sns.barplot(data=plotdat,x=x,y=y,
+                                color='black',alpha=0.4,ci=0,ax=ax_raw,zorder=1)
+                # Loop over the bars, and adjust the width (and position, to keep the bar centred)
+                for bar in bars.patches:
+                    bar_x=bar.get_x()
+                    width=bar.get_width()
+                    centre=bar_x+width/2.
+                    bar.set_x(centre-means_width/2.)
+                    bar.set_width(means_width)
+
+            elif show_means=='lines':
+                plot_means(data=plotdat,
+                            x=x, y=y,
+                            ax=ax_raw,
+                            xwidth=means_width/2,
+                            zorder=3)
             # Swarmplot for raw data points.
             sns.swarmplot(data=plotdat,
                           x=x, y=y,
-                          order=current_tuple,
                           ax=ax_raw,
+                          order=current_tuple,
                           hue=color_col,
                           palette=plotPal,
+                          zorder=2,
                           **swarmplot_kwargs)
-            # If desired, draw mean lines for each group.
-            if show_means:
-                plot_means(data=plotdat,
-                            x=x, y=y,
-                            ax=ax_raw)
         ax_raw.set_xlabel('')
 
         # Set new tick labels. The tick labels belong to the SWARM axes
@@ -452,8 +461,7 @@ def contrastplot(data, idx,
             # add spacer to halfviolin if float_contast is true.
             if float_contrast is True:
                 spacer=0.75
-#             elif (paired is True and show_pairs is True):
-#                 spacer=0.5
+
             else:
                 spacer=0
             pos=ix+spacer
@@ -615,6 +623,8 @@ def contrastplot(data, idx,
     'is_difference', 'is_paired',
     'pvalue_1samp_ttest', 'pvalue_2samp_ind_ttest', 'pvalue_2samp_paired_ttest',
     'pvalue_mannWhitney', 'pvalue_wilcoxon',]]
+    # Remove unused columns.
+    bootlist_df=bootlist_df.replace(to_replace='NIL',value=np.nan).dropna(axis=1)
     # Reset seaborn aesthetic parameters.
     sns.set()
     # Return the figure and the results DataFrame.
