@@ -354,6 +354,26 @@ def contrastplot(data, idx,
 
         ### PLOT RAW DATA.
         ax_raw.set_ylim(swarm_ylim)
+
+        # If desired, draw mean lines for each group.
+        if show_means=='bars':
+            bars=sns.barplot(data=plotdat,x=x,y=y,
+                            color='black',alpha=0.4,ci=0,ax=ax_raw,zorder=1)
+            # Loop over the bars, and adjust the width (and position, to keep the bar centred)
+            for bar in bars.patches:
+                bar_x=bar.get_x()
+                width=bar.get_width()
+                centre=bar_x+width/2.
+                bar.set_x(centre-means_width/2.)
+                bar.set_width(means_width)
+
+        elif show_means=='lines':
+            plot_means(data=plotdat,
+                        x=x, y=y,
+                        ax=ax_raw,
+                        xwidth=means_width/2,
+                        zorder=3)
+
         if (paired is True and show_pairs is True):
             # first, sanity checks. Do we have 2 elements (no more, no less) here?
             if len(current_tuple)!=2:
@@ -389,24 +409,6 @@ def contrastplot(data, idx,
             ax_raw.set_xticklabels( [current_tuple[0],current_tuple[1]] )
 
         elif (paired is True and show_pairs is False) or (paired is False):
-            # If desired, draw mean lines for each group.
-            if show_means=='bars':
-                bars=sns.barplot(data=plotdat,x=x,y=y,
-                                color='black',alpha=0.4,ci=0,ax=ax_raw,zorder=1)
-                # Loop over the bars, and adjust the width (and position, to keep the bar centred)
-                for bar in bars.patches:
-                    bar_x=bar.get_x()
-                    width=bar.get_width()
-                    centre=bar_x+width/2.
-                    bar.set_x(centre-means_width/2.)
-                    bar.set_width(means_width)
-
-            elif show_means=='lines':
-                plot_means(data=plotdat,
-                            x=x, y=y,
-                            ax=ax_raw,
-                            xwidth=means_width/2,
-                            zorder=3)
             # Swarmplot for raw data points.
             sns.swarmplot(data=plotdat,
                           x=x, y=y,
