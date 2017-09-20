@@ -279,8 +279,6 @@ def contrastplot(data, idx,
 
     if paired is False: # if paired is False, set show_pairs as False.
         show_pairs=False
-    else:
-        show_means='None'
 
     # Small check to ensure that line summaries for means will not be shown if `float_contrast` is True.
     if float_contrast is True and show_means=='lines':
