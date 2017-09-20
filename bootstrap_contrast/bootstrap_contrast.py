@@ -299,8 +299,9 @@ def contrastplot(data, idx,
         else:
             fig_size=(7, (7/np.sqrt(2)) )
     # Create subplots.
-    fig,axx=plt.subplots(ncols=ncols,figsize=fig_size,gridspec_kw={'wspace':ws,
-                                                                  'width_ratios':widthratio})
+    fig,axx=plt.subplots(ncols=ncols,
+                         figsize=fig_size,
+                         gridspec_kw={'wspace':ws,'width_ratios':widthratio})
     # If the contrast axes are NOT floating, create lists to store raw ylims
     # and raw tick intervals, so that I can normalize their ylims later.
     if float_contrast is False:
@@ -319,7 +320,8 @@ def contrastplot(data, idx,
     else:
         # ensure that number of colors is equal or greater than number of groups.
         if len(colGrps)>len(custom_palette):
-            raise ValueError('The number of colors supplied to `custom_palette` is less than the total number of desired color groups.')
+            raise ValueError('The number of colors supplied to `custom_palette` '+
+                             'is less than the total number of desired color groups.')
         plotPal=dict( zip(colGrps, custom_palette) )
     # Create lists to store legend handles and labels for proper legend generation.
     legend_handles=[]
@@ -377,12 +379,14 @@ def contrastplot(data, idx,
         if (paired is True and show_pairs is True):
             # first, sanity checks. Do we have 2 elements (no more, no less) here?
             if len(current_tuple)!=2:
-                raise ValueError('Paired plotting is True, but '+str(current_tuple)+'does not have 2 elements.')
+                raise ValueError('Paired plotting is True, but {0} does not have 2 elements.'\
+                                 .format(str(current_tuple)) )
             # Are the groups equal in length??
             before=plotdat[ plotdat[x]==current_tuple[0] ][y].dropna().tolist()
             after=plotdat[ plotdat[x]==current_tuple[1] ][y].dropna().tolist()
             if len(before)!=len(after):
-                raise ValueError('The sizes of '+current_tuple[0]+' and '+current_tuple[1]+' do not match.')
+                raise ValueError('The sizes of {0} and {1} do not match.'\
+                                 .format(current_tuple[0], current_tuple[1]) )
 
             if color_col is not None:
                 colors=plotdat[plotdat[x]==current_tuple[0]][color_col]
