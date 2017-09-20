@@ -47,7 +47,7 @@ if __name__=="__main__":
     setup(name='bootstrap_contrast',
         author='Joses Ho',
         author_email='joseshowh@gmail.com',
-        version='0.325.1',
+        version='0.326',
         description='Calculation and Visualization of Confidence Intervals and Effect Sizes for Python.',
         packages=find_packages(),
         install_requires=installs,
