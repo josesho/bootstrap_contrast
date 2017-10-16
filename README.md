@@ -1,6 +1,6 @@
 # bootstrap-contrast [![Build Status](https://travis-ci.org/josesho/bootstrap_contrast.svg?branch=master)](https://travis-ci.org/josesho/bootstrap_contrast)
 
-![](https://raw.githubusercontent.com/josesho/bootstrap_contrast/master/tutorial_img/output_27_1.png)
+![](https://raw.githubusercontent.com/josesho/bootstrap_contrast/master/images/readme-float-contrast.png)
 
 ## About
 
