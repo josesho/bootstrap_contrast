@@ -43,3 +43,6 @@ dist/
 
 # CSV folder
 csv/*
+
+# random json files
+*.json
