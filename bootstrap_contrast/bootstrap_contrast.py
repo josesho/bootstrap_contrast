@@ -7,14 +7,14 @@ import matplotlib.lines as mlines
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 import seaborn as sns
-# perform version check.
-# The apionly has been deprecated after version 8.
-sns_version=sns.__version__.split('.')
-sns_version_major=int(sns_version[0])
-sns_version_minor=int(sns_version[1])
-
-if sns_version_major==0 or sns_version_minor<8:
-    import seaborn.apionly as sns
+# # perform version check.
+# # The apionly has been deprecated after version 8.
+# sns_version=sns.__version__.split('.')
+# sns_version_major=int(sns_version[0])
+# sns_version_minor=int(sns_version[1])
+#
+# if sns_version_major==0 or sns_version_minor<8:
+#     import seaborn.apionly as sns
 
 import pandas as pd
 import numpy as np
