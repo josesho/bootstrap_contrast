@@ -49,12 +49,13 @@ def contrastplot(data, idx,
              show_group_count=True,
 
              custom_palette=None,
+             palette_kwargs=None,
+
 
              swarmplot_kwargs=None,
              violinplot_kwargs=None,
              reflines_kwargs=None,
              legend_kwargs=None,
-             palette_kwargs=None,
              aesthetic_kwargs=None,
 
             ):
@@ -67,9 +68,9 @@ def contrastplot(data, idx,
         data: pandas DataFrame
 
         idx: tuple
-            List of column names (if 'x' is not supplied) or of category names (if 'x' is supplied).
-            This can be expressed as a tuple of tuples, with each individual tuple producing its own
-            contrast plot.
+            List of column names (if 'x' is not supplied) or of category names
+            (if 'x' is supplied). This can be expressed as a tuple of tuples,
+            with each individual tuple producing its own contrast plot.
 
         x, y: strings, default None
 
@@ -77,33 +78,39 @@ def contrastplot(data, idx,
             Column to be used for colors.
 
         swarm_label, contrast_label: strings, default None
-            Set labels for the y-axis of the swarmplot and the contrast plot, respectively.
+            Set labels for the y-axis of the swarmplot and the contrast plot,
+            respectively.
 
         float_contrast: boolean, default True
-            Whether or not to display the halfviolin bootstrapped difference distribution
-            alongside the raw data.
+            Whether or not to display the halfviolin bootstrapped difference
+            distribution alongside the raw data.
 
         paired: boolean, default False
             Whether or not the data is paired. To elaborate.
 
         show_pairs: boolean, default True
-            If the data is paired, whether or not to show the raw data as a swarmplot, or as
-            paired plot, with a line joining each pair of observations.
+            If the data is paired, whether or not to show the raw data as a
+            swarmplot, or as paired plot, with a line joining each pair of
+            observations.
 
         show_means: {'lines', 'bars', 'None'}, default 'lines'
-            Displays the means for each group. If 'lines', then the means are shown as lines.
-            If 'bars', the means are drawn as bars. If 'None', the means are not shown.
+            Displays the means for each group. If 'lines', then the means are
+            shown as lines. If 'bars', the means are drawn as bars. If 'None',
+            the means are not shown.
 
         means_width: float, default 1
-            The total width of the mean bars (if show_means is 'bars') or the total width of the
-            mean summary lines (if show_means is 'lines'). Therefore, the mean summary glyph will
-            extend a distance of means_width/2 in both directions from the tick.
+            The total width of the mean bars (if show_means is 'bars') or the
+            total width of the mean summary lines (if show_means is 'lines').
+            Therefore, the mean summary glyph will extend a distance of
+            means_width/2 in both directions from the tick.
 
         swarm_ylim: tuple, default None
-            The desired y-limits of the raw data swarmplot as a (lower, higher) tuple.
+            The desired y-limits of the raw data swarmplot as a (lower, higher)
+            tuple.
 
         contrast_ylim: tuple, default None
-            The desired y-limits of the constrast plot as a (lower, higher) tuple.
+            The desired y-limits of the constrast plot as a (lower, higher)
+            tuple.
 
         fig_size: tuple, default None
             The desired dimensions of the figure as a (length, width) tuple.
@@ -118,18 +125,29 @@ def contrastplot(data, idx,
             The size of the confidence interval desired (in percentage).
 
         n_boot: integer, default 5000
-            Number of bootstrap iterations to perform during calculation of confidence intervals.
+            Number of bootstrap iterations to perform during calculation of
+            confidence intervals.
 
         show_group_count: boolean, default True
-            Whether or not the group count (e.g. 'N=10') will be appended to the xtick labels.
+            Whether or not the group count (e.g. 'N=10') will be appended to the
+            xtick labels.
 
         custom_palette: dict, default None
+            Pass a dictionary with {'group':'color'} pairings here. This palette
+            will be used to color the swarmplot.
+            Please take a look at the seaborn commands `color_palette`
+            and `cubehelix_palette` to generate a custom palette.
+
+            <https://seaborn.pydata.org/generated/seaborn.color_palette.html>
+            <https://seaborn.pydata.org/generated/seaborn.cubehelix_palette.html>
 
         swarmplot_kwargs: dict, default None
-            Pass any keyword arguments accepted by the seaborn `swarmplot` command here, as a dict.
+            Pass any keyword arguments accepted by the seaborn `swarmplot`
+            command here, as a dict.
 
         violinplot_kwargs: dict, default None
-            Pass any keyword arguments accepted by the matplotlib `pyplot.violinplot` command here, as a dict.
+            Pass any keyword arguments accepted by the matplotlib `
+            pyplot.violinplot` command here, as a dict.
 
         reflines_kwargs: dict, default None
 
@@ -138,7 +156,8 @@ def contrastplot(data, idx,
         palette_kwargs: dict, default None
 
         aesthetic_kwargs: dict, default None
-            Pass any keyword arguments accepted by the seaborn `set` command here, as a dict.
+            Pass any keyword arguments accepted by the seaborn `set` command
+            here, as a dict.
 
      Returns:
         A matplotlib Figure.
@@ -192,6 +211,10 @@ def contrastplot(data, idx,
         # check y is numeric.
         if not np.issubdtype(data_in[y].dtype, np.number):
             raise ValueError('{0} is a column in `data`, but it is not numeric. Please check.'.format(y))
+        # check all the idx can be found in data_in[x]
+        for g in allgrps:
+            if g not in data_in[x].unique():
+                raise IndexError('{0} is not a group in `{1}`. Please check.'.format(g, x))
     elif x is None and y is None:
         # Assume we have a wide dataset.
         # extract only the columns we need.
@@ -217,6 +240,7 @@ def contrastplot(data, idx,
         idv.append(x)
         idv.append(y)
         data_in.columns=[idv]
+        # data_in=data_in[data_in[x].isin(allgrps)]
 
     # CALCULATE CI.
     if ci<0 or ci>100:
@@ -263,13 +287,6 @@ def contrastplot(data, idx,
     else:
         legend_kwargs=merge_two_dicts(default_legend_kwargs,legend_kwargs)
 
-    ## Palette.
-    default_palette_kwargs={'n_colors':len(allgrps)}
-    if palette_kwargs is None:
-        palette_kwargs=default_palette_kwargs
-    else:
-        palette_kwargs=merge_two_dicts(default_palette_kwargs,palette_kwargs)
-
     ## Aesthetic kwargs for sns.set().
     default_aesthetic_kwargs={'context':'poster','style':'ticks','font_scale':font_scale}
     if aesthetic_kwargs is None:
@@ -315,14 +332,30 @@ def contrastplot(data, idx,
     else:
         col_grp=color_col
     colGrps=data_in[col_grp].unique()
-    if custom_palette is None:
-        plotPal=dict( zip( colGrps, sns.color_palette(**palette_kwargs) ) )
+
+    default_palette_kwargs={'n_colors':len(colGrps)}
+    if palette_kwargs is None:
+        palette_kwargs=default_palette_kwargs
     else:
-        # ensure that number of colors is equal or greater than number of groups.
-        if len(colGrps)>len(custom_palette):
-            raise ValueError('The number of colors supplied to `custom_palette` '+
-                             'is less than the total number of desired color groups.')
-        plotPal=dict( zip(colGrps, custom_palette) )
+        palette_kwargs=merge_two_dicts(default_palette_kwargs,palette_kwargs)
+
+    if custom_palette is None:
+        plotPal=dict( zip( colGrps, sns.color_palette(n_colors=len(colGrps))) )
+    else:
+        # check that all the keys in custom_palette are found in the color column.
+        idx_grps={k for k in allgrps}
+        df_grps={k for k in colGrps}
+        pal_grps={k for k in custom_palette.keys()}
+
+        not_in_df=pal_grps.difference(df_grps)
+        if len( not_in_df ) > 0:
+            raise IndexError('{} is not found in {} ({}). Please check'.format(not_in_df, col_grp, df_grps))
+
+        not_in_pal=idx_grps.difference(pal_grps)
+        if len( not_in_pal ) > 0:
+            raise IndexError('{} is not found in custom_palette ({}). Please check'.format(not_in_pal, col_grp, pal_grps))
+
+        plotPal=custom_palette
     # Create lists to store legend handles and labels for proper legend generation.
     legend_handles=[]
     legend_labels=[]
