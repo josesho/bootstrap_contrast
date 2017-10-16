@@ -37,6 +37,9 @@ fontList.py3k.cache
 build/
 dist/
 
-# any images
-*.png
-*.svg
+# # any images
+#*.png
+#*.svg
+
+# CSV folder
+csv/*
