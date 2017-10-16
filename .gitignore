@@ -5,10 +5,10 @@ bootstrap_contrast.egg-info/
 bootstrap_contrast/__pycache__/
 
 # .ipynb files used during testing
-*.ipynb
 .ipynb_checkpoints
 bootstrap_contrast/*.ipynb
 bootstrap_contrast/.ipynb_checkpoints
+notebooks/*
 
 # .pyc files
 bootstrap_contrast/*.pyc
