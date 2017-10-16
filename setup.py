@@ -19,15 +19,15 @@ def check_dependencies():
     try:
         import numpy
     except ImportError:
-        to_install.append('numpy')
+        to_install.append('numpy>=1.13.1')
     try:
         import scipy
     except ImportError:
-        to_install.append('scipy')
+        to_install.append('scipy>=0.19.1')
     try:
         import matplotlib
     except ImportError:
-        to_install.append('matplotlib')
+        to_install.append('matplotlib>=2.0.2')
     try:
         import pandas
         if int(pandas.__version__.split('.')[1])<20:
@@ -37,7 +37,7 @@ def check_dependencies():
     try:
         import seaborn
     except ImportError:
-        to_install.append('seaborn')
+        to_install.append('seaborn>0.8')
 
     return to_install
 
