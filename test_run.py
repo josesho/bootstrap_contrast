@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 
 import seaborn as sns
 sns.set(style='ticks',context='talk')
-import bootstrap_contrast as bs
+import bootstrap_contrast as bsc
 
 import pandas as pd
 import numpy as np
@@ -30,15 +30,17 @@ df['Group5']=(df['Group5']*1.1)-1
 # Add gender column.
 df['Gender']=np.concatenate([np.repeat('Male',20),np.repeat('Female',20)])
 
-f,c=bs.contrastplot(data=df,
-                idx=(('Group1','Group3','Group2'),
-                    ('Control','Group4')),
-                color_col='Gender',
-                float_contrast=True,
+# bsc.__version__
 
-                show_means='bars',
-                means_width=0.5,
-
-                fig_size=(10,8))
+f,c=bsc.contrastplot(data=df,
+                     idx=(('Group1','Group3','Group2'),
+                          ('Control','Group4')),
+                     color_col='Gender',
+                     custom_palette={'Male':'blue',
+                                     'Female':'red'},
+                     float_contrast=True,
+                     show_means='bars',
+                     means_width=0.5,
+                     fig_size=(10,8))
 
 f.savefig('testfig.svg',format='svg')
