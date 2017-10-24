@@ -27,4 +27,4 @@ conda install bootstrap_contrast
 
 ## Usage
 
-Please refer to the [tutorial](https://github.com/josesho/bootstrap_contrast/blob/master/bootstrap-contrast_v0.325_Tutorial.ipynb).
+Please refer to the [tutorial](https://github.com/josesho/bootstrap_contrast/blob/master/bootstrap-contrast_tutorial.ipynb).
