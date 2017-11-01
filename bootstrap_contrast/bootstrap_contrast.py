@@ -34,6 +34,8 @@ def contrastplot(data, idx,
              show_means='lines',
              means_width=1,
 
+             custom_palette=None,
+
              swarm_label=None,
              contrast_label=None,
              swarm_ylim=None,
@@ -45,12 +47,7 @@ def contrastplot(data, idx,
 
              stat_func=np.mean,
              ci=95,n_boot=5000,
-
              show_group_count=True,
-
-             custom_palette=None,
-             palette_kwargs=None,
-
 
              swarmplot_kwargs=None,
              violinplot_kwargs=None,
@@ -87,6 +84,18 @@ def contrastplot(data, idx,
 
         paired: boolean, default False
             Whether or not the data is paired. To elaborate.
+
+        custom_palette: dict or list, default None
+            Pass a dictionary with {'group':'color'} pairings here, or a list
+            of matplotlib colors. This palette will be used to color the swarmplot.
+
+            Please take a look at the seaborn commands `color_palette`
+            and `cubehelix_palette` to generate a custom palette.
+            <https://seaborn.pydata.org/generated/seaborn.color_palette.html>
+            <https://seaborn.pydata.org/generated/seaborn.cubehelix_palette.html>
+
+            The named colors of matplotlib can be found here:
+            <https://matplotlib.org/examples/color/named_colors.html>
 
         show_pairs: boolean, default True
             If the data is paired, whether or not to show the raw data as a
@@ -132,15 +141,6 @@ def contrastplot(data, idx,
             Whether or not the group count (e.g. 'N=10') will be appended to the
             xtick labels.
 
-        custom_palette: dict, default None
-            Pass a dictionary with {'group':'color'} pairings here. This palette
-            will be used to color the swarmplot.
-            Please take a look at the seaborn commands `color_palette`
-            and `cubehelix_palette` to generate a custom palette.
-
-            <https://seaborn.pydata.org/generated/seaborn.color_palette.html>
-            <https://seaborn.pydata.org/generated/seaborn.cubehelix_palette.html>
-
         swarmplot_kwargs: dict, default None
             Pass any keyword arguments accepted by the seaborn `swarmplot`
             command here, as a dict.
@@ -150,10 +150,12 @@ def contrastplot(data, idx,
             pyplot.violinplot` command here, as a dict.
 
         reflines_kwargs: dict, default None
+            Pass any keyword arguments accepted by the matplotlib Axes `hlines`
+            command here, as a dict.
 
         legend_kwargs: dict, default None
-
-        palette_kwargs: dict, default None
+            Pass any keyword arguments accepted by the matplotlib Axes `legend`
+            command here, as a dict.
 
         aesthetic_kwargs: dict, default None
             Pass any keyword arguments accepted by the seaborn `set` command
@@ -333,29 +335,26 @@ def contrastplot(data, idx,
         col_grp=color_col
     color_groups=data_in[col_grp].unique()
 
-    default_palette_kwargs={'n_colors':len(color_groups)}
-    if palette_kwargs is None:
-        palette_kwargs=default_palette_kwargs
-    else:
-        palette_kwargs=merge_two_dicts(default_palette_kwargs,palette_kwargs)
-
     if custom_palette is None:
-        plotPal=dict( zip( color_groups, sns.color_palette(n_colors=len(color_groups))) )
+        plotPal=dict( zip( color_groups,
+                      sns.color_palette(n_colors=len(color_groups))) )
     else:
-        # check that all the keys in custom_palette are found in the color column.
-        # idx_grps={k for k in all_plot_groups}
-        col_grps={k for k in color_groups}
-        pal_grps={k for k in custom_palette.keys()}
+        if isinstance(custom_palette, dict):
+            # check that all the keys in custom_palette are found in the color column.
+            # idx_grps={k for k in all_plot_groups}
+            col_grps = {k for k in color_groups}
+            pal_grps = {k for k in custom_palette.keys()}
+            not_in_pal = pal_grps.difference(col_grps)
+            if len( not_in_pal ) > 0:
+                raise IndexError('The custom palette keys {} are not found in `{}`. Please check.'.format(not_in_pal, color_col))
+            plotPal = custom_palette
 
-        not_in_pal=pal_grps.difference(col_grps)
-        if len( not_in_pal ) > 0:
-            raise IndexError('The custom palette keys {} are not found in `{}`. Please check.'.format(not_in_pal, color_col))
+        elif isinstance(custom_palette, list):
+            if len(custom_palette) != len(color_groups):
+                raise ValueError('Length mismatch: The number of colors specified in {} does not match {} in {}'.format(custom_palette, color_groups, col_grp))
+            plotPal = dict( zip( color_groups,
+                                 custom_palette ))
 
-        # not_in_pal=idx_grps.difference(pal_grps)
-        # if len( not_in_pal ) > 0:
-        #     raise IndexError('{} is not found in custom_palette ({}). Please check'.format(not_in_pal, col_grp, pal_grps))
-
-        plotPal=custom_palette
     # Create lists to store legend handles and labels for proper legend generation.
     legend_handles=[]
     legend_labels=[]
@@ -549,7 +548,7 @@ def contrastplot(data, idx,
             align_yaxis(ax_raw, np.mean(plotdat[plotdat[x]==grp][y].dropna()),
                            ax_contrast, boots.summary)
             # Draw zero line.
-            xlimlow, xlimhigh=ax_contrast.get_xlim()
+            xlimlow, xlimhigh = ax_contrast.get_xlim()
             ax_contrast.hlines(0,   # y-coordinates
                                0, xlimhigh,  # x-coordinates, start and end.
                                **reflines_kwargs)
