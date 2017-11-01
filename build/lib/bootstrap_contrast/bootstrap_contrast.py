@@ -177,13 +177,13 @@ def contrastplot(data, idx,
         if len(idx)>2: # plottype='hubspoke'
             paired=False
             float_contrast=False
-        allgrps=np.unique([t for t in idx]) # flatten out idx.
+        all_plot_groups=np.unique([t for t in idx]) # flatten out idx.
         idx=(idx,)
         ncols=1
         widthratio=[1]
     elif all([isinstance(i, tuple) for i in idx]):
         # plottype='multiplot'
-        allgrps=np.unique([tt for t in idx for tt in t])
+        all_plot_groups=np.unique([tt for t in idx for tt in t])
         ncols=len(idx)
         widthratio=[len(ii) for ii in idx]
         if [True for i in widthratio if i>2]:
@@ -212,14 +212,14 @@ def contrastplot(data, idx,
         if not np.issubdtype(data_in[y].dtype, np.number):
             raise ValueError('{0} is a column in `data`, but it is not numeric. Please check.'.format(y))
         # check all the idx can be found in data_in[x]
-        for g in allgrps:
+        for g in all_plot_groups:
             if g not in data_in[x].unique():
                 raise IndexError('{0} is not a group in `{1}`. Please check.'.format(g, x))
     elif x is None and y is None:
         # Assume we have a wide dataset.
         # extract only the columns we need.
         ## first check we have all columns in the dataset.
-        for g in allgrps:
+        for g in all_plot_groups:
             if g not in data_in.columns:
                 raise IndexError('{0} is not a column in `data`. Please check.'.format(g))
         ## Melt it so it is easier to use.
@@ -234,13 +234,13 @@ def contrastplot(data, idx,
             idv=['index',color_col]
         data_in=pd.melt(data_in.reset_index(),
                         id_vars=idv,
-                        value_vars=allgrps,
+                        value_vars=all_plot_groups,
                         value_name=y,
                         var_name=x)
         idv.append(x)
         idv.append(y)
         data_in.columns=[idv]
-        # data_in=data_in[data_in[x].isin(allgrps)]
+        # data_in=data_in[data_in[x].isin(all_plot_groups)]
 
     # CALCULATE CI.
     if ci<0 or ci>100:
@@ -331,29 +331,29 @@ def contrastplot(data, idx,
         col_grp=x
     else:
         col_grp=color_col
-    colGrps=data_in[col_grp].unique()
+    color_groups=data_in[col_grp].unique()
 
-    default_palette_kwargs={'n_colors':len(colGrps)}
+    default_palette_kwargs={'n_colors':len(color_groups)}
     if palette_kwargs is None:
         palette_kwargs=default_palette_kwargs
     else:
         palette_kwargs=merge_two_dicts(default_palette_kwargs,palette_kwargs)
 
     if custom_palette is None:
-        plotPal=dict( zip( colGrps, sns.color_palette(n_colors=len(colGrps))) )
+        plotPal=dict( zip( color_groups, sns.color_palette(n_colors=len(color_groups))) )
     else:
         # check that all the keys in custom_palette are found in the color column.
-        idx_grps={k for k in allgrps}
-        df_grps={k for k in colGrps}
+        # idx_grps={k for k in all_plot_groups}
+        col_grps={k for k in color_groups}
         pal_grps={k for k in custom_palette.keys()}
 
-        not_in_df=pal_grps.difference(df_grps)
-        if len( not_in_df ) > 0:
-            raise IndexError('{} is not found in {} ({}). Please check'.format(not_in_df, col_grp, df_grps))
-
-        not_in_pal=idx_grps.difference(pal_grps)
+        not_in_pal=pal_grps.difference(col_grps)
         if len( not_in_pal ) > 0:
-            raise IndexError('{} is not found in custom_palette ({}). Please check'.format(not_in_pal, col_grp, pal_grps))
+            raise IndexError('The custom palette keys {} are not found in `{}`. Please check.'.format(not_in_pal, color_col))
+
+        # not_in_pal=idx_grps.difference(pal_grps)
+        # if len( not_in_pal ) > 0:
+        #     raise IndexError('{} is not found in custom_palette ({}). Please check'.format(not_in_pal, col_grp, pal_grps))
 
         plotPal=custom_palette
     # Create lists to store legend handles and labels for proper legend generation.
