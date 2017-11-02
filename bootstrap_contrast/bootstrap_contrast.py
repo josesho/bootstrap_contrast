@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 import matplotlib.ticker as tk
 import matplotlib.lines as mlines
 from mpl_toolkits.axes_grid1 import make_axes_locatable
+plt.rcParams['svg.fonttype'] = 'none'
 
 import seaborn as sns
 # # perform version check.
