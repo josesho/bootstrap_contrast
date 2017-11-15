@@ -441,7 +441,7 @@ def contrastplot(data, idx,
                             linewidth=0.75,
                             label=linedf.loc[ii,'colors']
                            )
-            ax_raw.set_ylabel(y)
+            # ax_raw.set_ylabel(y)
             ax_raw.set_xticks([0,1])
             ax_raw.set_xticklabels( [current_tuple[0],current_tuple[1]] )
 
@@ -597,12 +597,13 @@ def contrastplot(data, idx,
                         right=False) # ...but not the right spine.
 
         ### SET Y AXIS LABELS .
-        if float_contrast:
-            if j>0:
-                ax_raw.set_ylabel('')
+        if j > 0:
+            ax_raw.set_ylabel('')
         else:
-            if j>0:
-                ax_raw.set_ylabel('')
+            ax_raw.set_ylabel(y)
+
+        if float_contrast is False:
+            if j > 0:
                 ax_contrast.set_ylabel('')
             else:
                 if contrast_label is None:

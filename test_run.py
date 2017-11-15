@@ -39,6 +39,8 @@ f,c=bsc.contrastplot(data=df,
                      custom_palette={'Male':'blue',
                                      'Female':'red'},
                      float_contrast=True,
+                     swarm_label='my swarm',
+                     contrast_label='contrast',
                      show_means='bars',
                      means_width=0.5,
                      fig_size=(10,8))
