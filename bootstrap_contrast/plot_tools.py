@@ -88,3 +88,16 @@ def plot_means(data,x,y,ax=None,xwidth=0.5,zorder=1,linestyle_kw=None):
                 meanprops=meanlinestyle_kw,
                 medianprops=dict(linewidth=0)
                )
+
+def plot_std(data, x, y, offset=0, zorder=5, ax=None):
+    if ax is None:
+        ax = plt.gca()
+
+    num_groups = len(data[x].unique())
+    ax.errorbar(x=np.array(range(0, num_groups)) + offset,
+                y=data.groupby(x)[y].mean().tolist(),
+                yerr=data.groupby(x)[y].std().tolist(),
+                lw=1.2,
+                zorder=zorder,
+                color='k',
+                fmt='none')
