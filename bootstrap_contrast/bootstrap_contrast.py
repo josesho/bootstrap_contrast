@@ -21,7 +21,8 @@ import pandas as pd
 import numpy as np
 import scipy as sp
 
-from .plot_tools import halfviolin, align_yaxis, rotate_ticks, plot_means
+from .plot_tools import halfviolin, align_yaxis, rotate_ticks
+from .plot_tools import plot_means, plot_std
 from .bootstrap_tools import bootstrap, jackknife_indexes, bca
 from .misc_tools import merge_two_dicts
 
@@ -32,6 +33,7 @@ def contrastplot(data, idx,
              float_contrast=True,
              paired=False,
              show_pairs=True,
+             show_std=False,
              show_means='lines',
              means_width=1,
 
@@ -102,6 +104,10 @@ def contrastplot(data, idx,
             If the data is paired, whether or not to show the raw data as a
             swarmplot, or as paired plot, with a line joining each pair of
             observations.
+
+        show_std: boolean, default False
+            If True, plots the standard deviation of the summary measure for
+            each group as a vertical errorbar.
 
         show_means: {'lines', 'bars', 'None'}, default 'lines'
             Displays the means for each group. If 'lines', then the means are
@@ -401,13 +407,15 @@ def contrastplot(data, idx,
                 centre=bar_x+width/2.
                 bar.set_x(centre-means_width/2.)
                 bar.set_width(means_width)
-
         elif show_means=='lines':
             plot_means(data=plotdat,
                         x=x, y=y,
                         ax=ax_raw,
                         xwidth=means_width/2,
                         zorder=3)
+
+        if show_std is True:
+            plot_std(data=plotdat, x=x, y=y, ax=ax_raw)
 
         if (paired is True and show_pairs is True):
             # first, sanity checks. Do we have 2 elements (no more, no less) here?
