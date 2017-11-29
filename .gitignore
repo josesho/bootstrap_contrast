@@ -1,6 +1,7 @@
 # egg info
 bootstrap_contrast.egg-info/
 
+
 # pycache folder
 bootstrap_contrast/__pycache__/
 
@@ -21,6 +22,7 @@ debug*
 img/*
 
 # all .DS_store files.
+.DS_Store
 bootstrap_contrast/*.DS_Store
 *.DS_Store
 
@@ -47,3 +49,6 @@ csv/*
 
 # random json files
 *.json
+
+# dev files
+dev*
