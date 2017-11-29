@@ -55,6 +55,7 @@ def contrastplot(data, idx,
              swarmplot_kwargs=None,
              violinplot_kwargs=None,
              reflines_kwargs=None,
+             std_kwargs=None,
              legend_kwargs=None,
              aesthetic_kwargs=None,
 
@@ -158,7 +159,14 @@ def contrastplot(data, idx,
 
         reflines_kwargs: dict, default None
             Pass any keyword arguments accepted by the matplotlib Axes `hlines`
-            command here, as a dict.
+            command here, as a dict.T his will change the appearance of the zero
+            reference lines.
+
+        std_kwargs: dict, default None
+            Pass any keyword arguments accepted by the matplotlib Axes `errorbar`
+            command here, as a dict. This will change the appearance of the
+            vertical standard deviation lines for each group, if `show_std` is
+            True.
 
         legend_kwargs: dict, default None
             Pass any keyword arguments accepted by the matplotlib Axes `legend`
@@ -306,6 +314,9 @@ def contrastplot(data, idx,
     if paired is False: # if paired is False, set show_pairs as False.
         show_pairs=False
 
+    if std_kwargs is None:
+        std_kwargs = {'zorder': 5, 'lw': 2.25, 'color': 'k', 'alpha': 0.5}
+
     # Small check to ensure that line summaries for means will not be shown if `float_contrast` is True.
     if float_contrast is True and show_means=='lines':
         show_means='None'
@@ -415,7 +426,7 @@ def contrastplot(data, idx,
                         zorder=3)
 
         if show_std is True:
-            plot_std(data=plotdat, x=x, y=y, ax=ax_raw)
+            plot_std(data=plotdat, x=x, y=y, ax=ax_raw, **std_kwargs)
 
         if (paired is True and show_pairs is True):
             # first, sanity checks. Do we have 2 elements (no more, no less) here?
