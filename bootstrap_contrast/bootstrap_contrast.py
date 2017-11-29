@@ -314,6 +314,9 @@ def contrastplot(data, idx,
     if paired is False: # if paired is False, set show_pairs as False.
         show_pairs=False
 
+    if std_kwargs is None:
+        std_kwargs = {'zorder': 5, 'lw': 2.25, 'color': 'k', 'alpha': 0.5}
+
     # Small check to ensure that line summaries for means will not be shown if `float_contrast` is True.
     if float_contrast is True and show_means=='lines':
         show_means='None'
