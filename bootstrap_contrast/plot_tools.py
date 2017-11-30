@@ -89,30 +89,50 @@ def plot_means(data,x,y,ax=None,xwidth=0.5,zorder=1,linestyle_kw=None):
                 medianprops=dict(linewidth=0)
                )
 
-def plot_std(data, x, y, offset=0, ax=None, **kwargs):
+def plot_std(data, x, y, ax=None, width=0.125,
+    # offset=0,
+    **kwargs):
     '''Convenience function to plot the standard devations as vertical
     errorbars.'''
+    import matplotlib.lines as mlines
+    
     if ax is None:
         ax = plt.gca()
 
-    keys = kwargs.keys()
+    means = data.groupby(x)[y].mean()
+    std = data.groupby(x)[y].std()
+    upper = means + std
+    lower = means - std
 
-    if 'zorder' not in keys:
-        kwargs['zorder'] = 5
+    for j, u in enumerate(upper):
+        up = mlines.Line2D([j-width, j+width],
+                          [u, u],
+                          **kwargs)
+        ax.add_line(up)
 
-    if 'lw' not in keys:
-        kwargs['lw'] = 2.25,
+        low = mlines.Line2D([j-width, j+width],
+                          [lower[j], lower[j]],
+                          **kwargs)
+        ax.add_line(low)
 
-    if 'color' not in keys:
-        kwargs['color'] = 'k'
-
-    if 'alpha' not in keys:
-        kwargs['alpha'] = 0.5
-
-    num_groups = len(data[x].unique())
-
-    ax.errorbar(x=np.array(range(0, num_groups)) + offset,
-                y=data.groupby(x)[y].mean().tolist(),
-                yerr=data.groupby(x)[y].std().tolist(),
-                fmt='none',
-                **kwargs)
+    # keys = kwargs.keys()
+    #
+    # if 'zorder' not in keys:
+    #     kwargs['zorder'] = 5
+    #
+    # if 'lw' not in keys:
+    #     kwargs['lw'] = 2.25,
+    #
+    # if 'color' not in keys:
+    #     kwargs['color'] = 'k'
+    #
+    # if 'alpha' not in keys:
+    #     kwargs['alpha'] = 0.5
+    #
+    # num_groups = len(data[x].unique())
+    #
+    # ax.errorbar(x=np.array(range(0, num_groups)) + offset,
+    #             y=data.groupby(x)[y].mean().tolist(),
+    #             yerr=data.groupby(x)[y].std().tolist(),
+    #             fmt='none',
+    #             **kwargs)

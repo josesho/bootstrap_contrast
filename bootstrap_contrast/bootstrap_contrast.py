@@ -299,15 +299,19 @@ def contrastplot(data, idx,
     ## Aesthetic kwargs for sns.set().
     default_aesthetic_kwargs={'context':'poster','style':'ticks','font_scale':font_scale}
     if aesthetic_kwargs is None:
-        aesthetic_kwargs=default_aesthetic_kwargs
+        aesthetic_kwargs = default_aesthetic_kwargs
     else:
-        aesthetic_kwargs=merge_two_dicts(default_aesthetic_kwargs,aesthetic_kwargs)
+        aesthetic_kwargs = merge_two_dicts(default_aesthetic_kwargs,
+                                            aesthetic_kwargs)
 
     if paired is False: # if paired is False, set show_pairs as False.
         show_pairs=False
 
+    default_std_kwargs = {'zorder': 0, 'lw': 1.5, 'color': 'k', 'alpha': 0.5}
     if std_kwargs is None:
-        std_kwargs = {'zorder': 5, 'lw': 2.25, 'color': 'k', 'alpha': 0.5}
+        std_kwargs = default_std_kwargs
+    else:
+        std_kwargs = merge_two_dicts(default_std_kwargs, std_kwargs)
 
     # Small check to ensure that line summaries for means will not be shown if `float_contrast` is True.
     if float_contrast is True and show_means=='lines':
@@ -394,16 +398,18 @@ def contrastplot(data, idx,
             ax_contrast=ax_raw.twinx()
         else:
             divider=make_axes_locatable(ax_raw)
-            ax_contrast=divider.append_axes("bottom", size="100%", pad=0.5, sharex=ax_raw)
+            ax_contrast=divider.append_axes("bottom", size="100%",
+                                            pad=0.5, sharex=ax_raw)
 
         ### PLOT RAW DATA.
         ax_raw.set_ylim(swarm_ylim)
 
         # If desired, draw mean lines for each group.
         if show_means=='bars':
-            bars=sns.barplot(data=plotdat,x=x,y=y,
+            bars = sns.barplot(data=plotdat,x=x,y=y,
                             color='black',alpha=0.4,ci=0,ax=ax_raw,zorder=1)
-            # Loop over the bars, and adjust the width (and position, to keep the bar centred)
+            # Loop over the bars, and adjust the width
+            # (and position, to keep the bar centred)
             for bar in bars.patches:
                 bar_x=bar.get_x()
                 width=bar.get_width()
@@ -415,10 +421,12 @@ def contrastplot(data, idx,
                         x=x, y=y,
                         ax=ax_raw,
                         xwidth=means_width/2,
-                        zorder=3)
+                        zorder=2)
 
         if show_std is True:
-            plot_std(data=plotdat, x=x, y=y, ax=ax_raw, **std_kwargs)
+            plot_std(data=plotdat, x=x, y=y, ax=ax_raw,
+                width=means_width/5,
+                **std_kwargs)
 
         if (paired is True and show_pairs is True):
             # first, sanity checks. Do we have 2 elements (no more, no less) here?
@@ -464,7 +472,7 @@ def contrastplot(data, idx,
                           order=current_tuple,
                           hue=color_col,
                           palette=plotPal,
-                          zorder=2,
+                          zorder=3,
                           **swarmplot_kwargs)
         ax_raw.set_xlabel('')
 
