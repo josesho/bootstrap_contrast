@@ -1,30 +1,5 @@
 from __future__ import division
-
-import matplotlib as mpl
-import matplotlib.pyplot as plt
-import matplotlib.ticker as tk
-import matplotlib.lines as mlines
-from mpl_toolkits.axes_grid1 import make_axes_locatable
-plt.rcParams['svg.fonttype'] = 'none'
-
-import seaborn as sns
-# # perform version check.
-# # The apionly has been deprecated after version 8.
-# sns_version=sns.__version__.split('.')
-# sns_version_major=int(sns_version[0])
-# sns_version_minor=int(sns_version[1])
-#
-# if sns_version_major==0 or sns_version_minor<8:
-#     import seaborn.apionly as sns
-
-import pandas as pd
 import numpy as np
-import scipy as sp
-
-from .plot_tools import halfviolin, align_yaxis, rotate_ticks
-from .plot_tools import plot_means, plot_std
-from .bootstrap_tools import bootstrap, jackknife_indexes, bca
-from .misc_tools import merge_two_dicts
 
 def contrastplot(data, idx,
              x=None, y=None,
@@ -184,6 +159,23 @@ def contrastplot(data, idx,
         Description of column headings.
 
     '''
+
+    import matplotlib as mpl
+    import matplotlib.pyplot as plt
+    import matplotlib.ticker as tk
+    import matplotlib.lines as mlines
+    from mpl_toolkits.axes_grid1 import make_axes_locatable
+    plt.rcParams['svg.fonttype'] = 'none'
+
+    import numpy as np
+    import scipy as sp
+    import seaborn as sns
+    import pandas as pd
+
+    from .plot_tools import halfviolin, align_yaxis, rotate_ticks
+    from .plot_tools import plot_means, plot_std
+    from .bootstrap_tools import bootstrap, jackknife_indexes, bca
+    from .misc_tools import merge_two_dicts
 
     ### MAKE COPY OF DATA.
     data_in=data.copy()
