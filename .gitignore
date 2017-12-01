@@ -1,7 +1,6 @@
 # egg info
 bootstrap_contrast.egg-info/
 
-
 # pycache folder
 bootstrap_contrast/__pycache__/
 
@@ -9,7 +8,7 @@ bootstrap_contrast/__pycache__/
 .ipynb_checkpoints
 bootstrap_contrast/*.ipynb
 bootstrap_contrast/.ipynb_checkpoints
-notebooks/*
+bootstrap_contrast/notebooks/*
 
 # .pyc files
 bootstrap_contrast/*.pyc
@@ -24,7 +23,6 @@ img/*
 # all .DS_store files.
 .DS_Store
 bootstrap_contrast/*.DS_Store
-*.DS_Store
 
 # Any temporary python file
 *._py
@@ -49,6 +47,3 @@ csv/*
 
 # random json files
 *.json
-
-# dev files
-dev*
