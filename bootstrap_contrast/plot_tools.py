@@ -89,50 +89,119 @@ def plot_means(data,x,y,ax=None,xwidth=0.5,zorder=1,linestyle_kw=None):
                 medianprops=dict(linewidth=0)
                )
 
-def plot_std(data, x, y, ax=None, width=0.125,
-    # offset=0,
-    **kwargs):
+def mean_std_tufte(data, x, y, offset=0.24,
+                   mean_notch_size=0.3, ax=None, **kwargs):
     '''Convenience function to plot the standard devations as vertical
-    errorbars.'''
+    errorbars. The mean is a notch defined by negative space. This style is
+    inspired by Edward Tufte.
+
+    Keywords
+    --------
+    data: pandas DataFrame.
+        This DataFrame should be in 'wide' format.
+
+    x, y: string.
+        x and y columns to be plotted.
+
+    offset: float, default 0.2
+        The x-offset of the mean-sd line.
+
+    mean_notch_size: float, default 0.3
+        The size of the negative-space notch depicting the mean, expressed as a
+        fraction of the standard deviation
+
+    kwargs: dict, default None
+        Dictionary with kwargs passed to matplotlib.lines.Line2D
+            '''
     import matplotlib.lines as mlines
-    
+
     if ax is None:
         ax = plt.gca()
+
+    keys = kwargs.keys()
+    if 'zorder' not in keys:
+        kwargs['zorder'] = 5
+
+    if 'lw' not in keys:
+        kwargs['lw'] = 2.
+
+    if 'color' not in keys:
+        kwargs['color'] = 'k'
+
+    negspace = mean_notch_size/2
 
     means = data.groupby(x)[y].mean()
     std = data.groupby(x)[y].std()
     upper = means + std
     lower = means - std
 
-    for j, u in enumerate(upper):
-        up = mlines.Line2D([j-width, j+width],
-                          [u, u],
-                          **kwargs)
-        ax.add_line(up)
+    for j, m in enumerate(means):
+        lower_to_mean = mlines.Line2D([j+offset, j+offset],
+                                      [lower[j], m-std[j]*negspace],
+                                      **kwargs)
+        ax.add_line(lower_to_mean)
 
-        low = mlines.Line2D([j-width, j+width],
-                          [lower[j], lower[j]],
-                          **kwargs)
-        ax.add_line(low)
+        mean_to_upper = mlines.Line2D([j+offset, j+offset],
+                                      [m+std[j]*negspace, upper[j]],
+                                      **kwargs)
+        ax.add_line(mean_to_upper)
 
-    # keys = kwargs.keys()
-    #
-    # if 'zorder' not in keys:
-    #     kwargs['zorder'] = 5
-    #
-    # if 'lw' not in keys:
-    #     kwargs['lw'] = 2.25,
-    #
-    # if 'color' not in keys:
-    #     kwargs['color'] = 'k'
-    #
-    # if 'alpha' not in keys:
-    #     kwargs['alpha'] = 0.5
-    #
-    # num_groups = len(data[x].unique())
-    #
-    # ax.errorbar(x=np.array(range(0, num_groups)) + offset,
-    #             y=data.groupby(x)[y].mean().tolist(),
-    #             yerr=data.groupby(x)[y].std().tolist(),
-    #             fmt='none',
-    #             **kwargs)
+
+def boxplot_tufte(data, x, y, offset=0.2,
+                   mean_notch_size=0.3, ax=None, **kwargs):
+    '''Convenience function to plot the median and 25th & 75th percentiles for
+    each group. The median is a notch defined by negative space. This style is
+    inspired by Edward Tufte.
+
+    Keywords
+    --------
+    data: pandas DataFrame.
+        This DataFrame should be in 'wide' format.
+
+    x, y: string.
+        x and y columns to be plotted.
+
+    offset: float, default 0.2
+        The x-offset of the mean-sd line.
+
+    mean_notch_size: float, default 0.3
+        The size of the negative-space notch depicting the mean, expressed as a
+        fraction of the standard deviation
+
+    kwargs: dict, default None
+        Dictionary with kwargs passed to matplotlib.lines.Line2D
+            '''
+    import matplotlib.lines as mlines
+
+    if ax is None:
+        ax = plt.gca()
+
+    keys = kwargs.keys()
+    if 'zorder' not in keys:
+        kwargs['zorder'] = 5
+
+    if 'lw' not in keys:
+        kwargs['lw'] = 2.
+
+    if 'color' not in keys:
+        kwargs['color'] = 'k'
+
+    negspace = mean_notch_size/2
+
+    medians = data.groupby(x)[y].median()
+    std = data.groupby(x)[y].std()
+
+    quantiles = data.groupby(x)[y].quantile([0.25, 0.75]).unstack()
+    lower_quantiles = quantiles[0.25]
+    upper_quantiles = quantiles[0.75]
+
+    for j, m in enumerate(medians):
+        lower_to_median = mlines.Line2D([j+offset, j+offset],
+                                        [lower_quantiles[j], m-std[j]*negspace],
+                                        **kwargs )
+        ax.add_line(lower_to_median)
+
+        median_to_upper = mlines.Line2D([j+offset, j+offset],
+                                        [m+std[j]*negspace, upper_quantiles[j]],
+                                        **kwargs)
+        ax.add_line(median_to_upper)
