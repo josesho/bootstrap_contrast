@@ -1,5 +1,4 @@
-from __future__ import division
-import numpy as np
+
 
 def contrastplot(data, idx,
              x=None, y=None,
@@ -8,9 +7,7 @@ def contrastplot(data, idx,
              float_contrast=True,
              paired=False,
              show_pairs=True,
-             show_std=False,
-             show_means='lines',
-             means_width=1,
+             group_summaries="mean_sd",
 
              custom_palette=None,
 
@@ -23,14 +20,14 @@ def contrastplot(data, idx,
 
              font_scale=1.25,
 
-             stat_func=np.mean,
+             stat_func=None,
              ci=95,n_boot=5000,
              show_group_count=True,
 
              swarmplot_kwargs=None,
              violinplot_kwargs=None,
              reflines_kwargs=None,
-             std_kwargs=None,
+             group_summary_kwargs=None,
              legend_kwargs=None,
              aesthetic_kwargs=None,
 
@@ -81,14 +78,13 @@ def contrastplot(data, idx,
             swarmplot, or as paired plot, with a line joining each pair of
             observations.
 
-        show_std: boolean, default False
-            If True, plots the standard deviation of the summary measure for
-            each group as a vertical errorbar.
-
-        show_means: {'lines', 'bars', 'None'}, default 'lines'
-            Displays the means for each group. If 'lines', then the means are
-            shown as lines. If 'bars', the means are drawn as bars. If 'None',
-            the means are not shown.
+        group_summaries: {'mean_sd', 'median_quartile', 'None'},
+                         default 'mean_sd'
+            Plots the summary statistics for each group. If 'mean_sd', then the
+            mean and standard deviation of each group is plotted as a notched
+            line beside each group. If 'median_quantile', then the
+            median and 25th and 75th percentiles of each group is plotted
+            instead. If 'None', the summaries are not shown.
 
         means_width: float, default 1
             The total width of the mean bars (if show_means is 'bars') or the
@@ -110,8 +106,9 @@ def contrastplot(data, idx,
         font_scale: float, default 1.4
             The font size will be scaled by this number.
 
-        stat_func: callable, default np.mean
-            The function used to compute the summary.
+        stat_func: callable, default None
+            The function used to compute the summary. If None, defaults to
+            np.mean()
 
         ci: integer, default 95
             The size of the confidence interval desired (in percentage).
@@ -137,11 +134,11 @@ def contrastplot(data, idx,
             command here, as a dict.T his will change the appearance of the zero
             reference lines.
 
-        std_kwargs: dict, default None
-            Pass any keyword arguments accepted by the matplotlib Axes `errorbar`
+        group_summary_kwargs: dict, default None
+            Pass any keyword arguments accepted by the matplotlib.lines.Line2D
             command here, as a dict. This will change the appearance of the
-            vertical standard deviation lines for each group, if `show_std` is
-            True.
+            vertical summary lines for each group, if `group_summaries` is not
+            'None'.
 
         legend_kwargs: dict, default None
             Pass any keyword arguments accepted by the matplotlib Axes `legend`
@@ -159,7 +156,6 @@ def contrastplot(data, idx,
         Description of column headings.
 
     '''
-
     import matplotlib as mpl
     import matplotlib.pyplot as plt
     import matplotlib.ticker as tk
@@ -173,7 +169,7 @@ def contrastplot(data, idx,
     import pandas as pd
 
     from .plot_tools import halfviolin, align_yaxis, rotate_ticks
-    from .plot_tools import plot_means, plot_std
+    from .plot_tools import mean_std_tufte, boxplot_tufte
     from .bootstrap_tools import bootstrap, jackknife_indexes, bca
     from .misc_tools import merge_two_dicts
 
@@ -307,15 +303,25 @@ def contrastplot(data, idx,
     if paired is False: # if paired is False, set show_pairs as False.
         show_pairs=False
 
-    default_std_kwargs = {'zorder': 0, 'lw': 1.5, 'color': 'k', 'alpha': 0.5}
-    if std_kwargs is None:
-        std_kwargs = default_std_kwargs
+    default_group_summary_kwargs = {'zorder': 5, 'lw': 1.5,
+                                    'color': 'k', 'alpha': 0.9}
+    if group_summary_kwargs is None:
+        group_summary_kwargs = default_group_summary_kwargs
     else:
-        std_kwargs = merge_two_dicts(default_std_kwargs, std_kwargs)
+        group_summary_kwargs = merge_two_dicts(default_group_summary_kwargs,
+                                               group_summary_kwargs)
+
+    gs_default = {'mean_sd', 'median_quartile', 'None'}
+    if group_summaries not in {'mean_sd', 'median_quartile', 'None'}:
+        raise ValueError('group_summaries must be one of these: {}.'.format(gs_default) )
 
     # Small check to ensure that line summaries for means will not be shown if `float_contrast` is True.
-    if float_contrast is True and show_means=='lines':
-        show_means='None'
+    if float_contrast is True and group_summaries != 'None':
+        group_summaries = 'None'
+
+    if stat_func is None:
+        stat_func = np.mean
+
 
     ### INITIALISE FIGURE.
     # Set clean style.
@@ -404,29 +410,11 @@ def contrastplot(data, idx,
         ### PLOT RAW DATA.
         ax_raw.set_ylim(swarm_ylim)
 
-        # If desired, draw mean lines for each group.
-        if show_means=='bars':
-            bars = sns.barplot(data=plotdat,x=x,y=y,
-                            color='black',alpha=0.4,ci=0,ax=ax_raw,zorder=1)
-            # Loop over the bars, and adjust the width
-            # (and position, to keep the bar centred)
-            for bar in bars.patches:
-                bar_x=bar.get_x()
-                width=bar.get_width()
-                centre=bar_x+width/2.
-                bar.set_x(centre-means_width/2.)
-                bar.set_width(means_width)
-        elif show_means=='lines':
-            plot_means(data=plotdat,
-                        x=x, y=y,
-                        ax=ax_raw,
-                        xwidth=means_width/2,
-                        zorder=2)
-
-        if show_std is True:
-            plot_std(data=plotdat, x=x, y=y, ax=ax_raw,
-                width=means_width/5,
-                **std_kwargs)
+        if paired is not True:
+            if group_summaries == 'mean_sd':
+                mean_std_tufte(plotdat, x, y, ax=ax_raw, **group_summary_kwargs)
+            elif group_summaries == 'median_quartile':
+                boxplot_tufte(plotdat, x, y, ax=ax_raw, **group_summary_kwargs)
 
         if (paired is True and show_pairs is True):
             # first, sanity checks. Do we have 2 elements (no more, no less) here?
