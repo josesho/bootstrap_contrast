@@ -78,19 +78,13 @@ def contrastplot(data, idx,
             swarmplot, or as paired plot, with a line joining each pair of
             observations.
 
-        group_summaries: {'mean_sd', 'median_quartile', 'None'},
+        group_summaries: {'mean_sd', 'median_quartiles', 'None'},
                          default 'mean_sd'
             Plots the summary statistics for each group. If 'mean_sd', then the
             mean and standard deviation of each group is plotted as a notched
-            line beside each group. If 'median_quantile', then the
+            line beside each group. If 'median_quantiles', then the
             median and 25th and 75th percentiles of each group is plotted
             instead. If 'None', the summaries are not shown.
-
-        means_width: float, default 1
-            The total width of the mean bars (if show_means is 'bars') or the
-            total width of the mean summary lines (if show_means is 'lines').
-            Therefore, the mean summary glyph will extend a distance of
-            means_width/2 in both directions from the tick.
 
         swarm_ylim: tuple, default None
             The desired y-limits of the raw data swarmplot as a (lower, higher)
@@ -301,19 +295,22 @@ def contrastplot(data, idx,
                                             aesthetic_kwargs)
 
     if paired is False: # if paired is False, set show_pairs as False.
-        show_pairs=False
+        show_pairs = False
 
-    default_group_summary_kwargs = {'zorder': 5, 'lw': 1.5,
-                                    'color': 'k', 'alpha': 0.9}
+    gs_default = {'mean_sd', 'median_quartiles', 'None'}
+    if group_summaries not in {'mean_sd', 'median_quartiles', 'None'}:
+        raise ValueError('group_summaries must be one of'
+        'these: {}.'.format(gs_default) )
+
+    default_group_summary_kwargs = {'zorder': 5,
+        'color': 'k',
+        'alpha': 0.5}
     if group_summary_kwargs is None:
         group_summary_kwargs = default_group_summary_kwargs
     else:
         group_summary_kwargs = merge_two_dicts(default_group_summary_kwargs,
                                                group_summary_kwargs)
 
-    gs_default = {'mean_sd', 'median_quartile', 'None'}
-    if group_summaries not in {'mean_sd', 'median_quartile', 'None'}:
-        raise ValueError('group_summaries must be one of these: {}.'.format(gs_default) )
 
     # Small check to ensure that line summaries for means will not be shown if `float_contrast` is True.
     if float_contrast is True and group_summaries != 'None':
@@ -410,11 +407,9 @@ def contrastplot(data, idx,
         ### PLOT RAW DATA.
         ax_raw.set_ylim(swarm_ylim)
 
-        if paired is not True:
-            if group_summaries == 'mean_sd':
-                mean_std_tufte(plotdat, x, y, ax=ax_raw, **group_summary_kwargs)
-            elif group_summaries == 'median_quartile':
-                boxplot_tufte(plotdat, x, y, ax=ax_raw, **group_summary_kwargs)
+        if paired is not True and group_summaries != 'None':
+            tufte_summary_line(plotdat, x, y, type=group_summaries,
+                ax=ax_raw, **group_summary_kwargs)
 
         if (paired is True and show_pairs is True):
             # first, sanity checks. Do we have 2 elements (no more, no less) here?
