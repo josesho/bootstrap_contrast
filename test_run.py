@@ -41,9 +41,6 @@ f,c=bsc.contrastplot(data=df,
                      float_contrast=True,
                      swarm_label='my swarm',
                      contrast_label='contrast',
-                     show_means='bars',
-                     means_width=0.5,
-                     show_std=True,
                      fig_size=(10,8))
 
 f.savefig('testfig.svg',format='svg')
