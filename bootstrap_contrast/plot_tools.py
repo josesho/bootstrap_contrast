@@ -299,3 +299,14 @@ def tufte_summary_line(df, x, y, type='mean_sd',
 #                                         [m+std[j]*negspace, upper_quantiles[j]],
 #                                         **kwargs)
 #         ax.add_line(median_to_upper)
+def get_swarm_spans(coll):
+    """
+    Given a matplotlib Collection, will obtain the x and y spans
+    for the collection. Will return None if this fails.
+    """
+    import numpy as np
+    x, y = np.array(coll.get_offsets()).T
+    try:
+        return x.min(), x.max(), y.min(), y.max()
+    except ValueError:
+        return None
