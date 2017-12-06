@@ -10,6 +10,9 @@ bootstrap_contrast/*.ipynb
 bootstrap_contrast/.ipynb_checkpoints
 bootstrap_contrast/notebooks/*
 
+# dev files
+dev*
+
 # .pyc files
 bootstrap_contrast/*.pyc
 bootstrap_contrast/old__/*.pyc
