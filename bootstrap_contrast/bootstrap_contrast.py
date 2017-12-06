@@ -473,6 +473,24 @@ def contrastplot(data, idx,
                           palette=plotPal,
                           zorder=3,
                           **swarmplot_kwargs)
+
+            if group_summaries != 'None':
+                # Create list to gather xspans.
+                xspans = []
+                for jj, c in enumerate(ax_raw.collections):
+                    try:
+                        _, x_max, _, _ = get_swarm_spans(c)
+                        x_max_span = x_max - jj
+                        xspans.append(x_max_span)
+                    except TypeError:
+                        # we have got a None, so skip and move on.
+                        pass
+                gapped_lines(plotdat, x=x, y=y,
+                             # pseudo-hardcorded offset...
+                             offset=np.max(xspans)+0.09,
+                             type=group_summaries,
+                             ax=ax_raw)
+
         ax_raw.set_xlabel('')
 
         # Set new tick labels. The tick labels belong to the SWARM axes
