@@ -63,22 +63,23 @@ def contrastplot(data, idx,
 
         custom_palette: dict or list, default None
             Pass a dictionary with {'group':'color'} pairings here, or a list
-            of matplotlib colors. This palette will be used to color the swarmplot.
+            of matplotlib colors. This palette will be used to color the
+            swarmplot.
 
             Please take a look at the seaborn commands `color_palette`
             and `cubehelix_palette` to generate a custom palette.
-            <https://seaborn.pydata.org/generated/seaborn.color_palette.html>
-            <https://seaborn.pydata.org/generated/seaborn.cubehelix_palette.html>
+            https://seaborn.pydata.org/generated/seaborn.color_palette.html
+            https://seaborn.pydata.org/generated/seaborn.cubehelix_palette.html
 
             The named colors of matplotlib can be found here:
-            <https://matplotlib.org/examples/color/named_colors.html>
+            https://matplotlib.org/examples/color/named_colors.html
 
         show_pairs: boolean, default True
             If the data is paired, whether or not to show the raw data as a
             swarmplot, or as paired plot, with a line joining each pair of
             observations.
 
-        group_summaries: {'mean_sd', 'median_quartiles', 'None'},
+        group_summaries: ['mean_sd', 'median_quartiles', 'None'],
                          default 'mean_sd'
             Plots the summary statistics for each group. If 'mean_sd', then the
             mean and standard deviation of each group is plotted as a notched
@@ -163,31 +164,31 @@ def contrastplot(data, idx,
     import pandas as pd
 
     from .plot_tools import halfviolin, align_yaxis, rotate_ticks
-    from .plot_tools import tufte_summary_line
+    from .plot_tools import gapped_lines, get_swarm_spans
     from .bootstrap_tools import bootstrap, jackknife_indexes, bca
     from .misc_tools import merge_two_dicts
 
     # MAKE COPY OF DATA.
-    data_in=data.copy()
+    data_in = data.copy()
     data_in.reset_index(inplace=True)
 
     # IDENTIFY PLOT TYPE.
     if all([isinstance(i, str) for i in idx]):
-        if len(idx)>2: # plottype='hubspoke'
-            paired=False
-            float_contrast=False
-        all_plot_groups=np.unique([t for t in idx]) # flatten out idx.
-        idx=(idx,)
-        ncols=1
-        widthratio=[1]
+        if len(idx) > 2: # plottype='hubspoke'
+            paired = False
+            float_contrast = False
+        all_plot_groups = np.unique([t for t in idx]) # flatten out idx.
+        idx = (idx,)
+        ncols = 1
+        widthratio = [1]
     elif all([isinstance(i, tuple) for i in idx]):
         # plottype='multiplot'
-        all_plot_groups=np.unique([tt for t in idx for tt in t])
-        ncols=len(idx)
-        widthratio=[len(ii) for ii in idx]
+        all_plot_groups = np.unique([tt for t in idx for tt in t])
+        ncols = len(idx)
+        widthratio = [len(ii) for ii in idx]
         if [True for i in widthratio if i>2]:
-            paired=False
-            float_contrast=False
+            paired = False
+            float_contrast = False
     else: # mix of string and tuple?
         err = 'There seems to be a problem with the idx you'
         'entered--{}.'.format(idx)
@@ -384,7 +385,9 @@ def contrastplot(data, idx,
 
         elif isinstance(custom_palette, list):
             if len(custom_palette) != len(color_groups):
-                raise ValueError('Length mismatch: The number of colors specified in {} does not match {} in {}'.format(custom_palette, color_groups, col_grp))
+                raise ValueError('Length mismatch: The number of colors'
+            'specified in {} does not match {} in {}'.format(custom_palette,
+                                        color_groups, col_grp))
             plotPal = dict( zip( color_groups,
                                  custom_palette ))
 
@@ -422,10 +425,6 @@ def contrastplot(data, idx,
 
         ### PLOT RAW DATA.
         ax_raw.set_ylim(swarm_ylim)
-
-        if paired is not True and group_summaries != 'None':
-            tufte_summary_line(plotdat, x, y, type=group_summaries,
-                ax=ax_raw, **group_summary_kwargs)
 
         if (paired is True and show_pairs is True):
             # first, sanity checks. Do we have 2 elements (no more, no less) here?
@@ -514,7 +513,10 @@ def contrastplot(data, idx,
         else:
             ax_raw.xaxis.set_visible(False)
             not_first_ax=(j!=0)
-            sns.despine(ax=ax_raw,bottom=True,left=not_first_ax,trim=True)
+            sns.despine(ax=ax_raw,
+                        bottom=True,
+                        left=not_first_ax,
+                        trim=True)
             if not_first_ax:
                 ax_raw.yaxis.set_visible(False)
 
@@ -527,8 +529,8 @@ def contrastplot(data, idx,
         if color_col is not None:
             ax_raw.legend().set_visible(False)
         # Make sure we can easily pull out the right-most raw swarm axes.
-        if j+1==ncols:
-            last_swarm=ax_raw
+        if j+1 == ncols:
+            last_swarm = ax_raw
 
         ### PLOT CONTRAST DATA.
         # Calculate bootstrapped stats.
@@ -540,10 +542,10 @@ def contrastplot(data, idx,
 
             else:
                 spacer=0
-            pos = ix+spacer
+            pos = ix + spacer
             # Calculate bootstrapped stats.
-            ref = np.array(plotdat[plotdat[x]==current_tuple[0]][y].dropna())
-            exp = np.array(plotdat[plotdat[x]==grp][y].dropna())
+            ref = np.array(plotdat[plotdat[x] == current_tuple[0]][y].dropna())
+            exp = np.array(plotdat[plotdat[x] == grp][y].dropna())
             boots = bootstrap(ref, exp,
                 paired = paired,
                 alpha_level=alpha_level,
@@ -555,7 +557,7 @@ def contrastplot(data, idx,
             res['pvalue_1samp_ttest'] = boots.pvalue_1samp_ttest
             res['pvalue_2samp_ind_ttest'] = boots.pvalue_2samp_ind_ttest
             res['pvalue_2samp_paired_ttest'] = boots.pvalue_2samp_paired_ttest
-            res['pvalue_wilcoxon'] =boots.pvalue_wilcoxon
+            res['pvalue_wilcoxon'] = boots.pvalue_wilcoxon
             res['pvalue_mannWhitney'] =  boots.pvalue_mannWhitney
             bootlist.append(res)
             # Plot the halfviolin and mean+CIs on contrast axes.
@@ -615,7 +617,8 @@ def contrastplot(data, idx,
             leftticks = ax_contrast.get_yticks()
             tickstep = leftticks[1] -leftticks[0]
             # First re-draw of axis with new tick interval
-            ax_contrast.yaxis.set_major_locator(tk.MultipleLocator(base=tickstep))
+            new_locator = tk.MultipleLocator(base=tickstep)
+            ax_contrast.yaxis.set_major_locator(new_locator)
             newticks1 = ax_contrast.get_yticks()
             # Obtain major ticks that comfortably encompass lower and upper.
             newticks2 = list()
@@ -694,11 +697,13 @@ def contrastplot(data, idx,
                 sns.despine(ax=axx, trim=True)
 
     ### Add Figure Legend.
-    legend_labels_unique=np.unique(legend_labels)
-    unique_idx=np.unique(legend_labels, return_index=True)[1]
-    legend_handles_unique=(pd.Series(legend_handles).loc[unique_idx]).tolist()
-    last_swarm.legend(legend_handles_unique,legend_labels_unique,
-                    **legend_kwargs)
+    legend_labels_unique = np.unique(legend_labels)
+    unique_idx = np.unique(legend_labels,
+                            return_index=True)[1]
+    legend_handles_unique = (pd.Series(legend_handles).loc[unique_idx]).tolist()
+    last_swarm.legend(legend_handles_unique,
+                     legend_labels_unique,
+                     **legend_kwargs)
 
     ### PREPARE OUTPUT
     # Turn `bootlist` into a pandas DataFrame
