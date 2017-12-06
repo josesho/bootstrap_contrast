@@ -29,9 +29,9 @@ class bootstrap:
             destiny estimate).
 
         alpha: float, default 0.05
-            Denotes the likelihood that the confidence interval produced _does not_
-            include the true summary statistic. When alpha = 0.05, a 95% confidence
-            interval is produced.
+            Denotes the likelihood that the confidence interval produced
+            _does not_ include the true summary statistic. When alpha = 0.05,
+            a 95% confidence interval is produced.
 
         reps: int, default 5000
             Number of bootstrap iterations to perform.
@@ -311,7 +311,7 @@ def bca(data, alphas, statarray, statfunction, ostat, reps):
     z0 = norm.ppf( ( 1.0*np.sum(statarray < ostat, axis = 0)  ) / reps )
 
     # Statistics of the jackknife distribution
-    jackindexes = jackknife_indexes(data[0]) # I use the scikits.bootstrap function here.
+    jackindexes = jackknife_indexes(data[0])
     jstat = [statfunction(*(x[indexes] for x in data))
             for indexes in jackindexes]
     jmean = np.mean(jstat,axis = 0)

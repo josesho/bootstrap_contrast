@@ -9,20 +9,26 @@ def halfviolin(v, half = 'right', color = 'k'):
     for b in v['bodies']:
             mVertical = np.mean(b.get_paths()[0].vertices[:, 0])
             mHorizontal = np.mean(b.get_paths()[0].vertices[:, 1])
+            vertices = b.get_paths()[0].vertices
             if half is 'left':
-                b.get_paths()[0].vertices[:, 0] = np.clip(b.get_paths()[0].vertices[:, 0], -np.inf, mVertical)
+                b.get_paths()[0].vertices[:, 0] = np.clip(vertices[:, 0],
+                                                    -np.inf, mVertical)
             if half is 'right':
-                b.get_paths()[0].vertices[:, 0] = np.clip(b.get_paths()[0].vertices[:, 0], mVertical, np.inf)
+                b.get_paths()[0].vertices[:, 0] = np.clip(vertices[:, 0],
+                                                    mVertical, np.inf)
             if half is 'bottom':
-                b.get_paths()[0].vertices[:, 1] = np.clip(b.get_paths()[0].vertices[:, 1], -np.inf, mHorizontal)
+                b.get_paths()[0].vertices[:, 1] = np.clip(vertices[:, 1],
+                                                    -np.inf, mHorizontal)
             if half is 'top':
-                b.get_paths()[0].vertices[:, 1] = np.clip(b.get_paths()[0].vertices[:, 1], mHorizontal, np.inf)
+                b.get_paths()[0].vertices[:, 1] = np.clip(vertices[:, 1],
+                                                    mHorizontal, np.inf)
             b.set_color(color)
 
 def align_yaxis(ax1, v1, ax2, v2):
     """adjust ax2 ylimit so that v2 in ax2 is aligned to v1 in ax1"""
     # Taken from
-    # http://stackoverflow.com/questions/7630778/matplotlib-align-origin-of-right-axis-with-specific-left-axis-value
+    # http://stackoverflow.com/questions/7630778/
+    # matplotlib-align-origin-of-right-axis-with-specific-left-axis-value
     _, y1 = ax1.transData.transform((0, v1))
     _, y2 = ax2.transData.transform((0, v2))
     inv = ax2.transData.inverted()
