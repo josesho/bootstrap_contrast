@@ -1,6 +1,10 @@
 # bootstrap-contrast [![Build Status](https://travis-ci.org/josesho/bootstrap_contrast.svg?branch=master)](https://travis-ci.org/josesho/bootstrap_contrast)
 
-![](https://raw.githubusercontent.com/josesho/bootstrap_contrast/master/images/readme-float-contrast.png)
+## THIS PACKAGE HAS BEEN DEPRECATED (JANUARY 2018)
+
+Please use the [DABEST-python](https://github.com/ACCLAB/DABEST-python) package instead. __`bootstrap-contrast` will no longer be supported.__
+
+<!--![](https://raw.githubusercontent.com/josesho/bootstrap_contrast/master/images/readme-float-contrast.png)-->
 
 ## About
 
